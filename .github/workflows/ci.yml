@@ -54,7 +54,7 @@ jobs:
       - name: Contrôle des manifestes (catalogue, testdata/manifests/valid, testdata/pods/scenarios)
         run: go test -count=1 -v ./tests/manifests/...
 
-  integration:
+  integration-kind:
     # Cluster kind jetable, une version de Kubernetes par entrée de la matrice (D-LL-015 :
     # jamais d'autre cluster que celui créé par le test).
     runs-on: ubuntu-latest
@@ -92,6 +92,20 @@ jobs:
         env:
           TELEMACH_KIND_IMAGE: ${{ matrix.image }}
         run: go test -tags integration -count=1 -timeout 30m ./tests/integration/...
+
+  integration:
+    # Check obligatoire unique : les checks d'une matrice portent un suffixe
+    # (« integration-kind (v1.35.9, …) ») et ne peuvent pas être déclarés « required » tels quels.
+    if: always()
+    needs: integration-kind
+    runs-on: ubuntu-latest
+    steps:
+      - name: Résultat des trois versions de Kubernetes
+        env:
+          RESULT: ${{ needs.integration-kind.result }}
+        run: |
+          echo "integration-kind : ${RESULT}"
+          test "${RESULT}" = "success"
 
   vuln:
     runs-on: ubuntu-latest
