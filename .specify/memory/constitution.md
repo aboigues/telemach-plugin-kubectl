@@ -1,33 +1,3 @@
-<!--
-Sync Impact Report
-==================
-Version change: (template non renseigné) → 1.0.0
-Motif du bump : version initiale. La constitution est ratifiée sur le modèle de celle du projet
-frère `../telemach-plugin-docker` (v1.1.0), transposée de Docker à Kubernetes / `kubectl`.
-
-Principes définis :
-- I. Vocation pédagogique
-- II. Français pour l'humain, anglais pour le code
-- III. Sécurité élevée (NON NÉGOCIABLE) — transposée à `kubectl` : kubeconfig et Secrets
-  Kubernetes, moindre privilège RBAC, aucune action sur les ressources de l'utilisateur pendant
-  les tests, bonnes pratiques des manifestes d'exemple ; règle « tag d'image » reprise de la
-  v1.1.0 du projet Docker (avertissement non bloquant).
-- IV. Gates GitHub Actions obligatoires (NON NÉGOCIABLE) — ajout du lint/validation des
-  manifestes Kubernetes dès qu'il en existe.
-- V. Mémoire des incidents (LESSON-LEARNED.md) — ajout de la relecture des leçons du projet frère.
-
-Sections ajoutées : Exigences de sécurité ; Workflow de développement et quality gates ;
-Governance.
-Sections supprimées : aucune.
-
-Templates dépendants : non modifiés (ils lisent la constitution à l'exécution).
-
-TODO différés :
-- Créer `LESSON-LEARNED.md` à la racine du dépôt (modèle d'entrée identique au projet Docker).
-- Créer `SECURITY.md` et activer la protection de la branche `main` lors de la mise en place du
-  dépôt GitHub (le dossier n'est pas encore un dépôt git).
--->
-
 # TELEMACH PLUGIN KUBECTL Constitution
 
 ## Core Principles

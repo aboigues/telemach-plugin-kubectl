@@ -1,0 +1,10 @@
+# Configuration gitleaks : règles par défaut, et une seule exception pour les corpus de
+# faux secrets volontaires utilisés par les tests de masquage (SC-006).
+title = "telemach-plugin-kubectl"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Faux secrets volontaires des corpus de tests"
+paths = ['''^testdata/secrets/''', '''^testdata/pods/''']

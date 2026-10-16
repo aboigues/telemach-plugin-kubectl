@@ -1,0 +1,19 @@
+# Mises à jour automatiques des dépendances Go et des actions GitHub.
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      securite-go:
+        applies-to: security-updates
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      securite-actions:
+        applies-to: security-updates
+        patterns: ["*"]
