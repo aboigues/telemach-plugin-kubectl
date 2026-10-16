@@ -71,14 +71,16 @@ func checkFile(t *testing.T, path string, allowed []string) {
 		}
 		t.Errorf("%s", v)
 	}
+	for _, sv := range SchemaCheck(path) {
+		if contains(allowed, sv.Kind) {
+			used[sv.Kind] = true
+			continue
+		}
+		t.Errorf("règles Kubernetes : %s", sv.Message)
+	}
 	for _, a := range allowed {
 		if !used[a] {
 			t.Errorf("défaut déclaré %q absent du manifeste : retirer la déclaration de expected.yaml", a)
-		}
-	}
-	for _, sv := range SchemaCheck(path) {
-		if !contains(allowed, "schema") {
-			t.Errorf("règles Kubernetes : %s", sv)
 		}
 	}
 }

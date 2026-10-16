@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: starting
+  labels:
+    telemach/scenario: starting
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+  initContainers:
+  - name: attente
+    image: busybox:1.38
+    command: ["sleep", "3600"]
+    securityContext: {allowPrivilegeEscalation: false}
+    resources:
+      requests: {cpu: 10m, memory: 16Mi}
+      limits: {cpu: 100m, memory: 32Mi}
+  containers:
+  - name: app
+    image: nginxinc/nginx-unprivileged:1.30-alpine
+    securityContext: {allowPrivilegeEscalation: false}
+    resources:
+      requests: {cpu: 10m, memory: 16Mi}
+      limits: {cpu: 100m, memory: 32Mi}

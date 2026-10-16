@@ -1,0 +1,40 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:26Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "kind": "Pod",
+                "name": "pending-pvc",
+                "namespace": "demo",
+                "resourceVersion": "592",
+                "uid": "906a6f89-20d4-472d-95ca-3c4cc9a7a079"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:26Z",
+            "message": "0/1 nodes are available: pod has unbound immediate PersistentVolumeClaims. not found",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:26Z",
+                "name": "pending-pvc.18df1e13b141b20f",
+                "namespace": "demo",
+                "resourceVersion": "595",
+                "uid": "57e142c8-8cb2-4fac-aaa4-aa9688822732"
+            },
+            "reason": "FailedScheduling",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "",
+            "source": {
+                "component": "default-scheduler"
+            },
+            "type": "Warning"
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

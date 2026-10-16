@@ -1,0 +1,106 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:24Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "kind": "Pod",
+                "name": "invalid-image-name",
+                "namespace": "demo",
+                "resourceVersion": "541",
+                "uid": "cd2ec3fe-bcc3-4e25-a332-faabcd28ba42"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:24Z",
+            "message": "Successfully assigned demo/invalid-image-name to telemach-cluster-control-plane",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:24Z",
+                "name": "invalid-image-name.18df1e132affc778",
+                "namespace": "demo",
+                "resourceVersion": "543",
+                "uid": "0ae0e7d7-34c4-47dc-b259-cfaa2278e6fd"
+            },
+            "reason": "Scheduled",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "",
+            "source": {
+                "component": "default-scheduler"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 11,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:25Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "invalid-image-name",
+                "namespace": "demo",
+                "resourceVersion": "542",
+                "uid": "cd2ec3fe-bcc3-4e25-a332-faabcd28ba42"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:59:25Z",
+            "message": "Failed to apply default image tag \"NGINX:Majuscules\": couldn't parse image name \"NGINX:Majuscules\": invalid reference format: repository name (library/NGINX) must be lowercase",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:25Z",
+                "name": "invalid-image-name.18df1e13748161c1",
+                "namespace": "demo",
+                "resourceVersion": "1069",
+                "uid": "005dcdf0-cc25-40a9-9bfd-3211b797e58e"
+            },
+            "reason": "InspectFailed",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Warning"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 11,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:25Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "invalid-image-name",
+                "namespace": "demo",
+                "resourceVersion": "542",
+                "uid": "cd2ec3fe-bcc3-4e25-a332-faabcd28ba42"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:59:25Z",
+            "message": "Error: InvalidImageName",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:25Z",
+                "name": "invalid-image-name.18df1e137481ea7f",
+                "namespace": "demo",
+                "resourceVersion": "1070",
+                "uid": "d94fbad4-1464-44b8-9263-e3e464004356"
+            },
+            "reason": "Failed",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Warning"
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

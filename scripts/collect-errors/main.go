@@ -97,7 +97,15 @@ func main() {
 	variant := flag.String("variant", "", "version mineure relevée (ex. 1.35) : variante rangée dans <id>@<version> si le message diffère")
 	only := flag.String("only", "", "identifiant d'un seul cas à relever")
 	manifests := flag.String("manifests", "", "dossier du corpus de manifestes : relève le message de « kubectl apply -f » de chaque cas")
+	pods := flag.String("pods", "", "dossier du corpus de pods : applique scenarios/ et relève l'état réel de chaque pod")
 	flag.Parse()
+	if *pods != "" {
+		if err := collectPods(*pods); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	if *manifests != "" {
 		if err := collectManifests(*manifests); err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -351,6 +359,71 @@ func collectManifests(root string) error {
 			}
 		}
 		fmt.Printf("%-28s %s", filepath.Base(dir), firstLine(files["stderr.txt"]))
+	}
+	return nil
+}
+
+// collectPods applique les scénarios de testdata/pods/scenarios/ sur un cluster jetable, laisse
+// le temps aux échecs d'apparaître, puis range pour chaque pod son JSON, ses événements et la
+// fin de son journal (T070). Les fausses valeurs d'environnement sont conservées : elles
+// servent à vérifier qu'elles ne sont jamais décodées.
+func collectPods(root string) error {
+	image := os.Getenv("TELEMACH_KIND_IMAGE")
+	if image == "" {
+		return fmt.Errorf("TELEMACH_KIND_IMAGE est obligatoire (image kindest/node épinglée par digest)")
+	}
+	scenarios, err := filepath.Glob(filepath.Join(root, "scenarios", "*.yaml"))
+	if err != nil {
+		return err
+	}
+	c, err := kindcluster.Create(image)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := c.Delete(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+	}()
+	if err := c.Must("create", "namespace", "demo"); err != nil {
+		return err
+	}
+	var names []string
+	for _, s := range scenarios {
+		if filepath.Base(s) == "expected.yaml" {
+			continue
+		}
+		if r := c.Kubectl("apply", "-n", "demo", "-f", s); r.ExitCode != 0 {
+			return fmt.Errorf("apply %s : %s", s, r.Stderr)
+		}
+		names = append(names, strings.TrimSuffix(filepath.Base(s), ".yaml"))
+	}
+	fmt.Println("attente de 120 s pour laisser apparaître les échecs…")
+	time.Sleep(120 * time.Second)
+	for _, name := range names {
+		dir := filepath.Join(root, name)
+		if err := os.MkdirAll(dir, 0o750); err != nil {
+			return err
+		}
+		reads := map[string][]string{
+			"pod.json":          {"get", "pod", name, "-n", "demo", "-o", "json"},
+			"events.json":       {"get", "events", "-n", "demo", "--field-selector", "involvedObject.kind=Pod,involvedObject.name=" + name, "-o", "json"},
+			"logs.txt":          {"logs", name, "-n", "demo", "-c", "app", "--tail=20"},
+			"logs-previous.txt": {"logs", name, "-n", "demo", "-c", "app", "--tail=20", "--previous"},
+		}
+		for file, args := range reads {
+			r := c.Kubectl(args...)
+			content := r.Stdout
+			if r.ExitCode != 0 {
+				content = ""
+			}
+			content = strings.ReplaceAll(content, c.Name, "telemach-cluster")
+			if err := os.WriteFile(filepath.Join(dir, file), []byte(content), 0o600); err != nil { //nolint:gosec // corpus du dépôt
+				return err
+			}
+		}
+		r := c.Kubectl("get", "pod", name, "-n", "demo", "-o", "jsonpath={.status.phase} {.status.containerStatuses[*].state}")
+		fmt.Printf("%-22s %s\n", name, r.Stdout)
 	}
 	return nil
 }

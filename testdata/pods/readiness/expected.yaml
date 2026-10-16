@@ -1,0 +1,3 @@
+state: failing
+reason: ReadinessProbeFailed
+entry: pod.readiness-probe

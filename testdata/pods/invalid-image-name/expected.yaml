@@ -1,0 +1,3 @@
+state: failing
+reason: InvalidImageName
+entry: pod.invalid-image-name

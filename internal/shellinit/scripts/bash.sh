@@ -11,6 +11,43 @@ __telemach_bin=__TELEMACH_BIN__
 # ainsi un terminal sans intégration, ou chargé par une version antérieure (D-LL-013).
 export TELEMACH_KUBECTL_SHELL=__TELEMACH_SHELL__
 
+# Vérification différée (FR-028 à FR-031) : après une création réussie (apply, create, run),
+# « kubectl-telemach watch » vérifie en arrière-plan, environ 10 s plus tard, le seul statut
+# des pods concernés ; son signal est déposé dans __telemach_pending et affiché à l'invite
+# suivante, jamais pendant une saisie. Seulement dans un shell interactif.
+__telemach_pending=__TELEMACH_PENDING__
+__telemach_shell_pid=$$
+__telemach_watch_on=0
+[[ $- == *i* ]] && __telemach_watch_on=1
+
+# Lance la vérification sans attendre ni rien afficher (entrées et sorties sur /dev/null).
+__telemach_watch() {
+	[[ "$__telemach_watch_on" == 1 && "${TELEMACH_WATCH:-}" != "0" ]] || return 0
+	command "$__telemach_bin" watch --shell-pid "$__telemach_shell_pid" -- "$@" </dev/null >/dev/null 2>&1 &
+}
+
+# Crochet d'invite : affiche puis supprime les signaux de ce shell ; sans signal, aucun
+# programme n'est lancé. Le code de retour de la dernière commande est préservé.
+__telemach_prompt() {
+	local __telemach_status=$? __telemach_f="$__telemach_pending/pending-$__telemach_shell_pid"
+	if [[ -s "$__telemach_f" ]]; then
+		printf '%s\n' "$(<"$__telemach_f")" >&2
+		command rm -f -- "$__telemach_f"
+	fi
+	return $__telemach_status
+}
+if [[ "$__telemach_watch_on" == 1 ]]; then
+	# PROMPT_COMMAND peut être une chaîne ou (bash ≥ 5.1) un tableau ; ajout idempotent.
+	if [[ "$(declare -p PROMPT_COMMAND 2>/dev/null)" == "declare -a"* ]]; then
+		[[ " ${PROMPT_COMMAND[*]} " == *" __telemach_prompt "* ]] || PROMPT_COMMAND+=(__telemach_prompt)
+	else
+		case ";${PROMPT_COMMAND:-};" in
+		*";__telemach_prompt;"*) ;;
+		*) PROMPT_COMMAND="__telemach_prompt${PROMPT_COMMAND:+;$PROMPT_COMMAND}" ;;
+		esac
+	fi
+fi
+
 # Commande kubectl réelle (research.md R4). Si « kubectl » est un alias (« microk8s kubectl »,
 # « minikube kubectl -- »), son texte est découpé en mots par le shell, sans être évalué ; un
 # rechargement de ce script garde la commande déjà trouvée.
@@ -93,6 +130,8 @@ __telemach_run() (
 		if [ "$__telemach_rc" -ne 0 ]; then
 			command "$__telemach_bin" explain --exit-code "$__telemach_rc" --interactive \
 				--kubectl-version "$__telemach_kubectl_version" --invoked-as "$__telemach_invoked" -- "$@" || true
+		else
+			__telemach_after_success "$@"
 		fi
 		exit "$__telemach_rc"
 	fi
@@ -116,9 +155,19 @@ __telemach_run() (
 	if [ "$__telemach_rc" -ne 0 ]; then
 		command "$__telemach_bin" explain --exit-code "$__telemach_rc" --stderr-file "$__telemach_tmp" \
 			--kubectl-version "$__telemach_kubectl_version" --invoked-as "$__telemach_invoked" -- "$@" || true
+	else
+		__telemach_after_success "$@"
 	fi
 	exit "$__telemach_rc"
 )
+
+# Après une création réussie, la vérification différée est lancée ; c'est « watch » qui écarte
+# les commandes non concernées (--dry-run, -f -, URL, -k).
+__telemach_after_success() {
+	case "$__telemach_verb" in
+	apply | create | run) __telemach_watch "$@" ;;
+	esac
+}
 
 __telemach_kubectl() { __telemach_run kubectl "$@"; }
 __telemach_kubectl_as() { __telemach_run "$@"; }

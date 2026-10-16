@@ -1,0 +1,238 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:25Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "kind": "Pod",
+                "name": "oom",
+                "namespace": "demo",
+                "resourceVersion": "579",
+                "uid": "c49c7ac6-3d89-4d9c-afc6-c578a4815848"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:25Z",
+            "message": "Successfully assigned demo/oom to telemach-cluster-control-plane",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:25Z",
+                "name": "oom.18df1e13869267bb",
+                "namespace": "demo",
+                "resourceVersion": "582",
+                "uid": "8a104b52-d0ae-4623-b705-3bbf0a0d7a90"
+            },
+            "reason": "Scheduled",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "",
+            "source": {
+                "component": "default-scheduler"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:26Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "oom",
+                "namespace": "demo",
+                "resourceVersion": "581",
+                "uid": "c49c7ac6-3d89-4d9c-afc6-c578a4815848"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:26Z",
+            "message": "Pulling image \"busybox:1.38\"",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:26Z",
+                "name": "oom.18df1e13c515b8ab",
+                "namespace": "demo",
+                "resourceVersion": "598",
+                "uid": "5b6eb406-a327-4c66-a652-7c9e96efef70"
+            },
+            "reason": "Pulling",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:36Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "oom",
+                "namespace": "demo",
+                "resourceVersion": "581",
+                "uid": "c49c7ac6-3d89-4d9c-afc6-c578a4815848"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:36Z",
+            "message": "Successfully pulled image \"busybox:1.38\" in 627ms (9.489s including waiting). Image size: 2236767 bytes.",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:36Z",
+                "name": "oom.18df1e15fab430bf",
+                "namespace": "demo",
+                "resourceVersion": "683",
+                "uid": "f21a1f09-2612-4812-bc48-904bcadfa6b0"
+            },
+            "reason": "Pulled",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 5,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:36Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "oom",
+                "namespace": "demo",
+                "resourceVersion": "581",
+                "uid": "c49c7ac6-3d89-4d9c-afc6-c578a4815848"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:59:01Z",
+            "message": "Container created",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:36Z",
+                "name": "oom.18df1e15fca22f3c",
+                "namespace": "demo",
+                "resourceVersion": "1000",
+                "uid": "8a8fabd8-22eb-4dae-8524-b62eaa157c91"
+            },
+            "reason": "Created",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 5,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:36Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "oom",
+                "namespace": "demo",
+                "resourceVersion": "581",
+                "uid": "c49c7ac6-3d89-4d9c-afc6-c578a4815848"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:59:01Z",
+            "message": "Container started",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:36Z",
+                "name": "oom.18df1e1607440935",
+                "namespace": "demo",
+                "resourceVersion": "1001",
+                "uid": "2f16be01-ef81-4f8b-b975-351498d760d3"
+            },
+            "reason": "Started",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 4,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:37Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "oom",
+                "namespace": "demo",
+                "resourceVersion": "581",
+                "uid": "c49c7ac6-3d89-4d9c-afc6-c578a4815848"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:59:01Z",
+            "message": "Container image \"busybox:1.38\" already present on machine and can be accessed by the pod",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:37Z",
+                "name": "oom.18df1e164af4c5bf",
+                "namespace": "demo",
+                "resourceVersion": "998",
+                "uid": "3f6a7984-aacd-4f55-9de4-889d9c9d3722"
+            },
+            "reason": "Pulled",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 4,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:38Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "oom",
+                "namespace": "demo",
+                "resourceVersion": "581",
+                "uid": "c49c7ac6-3d89-4d9c-afc6-c578a4815848"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:59:03Z",
+            "message": "Back-off restarting failed container app in pod oom_demo(c49c7ac6-3d89-4d9c-afc6-c578a4815848)",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:38Z",
+                "name": "oom.18df1e1686dceb97",
+                "namespace": "demo",
+                "resourceVersion": "1005",
+                "uid": "de910dd5-1050-4d8a-8d6b-86783f32a8e2"
+            },
+            "reason": "BackOff",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Warning"
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/aboigues/telemach-plugin-kubectl/internal/manifest"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/render"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/state"
+	"github.com/aboigues/telemach-plugin-kubectl/internal/workload"
 )
 
 // maxHeaderCommand limite la longueur de la commande rappelée en tête de « last ».
@@ -63,6 +65,13 @@ func (a *app) renderLast(w io.Writer, last state.LastDiagnosis, theme render.The
 	opts := render.Options{
 		Theme: theme, Width: width, KubectlVersion: last.KubectlVersion,
 		Interactive: last.Interactive, ExitCode: last.ExitCode,
+	}
+	if last.Source == state.SourcePod && len(last.Pod) > 0 {
+		// Diagnostic de pod réaffiché sans relire le cluster (FR-027).
+		var snap workload.PodSnapshot
+		if err := json.Unmarshal(last.Pod, &snap); err == nil {
+			return render.RenderPod(w, snap, d, opts)
+		}
 	}
 	if last.Source != state.SourceCheck {
 		if err := render.RenderExplanation(w, d, last.Stderr, opts); err != nil {

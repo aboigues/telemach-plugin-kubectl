@@ -1,0 +1,172 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:25Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "kind": "Pod",
+                "name": "missing-configmap",
+                "namespace": "demo",
+                "resourceVersion": "560",
+                "uid": "f4fea338-e0ea-426a-b1fd-034a96f87495"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:25Z",
+            "message": "Successfully assigned demo/missing-configmap to telemach-cluster-control-plane",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:25Z",
+                "name": "missing-configmap.18df1e1359746e73",
+                "namespace": "demo",
+                "resourceVersion": "562",
+                "uid": "1921b10f-0b7b-4968-9d05-96c2d14c015f"
+            },
+            "reason": "Scheduled",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "",
+            "source": {
+                "component": "default-scheduler"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:26Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "missing-configmap",
+                "namespace": "demo",
+                "resourceVersion": "561",
+                "uid": "f4fea338-e0ea-426a-b1fd-034a96f87495"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:26Z",
+            "message": "Pulling image \"busybox:1.38\"",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:26Z",
+                "name": "missing-configmap.18df1e13a2be2ac3",
+                "namespace": "demo",
+                "resourceVersion": "588",
+                "uid": "e8590bb8-eb83-4fc3-8251-e765ec9b93ca"
+            },
+            "reason": "Pulling",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:35Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "missing-configmap",
+                "namespace": "demo",
+                "resourceVersion": "561",
+                "uid": "f4fea338-e0ea-426a-b1fd-034a96f87495"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:35Z",
+            "message": "Successfully pulled image \"busybox:1.38\" in 627ms (8.797s including waiting). Image size: 2236767 bytes.",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:35Z",
+                "name": "missing-configmap.18df1e15af211ece",
+                "namespace": "demo",
+                "resourceVersion": "672",
+                "uid": "9902a662-a3a1-41a1-a57f-21aea5a4be08"
+            },
+            "reason": "Pulled",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 11,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:35Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "missing-configmap",
+                "namespace": "demo",
+                "resourceVersion": "561",
+                "uid": "f4fea338-e0ea-426a-b1fd-034a96f87495"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:59:29Z",
+            "message": "Error: configmap \"config-absente\" not found",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:35Z",
+                "name": "missing-configmap.18df1e15af250272",
+                "namespace": "demo",
+                "resourceVersion": "1076",
+                "uid": "4a878a5b-23ab-4bd9-8430-878430df5d18"
+            },
+            "reason": "Failed",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Warning"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 10,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:35Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "missing-configmap",
+                "namespace": "demo",
+                "resourceVersion": "561",
+                "uid": "f4fea338-e0ea-426a-b1fd-034a96f87495"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:59:29Z",
+            "message": "Container image \"busybox:1.38\" already present on machine and can be accessed by the pod",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:35Z",
+                "name": "missing-configmap.18df1e15d33381f2",
+                "namespace": "demo",
+                "resourceVersion": "1075",
+                "uid": "7d9c593e-3534-4019-a6ed-cf30313fb7a0"
+            },
+            "reason": "Pulled",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

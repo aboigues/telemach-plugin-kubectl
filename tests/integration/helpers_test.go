@@ -129,6 +129,13 @@ func lookPath(name string) (string, error) { return exec.LookPath(name) }
 // interactive sans fichiers de démarrage : seule une session interactive développe les alias.
 func shellRunInteractive(t *testing.T, shell, body string) (stdout, stderr string) {
 	t.Helper()
+	return shellRunInteractiveEnv(t, shell, body)
+}
+
+// shellRunInteractiveEnv est shellRunInteractive avec des variables supplémentaires (les
+// dernières l'emportent).
+func shellRunInteractiveEnv(t *testing.T, shell, body string, extra ...string) (stdout, stderr string) {
+	t.Helper()
 	bin := toolsDir(t)
 	script := filepath.Join(t.TempDir(), "body.sh")
 	if err := os.WriteFile(script, []byte(body+"\n"), 0o600); err != nil {
@@ -143,6 +150,7 @@ func shellRunInteractive(t *testing.T, shell, body string) (stdout, stderr strin
 		"PATH=" + bin + ":/usr/bin:/bin", "HOME=" + t.TempDir(), "XDG_STATE_HOME=" + t.TempDir(),
 		"XDG_RUNTIME_DIR=" + t.TempDir(), "KUBECONFIG=" + cluster.Kubeconfig, "NO_COLOR=1",
 	}
+	cmd.Env = append(cmd.Env, extra...)
 	var out, errb bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &errb
 	_ = cmd.Run()

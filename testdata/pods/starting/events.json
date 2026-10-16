@@ -1,0 +1,139 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:27Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "kind": "Pod",
+                "name": "starting",
+                "namespace": "demo",
+                "resourceVersion": "611",
+                "uid": "68c74259-06e6-40bd-aa7b-1f866c7ec5e3"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:27Z",
+            "message": "Successfully assigned demo/starting to telemach-cluster-control-plane",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:27Z",
+                "name": "starting.18df1e13f007f495",
+                "namespace": "demo",
+                "resourceVersion": "613",
+                "uid": "4151cc5e-424a-4bf2-9ca4-385998c7b05b"
+            },
+            "reason": "Scheduled",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "",
+            "source": {
+                "component": "default-scheduler"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:28Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.initContainers{attente}",
+                "kind": "Pod",
+                "name": "starting",
+                "namespace": "demo",
+                "resourceVersion": "612",
+                "uid": "68c74259-06e6-40bd-aa7b-1f866c7ec5e3"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:28Z",
+            "message": "Container image \"busybox:1.38\" already present on machine and can be accessed by the pod",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:28Z",
+                "name": "starting.18df1e142119a218",
+                "namespace": "demo",
+                "resourceVersion": "627",
+                "uid": "e3a29772-cbd0-44f8-a211-4e434581f935"
+            },
+            "reason": "Pulled",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:28Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.initContainers{attente}",
+                "kind": "Pod",
+                "name": "starting",
+                "namespace": "demo",
+                "resourceVersion": "612",
+                "uid": "68c74259-06e6-40bd-aa7b-1f866c7ec5e3"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:28Z",
+            "message": "Container created",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:28Z",
+                "name": "starting.18df1e1423ca6803",
+                "namespace": "demo",
+                "resourceVersion": "629",
+                "uid": "30860ebf-54fa-4ecb-b44a-edc258012037"
+            },
+            "reason": "Created",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:28Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.initContainers{attente}",
+                "kind": "Pod",
+                "name": "starting",
+                "namespace": "demo",
+                "resourceVersion": "612",
+                "uid": "68c74259-06e6-40bd-aa7b-1f866c7ec5e3"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:28Z",
+            "message": "Container started",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:28Z",
+                "name": "starting.18df1e143282c8cf",
+                "namespace": "demo",
+                "resourceVersion": "636",
+                "uid": "48ae0243-4ad7-4e49-a74e-522783cb6563"
+            },
+            "reason": "Started",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

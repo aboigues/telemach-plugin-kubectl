@@ -1,0 +1,205 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:22Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "kind": "Pod",
+                "name": "bad-image-2",
+                "namespace": "demo",
+                "resourceVersion": "478",
+                "uid": "c1126f7a-4a3b-4e5c-92ee-425af93cf69d"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:22Z",
+            "message": "Successfully assigned demo/bad-image-2 to telemach-cluster-control-plane",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:22Z",
+                "name": "bad-image-2.18df1e12ab1294c9",
+                "namespace": "demo",
+                "resourceVersion": "480",
+                "uid": "3bd36799-b998-4160-aac9-a94a5015e098"
+            },
+            "reason": "Scheduled",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "",
+            "source": {
+                "component": "default-scheduler"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 4,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:23Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "bad-image-2",
+                "namespace": "demo",
+                "resourceVersion": "479",
+                "uid": "c1126f7a-4a3b-4e5c-92ee-425af93cf69d"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:58:50Z",
+            "message": "Pulling image \"nginxinc/nginx-unprivileged:0.0.0-inexistant\"",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:23Z",
+                "name": "bad-image-2.18df1e12f1ed65ed",
+                "namespace": "demo",
+                "resourceVersion": "966",
+                "uid": "814606bd-1be3-4189-bbfd-48da2d212994"
+            },
+            "reason": "Pulling",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 4,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:24Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "bad-image-2",
+                "namespace": "demo",
+                "resourceVersion": "479",
+                "uid": "c1126f7a-4a3b-4e5c-92ee-425af93cf69d"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:58:51Z",
+            "message": "Failed to pull image \"nginxinc/nginx-unprivileged:0.0.0-inexistant\": rpc error: code = NotFound desc = failed to pull and unpack image \"docker.io/nginxinc/nginx-unprivileged:0.0.0-inexistant\": failed to resolve reference \"docker.io/nginxinc/nginx-unprivileged:0.0.0-inexistant\": docker.io/nginxinc/nginx-unprivileged:0.0.0-inexistant: not found",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:24Z",
+                "name": "bad-image-2.18df1e1316cd81c7",
+                "namespace": "demo",
+                "resourceVersion": "967",
+                "uid": "c21bf184-f5df-487e-8784-afc53fa60323"
+            },
+            "reason": "Failed",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Warning"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 4,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:24Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "bad-image-2",
+                "namespace": "demo",
+                "resourceVersion": "479",
+                "uid": "c1126f7a-4a3b-4e5c-92ee-425af93cf69d"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:58:51Z",
+            "message": "Error: ErrImagePull",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:24Z",
+                "name": "bad-image-2.18df1e1316ced447",
+                "namespace": "demo",
+                "resourceVersion": "968",
+                "uid": "005828fb-23ec-428e-ba45-7ab199364534"
+            },
+            "reason": "Failed",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Warning"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 7,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:24Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "bad-image-2",
+                "namespace": "demo",
+                "resourceVersion": "479",
+                "uid": "c1126f7a-4a3b-4e5c-92ee-425af93cf69d"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:59:16Z",
+            "message": "Back-off pulling image \"nginxinc/nginx-unprivileged:0.0.0-inexistant\"",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:24Z",
+                "name": "bad-image-2.18df1e133e53d2d3",
+                "namespace": "demo",
+                "resourceVersion": "1046",
+                "uid": "a4ef628e-305c-42a0-bd2e-53ccd9218ecb"
+            },
+            "reason": "BackOff",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 7,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:24Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "bad-image-2",
+                "namespace": "demo",
+                "resourceVersion": "479",
+                "uid": "c1126f7a-4a3b-4e5c-92ee-425af93cf69d"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:59:16Z",
+            "message": "Error: ImagePullBackOff",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:24Z",
+                "name": "bad-image-2.18df1e133e555759",
+                "namespace": "demo",
+                "resourceVersion": "1048",
+                "uid": "2a0dcebc-e431-40e8-a4bb-f62fbc94cf34"
+            },
+            "reason": "Failed",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Warning"
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

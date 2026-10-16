@@ -1,0 +1,40 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "count": 2,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:27Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "kind": "Pod",
+                "name": "pending-resources",
+                "namespace": "demo",
+                "resourceVersion": "600",
+                "uid": "33c24dc7-3759-4189-aab6-1a6ea9150b4b"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:29Z",
+            "message": "0/1 nodes are available: 1 Insufficient cpu. preemption: 0/1 nodes are available: 1 Preemption is not helpful for scheduling.",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:27Z",
+                "name": "pending-resources.18df1e13cace5e84",
+                "namespace": "demo",
+                "resourceVersion": "647",
+                "uid": "303d75a6-0347-4eb3-b451-5292abc55e59"
+            },
+            "reason": "FailedScheduling",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "",
+            "source": {
+                "component": "default-scheduler"
+            },
+            "type": "Warning"
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

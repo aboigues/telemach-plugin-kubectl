@@ -18,8 +18,8 @@ const EnvVar = "TELEMACH_KUBECTL_SHELL"
 
 // Script renvoie le code d'intégration à évaluer dans le shell donné. binPath est le chemin
 // du binaire kubectl-telemach à appeler (vide : cherché dans le PATH) ; version est celle du
-// plugin.
-func Script(shell, binPath, version string) (string, error) {
+// plugin ; pendingDir est le dossier des signaux de la vérification différée.
+func Script(shell, binPath, version, pendingDir string) (string, error) {
 	for _, s := range supported {
 		if s != shell {
 			continue
@@ -32,7 +32,8 @@ func Script(shell, binPath, version string) (string, error) {
 			binPath = "kubectl-telemach"
 		}
 		out := strings.Replace(string(data), "__TELEMACH_BIN__", shellQuote(binPath), 1)
-		return strings.Replace(out, "__TELEMACH_SHELL__", shellQuote(ShellValue(shell, version)), 1), nil
+		out = strings.Replace(out, "__TELEMACH_SHELL__", shellQuote(ShellValue(shell, version)), 1)
+		return strings.Replace(out, "__TELEMACH_PENDING__", shellQuote(pendingDir), 1), nil
 	}
 	return "", fmt.Errorf("shell non pris en charge : %q (shells disponibles : bash, zsh)", shell)
 }

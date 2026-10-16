@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/aboigues/telemach-plugin-kubectl/internal/shellinit"
+	"github.com/aboigues/telemach-plugin-kubectl/internal/state"
 )
 
 func (a *app) shellInitCommand() *cobra.Command {
@@ -22,7 +23,10 @@ alias (microk8s kubectl, minikube kubectl --) ou que tu utilises l'alias « k »
 ponctuelle : TELEMACH_DISABLE=1.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
-			script, err := shellinit.Script(args[0], a.executable(), a.version)
+			// Signaux de shells disparus (terminal fermé avant l'affichage) : supprimés ici.
+			pendingDir := state.PendingDir(a.getenv)
+			state.CleanStalePending(pendingDir)
+			script, err := shellinit.Script(args[0], a.executable(), a.version, pendingDir)
 			if err != nil {
 				fmt.Fprintf(a.stderr, "kubectl telemach : %v\n", err)
 				return exitError{code: 2}

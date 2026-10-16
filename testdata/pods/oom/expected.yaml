@@ -1,0 +1,3 @@
+state: failing
+reason: OOMKilled
+entry: pod.oom

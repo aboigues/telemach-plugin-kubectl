@@ -1,0 +1,3 @@
+state: failing
+reason: CreateContainerConfigError
+entry: pod.config-missing

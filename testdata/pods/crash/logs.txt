@@ -1,0 +1,2 @@
+erreur : la variable DB_URL est obligatoire
+démarrage

@@ -1,0 +1,172 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:24Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "kind": "Pod",
+                "name": "healthy",
+                "namespace": "demo",
+                "resourceVersion": "532",
+                "uid": "c2bfad11-2998-4c85-b59c-8897f306933e"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:24Z",
+            "message": "Successfully assigned demo/healthy to telemach-cluster-control-plane",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:24Z",
+                "name": "healthy.18df1e1319aa6644",
+                "namespace": "demo",
+                "resourceVersion": "534",
+                "uid": "84f2d0e5-cf90-48b9-9739-102711b4f170"
+            },
+            "reason": "Scheduled",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "",
+            "source": {
+                "component": "default-scheduler"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:25Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "healthy",
+                "namespace": "demo",
+                "resourceVersion": "533",
+                "uid": "c2bfad11-2998-4c85-b59c-8897f306933e"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:25Z",
+            "message": "Pulling image \"nginxinc/nginx-unprivileged:1.30-alpine\"",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:25Z",
+                "name": "healthy.18df1e135bfc5f67",
+                "namespace": "demo",
+                "resourceVersion": "564",
+                "uid": "894c4285-3ba3-4a35-8e3c-1b01f41ee9cf"
+            },
+            "reason": "Pulling",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:33Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "healthy",
+                "namespace": "demo",
+                "resourceVersion": "533",
+                "uid": "c2bfad11-2998-4c85-b59c-8897f306933e"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:33Z",
+            "message": "Successfully pulled image \"nginxinc/nginx-unprivileged:1.30-alpine\" in 5.371s (8.724s including waiting). Image size: 25589785 bytes.",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:33Z",
+                "name": "healthy.18df1e1563fefa4f",
+                "namespace": "demo",
+                "resourceVersion": "661",
+                "uid": "576442e7-ea2d-4902-bc24-b1e7dbcb4e71"
+            },
+            "reason": "Pulled",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:33Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "healthy",
+                "namespace": "demo",
+                "resourceVersion": "533",
+                "uid": "c2bfad11-2998-4c85-b59c-8897f306933e"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:33Z",
+            "message": "Container created",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:33Z",
+                "name": "healthy.18df1e15660aee08",
+                "namespace": "demo",
+                "resourceVersion": "662",
+                "uid": "fd6a999f-ea05-4708-87eb-94cba6aec37b"
+            },
+            "reason": "Created",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:34Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "healthy",
+                "namespace": "demo",
+                "resourceVersion": "533",
+                "uid": "c2bfad11-2998-4c85-b59c-8897f306933e"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:34Z",
+            "message": "Container started",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:34Z",
+                "name": "healthy.18df1e1588f552eb",
+                "namespace": "demo",
+                "resourceVersion": "664",
+                "uid": "ca527a94-c3cd-47c8-aab2-cf6570dd04e5"
+            },
+            "reason": "Started",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

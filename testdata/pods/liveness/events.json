@@ -1,0 +1,271 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:24Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "kind": "Pod",
+                "name": "liveness",
+                "namespace": "demo",
+                "resourceVersion": "547",
+                "uid": "ea6306dd-c3d6-4187-84b0-9cec98011146"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:24Z",
+            "message": "Successfully assigned demo/liveness to telemach-cluster-control-plane",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:24Z",
+                "name": "liveness.18df1e133d52d980",
+                "namespace": "demo",
+                "resourceVersion": "549",
+                "uid": "22eba8d4-c483-41a2-8470-72292c1d5b75"
+            },
+            "reason": "Scheduled",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "",
+            "source": {
+                "component": "default-scheduler"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:25Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "liveness",
+                "namespace": "demo",
+                "resourceVersion": "548",
+                "uid": "ea6306dd-c3d6-4187-84b0-9cec98011146"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:25Z",
+            "message": "Pulling image \"busybox:1.38\"",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:25Z",
+                "name": "liveness.18df1e138517742b",
+                "namespace": "demo",
+                "resourceVersion": "578",
+                "uid": "9a1363c6-7830-4350-ad1e-3bfdc609f02c"
+            },
+            "reason": "Pulling",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:34Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "liveness",
+                "namespace": "demo",
+                "resourceVersion": "548",
+                "uid": "ea6306dd-c3d6-4187-84b0-9cec98011146"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:34Z",
+            "message": "Successfully pulled image \"busybox:1.38\" in 632ms (8.667s including waiting). Image size: 2236767 bytes.",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:34Z",
+                "name": "liveness.18df1e1589b42511",
+                "namespace": "demo",
+                "resourceVersion": "666",
+                "uid": "5ef865b0-de9c-4d23-b23d-acba3e0dad86"
+            },
+            "reason": "Pulled",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 4,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:34Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "liveness",
+                "namespace": "demo",
+                "resourceVersion": "548",
+                "uid": "ea6306dd-c3d6-4187-84b0-9cec98011146"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:59:10Z",
+            "message": "Container created",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:34Z",
+                "name": "liveness.18df1e158b5ef50f",
+                "namespace": "demo",
+                "resourceVersion": "1025",
+                "uid": "09a9b77e-5f86-4c28-9eb5-69ea87515ce3"
+            },
+            "reason": "Created",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 4,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:34Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "liveness",
+                "namespace": "demo",
+                "resourceVersion": "548",
+                "uid": "ea6306dd-c3d6-4187-84b0-9cec98011146"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:59:10Z",
+            "message": "Container started",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:34Z",
+                "name": "liveness.18df1e159d372106",
+                "namespace": "demo",
+                "resourceVersion": "1028",
+                "uid": "68bcf741-5b88-4579-94d8-745ea4eba1d8"
+            },
+            "reason": "Started",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 4,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:35Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "liveness",
+                "namespace": "demo",
+                "resourceVersion": "548",
+                "uid": "ea6306dd-c3d6-4187-84b0-9cec98011146"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:59:11Z",
+            "message": "Liveness probe failed: ",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:35Z",
+                "name": "liveness.18df1e15aa3a577c",
+                "namespace": "demo",
+                "resourceVersion": "1033",
+                "uid": "0e11d7c7-f5e1-4632-910d-e591a0398986"
+            },
+            "reason": "Unhealthy",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Warning"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 4,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:35Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "liveness",
+                "namespace": "demo",
+                "resourceVersion": "548",
+                "uid": "ea6306dd-c3d6-4187-84b0-9cec98011146"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:59:11Z",
+            "message": "Container app failed liveness probe, will be restarted",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:35Z",
+                "name": "liveness.18df1e15d32dc0cc",
+                "namespace": "demo",
+                "resourceVersion": "1034",
+                "uid": "675769ef-c733-4be5-8bdb-206f22cce915"
+            },
+            "reason": "Killing",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 3,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:58:05Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "liveness",
+                "namespace": "demo",
+                "resourceVersion": "548",
+                "uid": "ea6306dd-c3d6-4187-84b0-9cec98011146"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:59:10Z",
+            "message": "Container image \"busybox:1.38\" already present on machine and can be accessed by the pod",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:58:05Z",
+                "name": "liveness.18df1e1cd1ed7f69",
+                "namespace": "demo",
+                "resourceVersion": "1024",
+                "uid": "55855447-5245-4232-b641-1daa5d1928b9"
+            },
+            "reason": "Pulled",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

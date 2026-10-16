@@ -29,7 +29,8 @@ Indique si possible :
 
 - Le plugin ne modifie **aucun fichier** de l'apprenant et **aucune ressource** d'un cluster.
 - Il n'exécute qu'une liste fermée de commandes, toutes en lecture, avec la commande `kubectl`
-  et les droits de l'apprenant (même kubeconfig, même contexte) :
+  et les droits de l'apprenant (même kubeconfig, même contexte, et l'identité `--as` seulement
+  si l'apprenant la donne à `diagnose`) :
   - `kubectl version --client -o json`, lu une fois par l'intégration shell (aucun contact
     avec le serveur API) ;
   - pour `kubectl telemach diagnose` : `get pods`, `get pod <nom>`, `get deployment <nom>`,

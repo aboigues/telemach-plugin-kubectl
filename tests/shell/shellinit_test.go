@@ -100,7 +100,7 @@ func runShell(t *testing.T, shell string, flags []string, e env, extraEnv []stri
 	if _, lookErr := exec.LookPath(shell); lookErr != nil {
 		t.Skipf("%s non installé", shell)
 	}
-	script, scriptErr := shellinit.Script(shell, "", "9.9.9")
+	script, scriptErr := shellinit.Script(shell, "", "9.9.9", "/tmp/telemach-pending-test")
 	if scriptErr != nil {
 		t.Fatal(scriptErr)
 	}
@@ -226,7 +226,7 @@ func TestInterruptCleansUp(t *testing.T) {
 		if _, err := exec.LookPath(shell); err != nil {
 			t.Skipf("%s non installé", shell)
 		}
-		script, _ := shellinit.Script(shell, "", "9.9.9")
+		script, _ := shellinit.Script(shell, "", "9.9.9", "/tmp/telemach-pending-test")
 		initFile := filepath.Join(t.TempDir(), "init.sh")
 		if err := os.WriteFile(initFile, []byte(script), 0o600); err != nil {
 			t.Fatal(err)
@@ -415,7 +415,7 @@ func TestAliasKNotCreatedNorModified(t *testing.T) {
 }
 
 func TestUnsupportedShell(t *testing.T) {
-	if _, err := shellinit.Script("fish", "", "9.9.9"); err == nil || !strings.Contains(err.Error(), "non pris en charge") {
+	if _, err := shellinit.Script("fish", "", "9.9.9", "/tmp/telemach-pending-test"); err == nil || !strings.Contains(err.Error(), "non pris en charge") {
 		t.Errorf("erreur en français attendue pour fish, obtenu %v", err)
 	}
 }

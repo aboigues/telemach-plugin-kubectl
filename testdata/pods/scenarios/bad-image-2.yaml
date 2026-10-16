@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-image-2
+  labels:
+    telemach/scenario: bad-image-2
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+  containers:
+  - name: app
+    image: nginxinc/nginx-unprivileged:0.0.0-inexistant
+    securityContext: {allowPrivilegeEscalation: false}
+    resources:
+      requests: {cpu: 10m, memory: 16Mi}
+      limits: {cpu: 100m, memory: 32Mi}
