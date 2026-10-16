@@ -1,0 +1,33 @@
+# Binaires
+/kubectl-telemach
+/dist/
+*.exe
+*.test
+
+# Couverture et profils
+*.out
+coverage/
+
+# Dépendances vendorisées
+vendor/
+
+# Éditeurs et systèmes
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.tmp
+
+# Environnement local (ne jamais versionner de secrets)
+.env
+.env.*
+
+# Kubernetes : jamais de kubeconfig ni de clés réelles (sauf corpus de test)
+kubeconfig*
+!testdata/**/kubeconfig*
+.kube/
+*.key
+*.crt
+!testdata/**/*.key
+!testdata/**/*.crt
