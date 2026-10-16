@@ -1,0 +1,24 @@
+✖ « web » (pods) est introuvable dans le namespace courant.
+
+📘 Concept — namespace
+   Un objet Kubernetes est rangé dans un namespace. Sans option -n, kubectl
+   cherche dans le namespace par défaut du contexte (souvent « default ») : un
+   objet d'un autre namespace y est introuvable.
+
+🔎 Cause probable
+   La commande ne précise pas de namespace : kubectl a cherché dans le namespace
+   courant de ton contexte. L'objet est peut-être dans un autre namespace, ou
+   son nom est mal écrit.
+
+💡 Corrections
+   1. Chercher l'objet dans tous les namespaces.
+      kubectl get pods -A
+   2. Puis relancer ta commande en précisant le bon namespace.
+      kubectl get pod web -n NAMESPACE
+   3. Voir le namespace par défaut de ton contexte.
+      kubectl config view --minify -o jsonpath='{..namespace}'
+
+── Message kubectl d'origine ───────────────────────────────────────────────────
+Error from server (NotFound): pods "web" not found
+
+➜ Pour aller plus loin : kubectl telemach deepen

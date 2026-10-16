@@ -1,0 +1,19 @@
+[1;38;2;255;122;122m✖ L'option « -n » est placée avant le nom du plugin, ce que kubectl refuse.[m
+
+[1;38;2;122;162;247m📘 Concept — kubectl plugin[m
+   Un plugin est un programme kubectl-NOM placé dans le PATH, appelé par
+   « kubectl NOM ». kubectl lui transmet tout ce qui suit son nom, mais refuse
+   toute option placée avant.
+
+[1;38;2;224;175;104m🔎 Cause probable[m
+   Pour un plugin, kubectl ne sait pas interpréter les options placées avant son
+   nom : elles doivent venir après le nom du plugin et de sa sous-commande.
+
+[1;38;2;158;206;106m💡 Corrections[m
+   1. Placer les options après le nom du plugin.
+      [38;2;248;248;242mkubectl telemach diagnose -n demo[0m
+
+[2;38;2;138;143;152m── Message kubectl d'origine ───────────────────────────────────────────────────[m
+[2;38;2;138;143;152mError: flags cannot be placed before plugin name: [m[1;38;2;125;207;255m-n[m
+
+[3;38;2;125;207;255m➜ Pour aller plus loin : kubectl telemach deepen[m

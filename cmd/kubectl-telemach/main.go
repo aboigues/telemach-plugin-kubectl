@@ -107,7 +107,7 @@ func (a *app) rootCommand() *cobra.Command {
 	root.CompletionOptions.DisableDefaultCmd = true
 	frenchHelp(root)
 	root.SetVersionTemplate(versionTemplate)
-	root.AddCommand(a.shellInitCommand(), a.versionCommand(), a.explainCommand())
+	root.AddCommand(a.shellInitCommand(), a.versionCommand(), a.explainCommand(), a.lastCommand())
 	return root
 }
 

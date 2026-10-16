@@ -1,0 +1,1 @@
+Error from server (BadRequest): container "web" in pod "badimage" is waiting to start: trying and failing to pull image

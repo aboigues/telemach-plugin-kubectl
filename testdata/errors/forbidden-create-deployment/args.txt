@@ -1,0 +1,7 @@
+create
+deployment
+x
+--image=nginxinc/nginx-unprivileged:1.30-alpine
+-n
+demo
+--as=system:serviceaccount:demo:default

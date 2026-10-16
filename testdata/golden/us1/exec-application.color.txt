@@ -1,0 +1,23 @@
+[1;38;2;255;122;122m✖ La commande lancée dans le conteneur s'est terminée avec le code 3.[m
+   [2;38;2;138;143;152m(l'erreur vient du programme exécuté dans le conteneur, pas de Kubernetes)[m
+
+[1;38;2;122;162;247m📘 Concept — exit code[m
+   Tout programme se termine par un code de sortie : 0 signifie succès, toute
+   autre valeur un échec. kubectl exec transmet le code du programme lancé dans
+   le conteneur.
+
+[1;38;2;224;175;104m🔎 Cause probable[m
+   Kubernetes a bien exécuté la commande : c'est le programme lui-même qui a
+   signalé une erreur (code 3). Son message éventuel est affiché juste
+   au-dessus.
+
+[1;38;2;158;206;106m💡 Corrections[m
+   1. Relire la sortie de la commande, puis le journal du conteneur.
+      [38;2;248;248;242mkubectl logs web -n demo[0m
+   2. Ouvrir un shell dans le conteneur pour reproduire la commande pas à pas.
+      [38;2;248;248;242mkubectl [0m[38;2;248;248;242mexec[0m[38;2;248;248;242m -it web -n demo -- sh[0m
+
+[2;38;2;138;143;152m── Message kubectl d'origine ───────────────────────────────────────────────────[m
+[2;38;2;138;143;152mcommand terminated with exit code 3[m
+
+[3;38;2;125;207;255m➜ Pour aller plus loin : kubectl telemach deepen[m

@@ -1,0 +1,37 @@
+# Charges de travail : pods qui ne démarrent pas. Complété par la feature US4 (diagnose).
+- id: workload.container-waiting
+  category: workload
+  patterns:
+    - 'container "(?P<container>[^"]+)" in pod "(?P<name>[^"]+)" is waiting to start: (?P<reason>[^\n]+)'
+  concept:
+    name: container state
+    definition: >-
+      Un conteneur passe par trois états : Waiting (en attente : téléchargement de l'image,
+      configuration), Running (en cours d'exécution) et Terminated (terminé). Tant qu'il
+      attend, il n'a encore rien écrit dans son journal.
+  summary: Le conteneur « {{.container}} » du pod « {{.name}} » n'a pas encore démarré.
+  cause: >-
+    Le conteneur est encore en attente ({{.reason}}) : il n'y a donc pas de journal à lire.
+    La raison de l'attente se trouve dans le statut et les événements du pod.
+  fixes:
+    - description: Laisser TELEMACH diagnostiquer le pod (lecture seule).
+      command: '{{.kubectl}} telemach diagnose pod/{{.name}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Lire soi-même les événements du pod, en bas de la sortie.
+      command: '{{.kubectl}} describe pod {{.name}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      « kubectl logs » lit la sortie d'un programme qui a démarré. Si l'image ne peut pas être
+      téléchargée, ou si un Secret attendu manque, le programme ne démarre jamais : les
+      événements (« kubectl describe » ou « kubectl get events ») expliquent alors pourquoi.
+    example: |-
+      kubectl get pod web -o jsonpath='{.status.containerStatuses[*].state}'
+      kubectl get events --field-selector involvedObject.name=web
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-attente », lance un pod
+      avec une image inexistante (« nginxinc/nginx-unprivileged:0.0.0 »), puis compare
+      « kubectl logs », « kubectl describe pod » et « kubectl telemach diagnose ». Supprime le
+      namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-states
+  tests: [logs-waiting]

@@ -1,0 +1,251 @@
+# Erreurs d'écriture de la ligne de commande kubectl (FR-011, FR-012).
+- id: cmdline.unknown-resource-type
+  category: cmdline
+  patterns:
+    - 'the server doesn''t have a resource type "(?P<type>[^"]+)"'
+  concept:
+    name: resource type
+    definition: >-
+      Chaque objet Kubernetes a un type : pod, deployment, service, configmap… kubectl accepte
+      le nom au singulier, au pluriel ou en abrégé (po, deploy, svc, cm), mais seulement pour
+      les types que le cluster publie.
+  summary: Le type de ressource « {{.type}} » n'existe pas dans ce cluster.
+  cause: >-
+    {{if .suggested_type}}C'est probablement une faute de frappe : le type connu le plus
+    proche est « {{.suggested_type}} ».{{else}}Le type tapé ne correspond à aucun type publié
+    par le serveur API : faute de frappe, ou ressource personnalisée (CRD) non installée.{{end}}
+  fixes:
+    - description: Relancer la commande avec le type corrigé (le reste de ta commande est conservé).
+      command: '{{.kubectl}} {{.fixed_command}}'
+      safe: true
+    - description: Lister tous les types de ressources connus du cluster, avec leurs noms courts.
+      command: '{{.kubectl}} api-resources'
+      safe: true
+  deepen:
+    explanation: >-
+      Le serveur API publie la liste de ses types de ressources ; kubectl la consulte pour
+      comprendre « get pods » ou « get po ». Chaque type a un nom pluriel (pods), un nom
+      singulier (pod), parfois des noms courts (po) et un groupe d'API (apps pour les
+      deployments). Les ressources personnalisées (CRD) n'apparaissent qu'une fois installées.
+    example: |-
+      kubectl api-resources --namespaced=true
+      kubectl api-resources --api-group=apps
+      kubectl explain deployment
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-types », puis liste les
+      pods, les deployments et les services de ce namespace en utilisant uniquement les noms
+      courts (po, deploy, svc). Supprime-le ensuite avec « kubectl delete namespace exo-types ».
+  doc_url: https://kubernetes.io/docs/reference/kubectl/#resource-types
+  tests: [get-unknown-type, get-unknown-type-plural, describe-unknown-type]
+
+- id: cmdline.unknown-command
+  category: cmdline
+  patterns:
+    - 'unknown command "(?P<command>[^"]+)" for "kubectl"'
+  concept:
+    name: kubectl subcommand
+    definition: >-
+      Le premier mot après kubectl est une sous-commande qui dit ce que tu veux faire : get
+      (lister), describe (détailler), apply (appliquer un manifeste), logs, exec, delete…
+  summary: La sous-commande « {{.command}} » n'existe pas dans kubectl.
+  cause: >-
+    {{if .suggested_command}}C'est probablement une faute de frappe : la sous-commande la plus
+    proche est « {{.suggested_command}} ».{{else}}Ce mot n'est ni une sous-commande de kubectl ni
+    un plugin installé.{{end}}
+  fixes:
+    - description: Relancer la commande avec la sous-commande corrigée.
+      command: '{{.kubectl}} {{.fixed_command}}'
+      safe: true
+    - description: Afficher la liste des sous-commandes, regroupées par usage.
+      command: '{{.kubectl}} --help'
+      safe: true
+  deepen:
+    explanation: >-
+      kubectl suit toujours la même grammaire : « kubectl SOUS-COMMANDE TYPE NOM OPTIONS ». Les
+      sous-commandes de base (get, describe, create, apply, delete) agissent sur des
+      ressources ; d'autres (logs, exec, port-forward) agissent sur un pod en particulier. Un
+      mot inconnu est aussi cherché comme plugin (programme kubectl-MOT dans le PATH).
+    example: |-
+      kubectl get pods
+      kubectl describe pod NOM
+      kubectl plugin list
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-grammaire », puis écris
+      trois commandes qui respectent la grammaire « kubectl SOUS-COMMANDE TYPE » dans ce
+      namespace (get, describe, delete). Supprime-le ensuite.
+  doc_url: https://kubernetes.io/docs/reference/kubectl/
+  tests: [unknown-command]
+
+- id: cmdline.unknown-flag
+  category: cmdline
+  patterns:
+    - 'unknown flag: (?P<flag>--[A-Za-z0-9-]+)'
+    - 'unknown shorthand flag: ''(?P<short>.)'' in (?P<flag>-\S+)'
+  concept:
+    name: kubectl flag
+    definition: >-
+      Une option modifie la commande : « -n demo » choisit le namespace, « -o yaml » le format
+      de sortie. Les options longues commencent par deux tirets, les options courtes par un
+      seul tiret et une seule lettre.
+  summary: L'option « {{.flag}} » n'existe pas pour cette commande.
+  cause: >-
+    {{if .suggested_flag}}C'est probablement une faute de frappe : l'option la plus proche est
+    « {{.suggested_flag}} ».{{else}}Cette option n'existe pas pour la sous-commande « {{.sub}} »,
+    ou elle est mal écrite.{{end}}
+  fixes:
+    - description: Relancer la commande avec l'option corrigée.
+      command: '{{.kubectl}} {{.fixed_command}}'
+      safe: true
+    - description: Afficher les options de cette sous-commande.
+      command: '{{.kubectl}} {{.sub}} --help'
+      safe: true
+    - description: Afficher les options communes à toutes les commandes (namespace, contexte…).
+      command: '{{.kubectl}} options'
+      safe: true
+  deepen:
+    explanation: >-
+      kubectl a deux familles d'options : les options globales (-n, --context, --kubeconfig),
+      valables pour presque toutes les commandes, et les options propres à une sous-commande
+      (--image pour create deployment, --replicas pour scale). « kubectl options » liste les
+      premières, « kubectl SOUS-COMMANDE --help » les secondes.
+    example: |-
+      kubectl options
+      kubectl get --help
+      kubectl get pods -n kube-system -o wide
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-options », puis affiche
+      ses pods au format YAML, puis au format large (-o wide), en plaçant les options avant
+      puis après le type de ressource. Supprime-le ensuite.
+  doc_url: https://kubernetes.io/docs/reference/kubectl/kubectl/
+  tests: [unknown-flag, unknown-shorthand]
+
+- id: cmdline.resource-type-required
+  category: cmdline
+  patterns:
+    - 'You must specify the type of resource to (?P<verb>\w+)'
+  concept:
+    name: resource type
+    definition: >-
+      La plupart des sous-commandes agissent sur un type de ressource : « kubectl get pods »,
+      « kubectl describe deployment web ». Sans type, kubectl ne sait pas quoi chercher.
+  summary: Il manque le type de ressource après « {{.verb}} ».
+  cause: La commande ne précise pas quel type d'objet Kubernetes lister ou afficher.
+  fixes:
+    - description: Préciser le type de ressource (ici les pods).
+      command: '{{.kubectl}} {{.verb}} pods{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Afficher les principaux objets d'un namespace d'un coup.
+      command: '{{.kubectl}} get all{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      « kubectl get all » est un raccourci qui liste les objets les plus courants (pods,
+      services, deployments, replicasets…) mais pas tous : les configmaps, secrets et ingresses
+      n'y figurent pas. Pour les voir, il faut les nommer.
+    example: |-
+      kubectl get all
+      kubectl get configmaps,secrets
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-all », crée une
+      configmap avec « kubectl create configmap demo --from-file=/etc/hostname -n exo-all »,
+      puis vérifie qu'elle n'apparaît pas dans « get all ». Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_get/
+  tests: [get-no-type]
+
+- id: cmdline.plugin-flags-before-name
+  category: cmdline
+  patterns:
+    - 'flags cannot be placed before plugin name: (?P<flag>\S+)'
+  concept:
+    name: kubectl plugin
+    definition: >-
+      Un plugin est un programme kubectl-NOM placé dans le PATH, appelé par « kubectl NOM ».
+      kubectl lui transmet tout ce qui suit son nom, mais refuse toute option placée avant.
+  summary: L'option « {{.flag}} » est placée avant le nom du plugin, ce que kubectl refuse.
+  cause: >-
+    Pour un plugin, kubectl ne sait pas interpréter les options placées avant son nom : elles
+    doivent venir après le nom du plugin et de sa sous-commande.
+  fixes:
+    - description: Placer les options après le nom du plugin.
+      command: '{{.kubectl}} {{.fixed_command}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Pour une commande intégrée, kubectl accepte les options avant ou après la sous-commande
+      (« kubectl -n demo get pods » fonctionne). Pour un plugin, kubectl cherche le programme à
+      partir des premiers mots qui ne sont pas des options : une option en tête l'en empêche.
+    example: |-
+      kubectl plugin list
+      kubectl telemach diagnose -n kube-system
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-plugin », puis lance
+      « kubectl telemach diagnose -n exo-plugin » et constate qu'aucun pod n'est en difficulté.
+      Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/extend-kubectl/kubectl-plugins/
+  tests: [plugin-flags-before-name]
+
+- id: cmdline.required-flag
+  category: cmdline
+  patterns:
+    - 'required flag\(s\) "(?P<flag>[^"]+)" not set'
+  concept:
+    name: required flag
+    definition: >-
+      Certaines commandes ne peuvent rien faire sans une information précise : l'image à
+      lancer pour « create deployment », le nombre de réplicas pour « scale ».
+  summary: L'option obligatoire « --{{.flag}} » manque à la commande.
+  cause: >-
+    La sous-commande « {{.sub}} » exige l'option --{{.flag}}, qui n'a pas été donnée.
+  fixes:
+    - description: Ajouter l'option obligatoire, avec sa valeur.
+      command: '{{.kubectl}} {{.fixed_command}}'
+      safe: true
+    - description: Voir un exemple complet de la commande dans son aide.
+      command: '{{.kubectl}} {{.sub}} --help'
+      safe: true
+  deepen:
+    explanation: >-
+      Les commandes impératives (create deployment, scale, expose) construisent un objet à
+      partir des options. Elles sont pratiques pour apprendre, mais un manifeste YAML appliqué
+      avec « kubectl apply -f » garde une trace de toute la configuration et se relit mieux.
+    example: |-
+      kubectl create deployment web --image=nginxinc/nginx-unprivileged:1.30-alpine --dry-run=client -o yaml
+      kubectl scale deployment web --replicas=3
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-options », génère le
+      manifeste d'un deployment avec --dry-run=client -o yaml sans rien créer, puis lis-le
+      pour retrouver où figure l'image. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_deployment/
+  tests: [create-deployment-no-image, scale-no-replicas]
+
+- id: cmdline.invalid-name
+  category: cmdline
+  patterns:
+    - 'metadata\.name: Invalid value: "(?P<name>[^"]+)": a lowercase RFC 1123'
+  concept:
+    name: object name
+    definition: >-
+      Le nom d'un objet Kubernetes s'écrit en minuscules, avec des chiffres, des tirets et
+      parfois des points ; il commence et finit par une lettre ou un chiffre (63 caractères au
+      plus pour la plupart des objets).
+  summary: Le nom « {{.name}} » n'est pas un nom d'objet Kubernetes valide.
+  cause: >-
+    Le nom contient des majuscules, des « _ » ou d'autres caractères interdits : Kubernetes
+    l'utilise aussi comme nom DNS, d'où ces règles strictes.
+  fixes:
+    - description: Utiliser un nom en minuscules, avec des tirets à la place des « _ ».
+      command: '{{.kubectl}} {{.fixed_command}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Les noms suivent la norme DNS (RFC 1123) parce qu'ils servent à construire des noms de
+      réseau : un service « web » du namespace « demo » est joignable à l'adresse
+      web.demo.svc.cluster.local. Les labels, eux, acceptent davantage de caractères.
+    example: |-
+      kubectl run web-1 --image=nginxinc/nginx-unprivileged:1.30-alpine --dry-run=client -o yaml
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-noms », puis essaie de
+      créer une configmap nommée « Ma_Config » puis « ma-config » dans ce namespace. Compare
+      les deux résultats et supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/
+  tests: [run-invalid-name]

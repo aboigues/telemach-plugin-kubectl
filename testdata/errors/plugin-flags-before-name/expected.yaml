@@ -1,0 +1,3 @@
+entry: cmdline.plugin-flags-before-name
+origin: kubectl
+fixed_command_contains: 'telemach diagnose -n demo'

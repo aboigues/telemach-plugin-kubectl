@@ -1,0 +1,26 @@
+✖ kubectl ne trouve aucun cluster configuré et tente localhost:8080, où rien ne répond.
+
+📘 Concept — kubeconfig
+   kubectl est un client : il envoie chaque commande au serveur API du cluster.
+   L'adresse du serveur et tes identifiants sont rangés dans un fichier
+   kubeconfig (par défaut ~/.kube/config, ou celui de la variable KUBECONFIG).
+
+🔎 Cause probable
+   Aucun kubeconfig n'est chargé (fichier absent, vide ou variable KUBECONFIG
+   qui pointe ailleurs) : kubectl se rabat alors sur l'adresse par défaut
+   localhost:8080.
+
+💡 Corrections
+   1. Voir quel fichier et quel contexte kubectl utilise (le contenu sensible
+      est masqué).
+      kubectl config view --minify
+   2. Lister les contextes disponibles.
+      kubectl config get-contexts
+   3. Avec un cluster local (kind, minikube, microk8s), le démarrer ; il écrit
+      alors son contexte, par exemple « kind create cluster ».
+      kind create cluster --name apprentissage
+
+── Message kubectl d'origine ───────────────────────────────────────────────────
+The connection to the server localhost:8080 was refused - did you specify the right host or port?
+
+➜ Pour aller plus loin : kubectl telemach deepen

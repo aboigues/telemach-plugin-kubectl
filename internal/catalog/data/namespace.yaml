@@ -1,0 +1,35 @@
+# Namespaces (US1, scénario 2). Ces entrées sont chargées avant notfound.yaml : un namespace
+# introuvable est expliqué comme tel, et non comme une ressource quelconque.
+- id: namespace.not-found
+  category: namespace
+  patterns:
+    - 'namespaces "(?P<namespace>[^"]+)" not found'
+  concept:
+    name: namespace
+    definition: >-
+      Un namespace est un espace de noms qui regroupe des objets (pods, services…) à
+      l'intérieur d'un cluster. Il doit exister avant qu'on puisse y créer quoi que ce soit.
+  summary: Le namespace « {{.namespace}} » n'existe pas.
+  cause: >-
+    Le nom du namespace est mal écrit, ou il n'a pas encore été créé dans ce cluster.
+  fixes:
+    - description: Lister les namespaces existants.
+      command: '{{.kubectl}} get namespaces'
+      safe: true
+    - description: Créer le namespace s'il doit exister.
+      command: '{{.kubectl}} create namespace {{.namespace}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Les namespaces séparent les équipes, les applications ou les environnements dans un même
+      cluster. Certains objets n'appartiennent à aucun namespace (nodes, namespaces,
+      persistentvolumes, clusterroles) : « kubectl api-resources --namespaced=false » les liste.
+    example: |-
+      kubectl get namespaces
+      kubectl api-resources --namespaced=false
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-ns », crée-y une
+      configmap, puis vérifie qu'elle n'apparaît pas dans le namespace default. Supprime le
+      namespace ensuite : tout son contenu disparaît avec lui.
+  doc_url: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+  tests: [create-in-missing-namespace, describe-namespace-notfound]

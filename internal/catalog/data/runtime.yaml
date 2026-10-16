@@ -1,0 +1,106 @@
+# Erreurs du programme exécuté dans le conteneur (FR-004) : ce n'est pas Kubernetes qui
+# échoue, mais la commande lancée par exec ou run.
+- id: runtime.exec-not-found
+  category: runtime
+  patterns:
+    - 'exec: "(?P<command>[^"]+)": executable file not found in \$PATH'
+  concept:
+    name: container image content
+    definition: >-
+      kubectl exec lance un programme à l'intérieur d'un conteneur existant. Ce programme doit
+      exister dans l'image : une image minimale ne contient souvent ni bash, ni curl.
+  summary: Le programme « {{.command}} » n'existe pas dans le conteneur.
+  cause: >-
+    L'image du conteneur ne contient pas « {{.command}} », ou il n'est pas dans le PATH du
+    conteneur. Kubernetes a bien trouvé le pod : c'est la commande demandée qui manque.
+  fixes:
+    - description: Essayer le shell minimal présent dans la plupart des images (sh plutôt que bash).
+      command: '{{.kubectl}} exec -it {{.name}}{{if .scope}} {{.scope}}{{end}} -- sh'
+      safe: true
+    - description: Pour une image sans shell, lancer un conteneur de débogage éphémère à côté du conteneur.
+      command: '{{.kubectl}} debug -it {{.name}}{{if .scope}} {{.scope}}{{end}} --image=busybox:1.38 --target=CONTENEUR'
+      safe: true
+  deepen:
+    explanation: >-
+      Les images minimales (distroless, scratch, alpine) réduisent la surface d'attaque en
+      retirant les outils inutiles en production. Pour les examiner, « kubectl debug » ajoute
+      un conteneur éphémère qui partage les processus du pod, sans modifier l'image.
+    example: |-
+      kubectl exec web -- ls /
+      kubectl debug -it web --image=busybox:1.38 --target=web
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-exec », lance un pod
+      nginx-unprivileged, puis compare « kubectl exec POD -- sh -c 'echo ok' » et
+      « kubectl exec POD -- bash -c 'echo ok' ». Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/debug/debug-application/get-shell-running-container/
+  tests: [exec-command-not-found]
+
+- id: runtime.exec-exit-code
+  category: runtime
+  patterns:
+    - 'command terminated with exit code (?P<code>\d+)'
+  concept:
+    name: exit code
+    definition: >-
+      Tout programme se termine par un code de sortie : 0 signifie succès, toute autre valeur
+      un échec. kubectl exec transmet le code du programme lancé dans le conteneur.
+  summary: La commande lancée dans le conteneur s'est terminée avec le code {{.code}}.
+  cause: >-
+    Kubernetes a bien exécuté la commande : c'est le programme lui-même qui a signalé une
+    erreur (code {{.code}}). Son message éventuel est affiché juste au-dessus.
+  fixes:
+    - description: Relire la sortie de la commande, puis le journal du conteneur.
+      command: '{{.kubectl}} logs {{.name}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Ouvrir un shell dans le conteneur pour reproduire la commande pas à pas.
+      command: '{{.kubectl}} exec -it {{.name}}{{if .scope}} {{.scope}}{{end}} -- sh'
+      safe: true
+  deepen:
+    explanation: >-
+      Quelques codes ont un sens conventionnel : 126 (programme non exécutable), 127
+      (programme introuvable), 137 (arrêt forcé, souvent par manque de mémoire), 143 (arrêt
+      demandé par le signal SIGTERM). Les autres dépendent du programme.
+    example: |-
+      kubectl exec web -- sh -c 'exit 3'; echo "code : $?"
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-codes », lance un pod
+      busybox:1.38 qui dort (« sleep 3600 »), puis exécute dedans des commandes qui renvoient
+      0, 1 et 127. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/debug/debug-application/debug-running-pod/
+  tests: [exec-application-error]
+
+- id: runtime.application-error
+  category: runtime
+  applies: [exec, run, debug, attach]
+  fallback: application
+  concept:
+    name: container process
+    definition: >-
+      Avec exec, run -it ou attach, kubectl relie ton terminal à un programme qui tourne dans
+      un conteneur. Quand ce programme échoue, kubectl renvoie son code de sortie.
+  summary: Le programme lancé dans le conteneur s'est terminé avec le code {{.exit_code}}.
+  cause: >-
+    Le code de sortie vient du programme exécuté dans le conteneur, pas de Kubernetes ; son
+    message, s'il y en a un, est affiché dans ton terminal.
+  fixes:
+    - description: Lire le journal du conteneur.
+      command: '{{.kubectl}} logs {{.name}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Si le conteneur a redémarré, lire le journal de son exécution précédente.
+      command: '{{.kubectl}} logs {{.name}}{{if .scope}} {{.scope}}{{end}} --previous'
+      safe: true
+  deepen:
+    explanation: >-
+      Distinguer une erreur de Kubernetes (le pod est introuvable, l'accès est refusé) d'une
+      erreur de l'application (le programme a planté) oriente le diagnostic : dans le second
+      cas, la réponse est dans les journaux du conteneur, pas dans la configuration du cluster.
+    example: |-
+      kubectl logs web
+      kubectl logs web --previous
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-application », lance
+      « kubectl run essai --image=busybox:1.38 --restart=Never -n exo-application -- sh -c
+      'echo départ; exit 2' », puis lis son journal et son statut. Supprime le namespace
+      ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/debug/debug-application/
+  tests: [exec-application-error]

@@ -1,0 +1,24 @@
+[1;38;2;255;122;122m✖ « web » (pods) est introuvable dans le namespace courant.[m
+
+[1;38;2;122;162;247m📘 Concept — namespace[m
+   Un objet Kubernetes est rangé dans un namespace. Sans option -n, kubectl
+   cherche dans le namespace par défaut du contexte (souvent « default ») : un
+   objet d'un autre namespace y est introuvable.
+
+[1;38;2;224;175;104m🔎 Cause probable[m
+   La commande ne précise pas de namespace : kubectl a cherché dans le namespace
+   courant de ton contexte. L'objet est peut-être dans un autre namespace, ou
+   son nom est mal écrit.
+
+[1;38;2;158;206;106m💡 Corrections[m
+   1. Chercher l'objet dans tous les namespaces.
+      [38;2;248;248;242mkubectl get pods -A[0m
+   2. Puis relancer ta commande en précisant le bon namespace.
+      [38;2;248;248;242mkubectl get pod web -n NAMESPACE[0m
+   3. Voir le namespace par défaut de ton contexte.
+      [38;2;248;248;242mkubectl config view --minify -o [0m[38;2;248;248;242mjsonpath[0m[38;2;249;38;114m=[0m[38;2;230;219;116m'{..namespace}'[0m
+
+[2;38;2;138;143;152m── Message kubectl d'origine ───────────────────────────────────────────────────[m
+[2;38;2;138;143;152mError from server (NotFound): [m[1;38;2;125;207;255mpod[m[2;38;2;138;143;152ms "[m[1;38;2;125;207;255mweb[m[2;38;2;138;143;152m" not found[m
+
+[3;38;2;125;207;255m➜ Pour aller plus loin : kubectl telemach deepen[m

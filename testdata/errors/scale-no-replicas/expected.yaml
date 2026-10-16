@@ -1,0 +1,3 @@
+entry: cmdline.required-flag
+origin: kubectl
+fixed_command_contains: '--replicas=NOMBRE'

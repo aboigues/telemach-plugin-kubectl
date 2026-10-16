@@ -1,0 +1,4 @@
+get
+pods
+--kubeconfig
+/tmp/telemach/empty-kubeconfig

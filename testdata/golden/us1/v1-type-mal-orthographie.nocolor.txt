@@ -1,0 +1,23 @@
+✖ Le type de ressource « deploymnet » n'existe pas dans ce cluster.
+
+📘 Concept — resource type
+   Chaque objet Kubernetes a un type : pod, deployment, service, configmap…
+   kubectl accepte le nom au singulier, au pluriel ou en abrégé (po, deploy,
+   svc, cm), mais seulement pour les types que le cluster publie.
+
+🔎 Cause probable
+   C'est probablement une faute de frappe : le type connu le plus proche est
+   « deployment ».
+
+💡 Corrections
+   1. Relancer la commande avec le type corrigé (le reste de ta commande est
+      conservé).
+      kubectl get deployment -n demo
+   2. Lister tous les types de ressources connus du cluster, avec leurs noms
+      courts.
+      kubectl api-resources
+
+── Message kubectl d'origine ───────────────────────────────────────────────────
+error: the server doesn't have a resource type "deploymnet"
+
+➜ Pour aller plus loin : kubectl telemach deepen

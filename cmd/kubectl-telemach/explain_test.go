@@ -122,15 +122,16 @@ func TestExplainRedacts(t *testing.T) {
 	}
 }
 
-// Commande interactive : stderr non capté ; une version de kubectl mal formée est ignorée.
+// Commande interactive (stderr non capté) : le code 137 vient du programme du conteneur
+// (FR-004) ; une version de kubectl mal formée est ignorée.
 func TestExplainInteractiveAndVersion(t *testing.T) {
 	a, _, errb := newTestApp(t, nil)
 	if code := run(a, []string{"explain", "--color=never", "--exit-code", "137", "--interactive", "--kubectl-version", "pas-une-version", "--", "exec", "-it", "web", "--", "sh"}); code != 0 {
 		t.Fatalf("code %d", code)
 	}
 	got := errb.String()
-	if !strings.Contains(got, "interactive") || strings.Contains(got, "pas-une-version") {
-		t.Errorf("mode interactif mal rendu ou version invalide affichée :\n%s", got)
+	if !strings.Contains(got, "programme lancé dans le conteneur") || !strings.Contains(got, "pas de Kubernetes") || strings.Contains(got, "pas-une-version") {
+		t.Errorf("l'échec d'un exec interactif doit être attribué au programme du conteneur, sans version invalide :\n%s", got)
 	}
 }
 

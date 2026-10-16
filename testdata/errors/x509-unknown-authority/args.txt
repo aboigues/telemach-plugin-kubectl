@@ -1,0 +1,8 @@
+get
+pods
+--kubeconfig
+/tmp/telemach/empty-kubeconfig
+--server
+https://127.0.0.1:6443
+--token
+fake-token

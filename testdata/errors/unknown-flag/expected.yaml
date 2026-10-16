@@ -1,0 +1,3 @@
+entry: cmdline.unknown-flag
+origin: kubectl
+fixed_command_contains: 'get pods --namespace demo'

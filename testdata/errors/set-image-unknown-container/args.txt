@@ -1,0 +1,6 @@
+set
+image
+deployment/web
+nope=nginxinc/nginx-unprivileged:1.30-alpine
+-n
+demo

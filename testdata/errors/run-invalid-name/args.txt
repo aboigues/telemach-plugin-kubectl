@@ -1,0 +1,5 @@
+run
+Web_1
+--image=nginxinc/nginx-unprivileged:1.30-alpine
+-n
+demo
