@@ -137,3 +137,23 @@ func checkTestCase(t *testing.T, e *Entry, name string) {
 		t.Errorf("%s : aucun motif ne reconnaît testdata/errors/%s/stderr.txt", e.ID, name)
 	}
 }
+
+// TestExercisesAreSafe (T068) : chaque exercice se fait dans un namespace que l'apprenant crée
+// lui-même, jamais dans default ni kube-system.
+func TestExercisesAreSafe(t *testing.T) {
+	c, err := Default()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range c.Entries {
+		ex := e.Deepen.Exercise
+		if !strings.Contains(ex, "kubectl create namespace") {
+			t.Errorf("%s : l'exercice doit faire créer un namespace d'exercice (« kubectl create namespace »)", e.ID)
+		}
+		for _, forbidden := range []string{"-n default", "-n kube-system", "--namespace=default", "--namespace kube-system", "delete namespace default", "delete namespace kube-system"} {
+			if strings.Contains(ex, forbidden) {
+				t.Errorf("%s : l'exercice ne doit pas viser %q", e.ID, forbidden)
+			}
+		}
+	}
+}

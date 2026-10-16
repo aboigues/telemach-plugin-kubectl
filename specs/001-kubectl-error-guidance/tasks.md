@@ -174,9 +174,9 @@ Dans chaque histoire, les tests sont écrits **avant** l'implémentation et doiv
 
 **Independent Test**: quickstart V12 après une explication de US1 ou US2.
 
-- [ ] T066 [P] [US3] Écrire `cmd/kubectl-telemach/deepen_test.go` et `internal/render/deepen_golden_test.go` : contenu de `Deepen` du dernier diagnostic, exemple coloré, `--exercise`, message si aucun diagnostic ; l'exercice nomme un namespace d'exercice à créer par l'apprenant et ne cible jamais `default` ni `kube-system`
-- [ ] T067 [US3] Implémenter `internal/render/deepen.go` et `cmd/kubectl-telemach/deepen.go` (lecture de `LastDiagnosis`, entrée du catalogue, avertissement d'intégration inactive comme `last`). Faire passer T066
-- [ ] T068 [US3] Relire toutes les entrées `Deepen` du catalogue : concept détaillé, exemple exécutable sur kind, exercice court et sans risque ; ajouter à `internal/catalog/catalog_test.go` la vérification que chaque `Deepen.Exercise` mentionne `kubectl create namespace`
+- [X] T066 [P] [US3] Écrire `cmd/kubectl-telemach/deepen_test.go` et `internal/render/deepen_golden_test.go` : contenu de `Deepen` du dernier diagnostic, exemple coloré, `--exercise`, message si aucun diagnostic ; l'exercice nomme un namespace d'exercice à créer par l'apprenant et ne cible jamais `default` ni `kube-system`
+- [X] T067 [US3] Implémenter `internal/render/deepen.go` et `cmd/kubectl-telemach/deepen.go` (lecture de `LastDiagnosis`, entrée du catalogue, avertissement d'intégration inactive comme `last`). Faire passer T066
+- [X] T068 [US3] Relire toutes les entrées `Deepen` du catalogue : concept détaillé, exemple exécutable sur kind, exercice court et sans risque ; ajouter à `internal/catalog/catalog_test.go` la vérification que chaque `Deepen.Exercise` mentionne `kubectl create namespace`
 
 **Checkpoint**: US3 est démontrable avec une entrée de US1 ou de US2.
 
