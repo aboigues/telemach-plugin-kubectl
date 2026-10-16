@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Mesure la couverture de tests des paquets internal/ et échoue sous le seuil (T085).
+#   scripts/couverture [seuil]      (seuil par défaut : 80 %)
+set -euo pipefail
+seuil="${1:-80}"
+profil="$(mktemp "${TMPDIR:-/tmp}/couverture.XXXXXX")"
+trap 'rm -f -- "$profil"' EXIT
+go test -count=1 -coverprofile="$profil" ./internal/... >/dev/null
+total="$(go tool cover -func="$profil" | awk '/^total:/ { sub("%", "", $3); print $3 }')"
+if [ -z "$total" ]; then
+	echo "couverture : aucune mesure (D-LL-009)" >&2
+	exit 1
+fi
+echo "Couverture des paquets internal/ : ${total} % (seuil : ${seuil} %)"
+awk -v t="$total" -v s="$seuil" 'BEGIN { exit (t + 0 >= s + 0) ? 0 : 1 }' || {
+	echo "couverture insuffisante : ${total} % < ${seuil} %" >&2
+	exit 1
+}

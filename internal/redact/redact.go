@@ -33,11 +33,11 @@ var (
 	// Bloc PEM (certificat, clé privée).
 	pemBlock = regexp.MustCompile(`(-----BEGIN [A-Z0-9 ]+-----)[\s\S]*?(-----END [A-Z0-9 ]+-----)`)
 	// Options kubectl dont la valeur est secrète, sous la forme --option=valeur.
-	secretFlagEq = regexp.MustCompile(`(--(?:token|password|docker-password)=)(\S+)`)
+	secretFlagEq = regexp.MustCompile(`((?:^|[\s'"])--(?:token|password|docker-password)=)(\S+)`)
 	// Options kubectl dont la valeur est secrète, sous la forme --option valeur.
-	secretFlagSep = regexp.MustCompile(`(--(?:token|password|docker-password)[ \t]+)([^\s-]\S*)`)
+	secretFlagSep = regexp.MustCompile(`((?:^|[\s'"])--(?:token|password|docker-password)[ \t]+)([^\s-]\S*)`)
 	// --from-literal=clé=valeur : seule la valeur est masquée.
-	fromLiteral = regexp.MustCompile(`(--from-literal[= ][^=\s]+=)(\S+)`)
+	fromLiteral = regexp.MustCompile(`((?:^|[\s'"])--from-literal[= ][^=\s]+=)(\S+)`)
 	// Annotation qui recopie tout le manifeste appliqué, secrets compris.
 	lastApplied = regexp.MustCompile(`(kubectl\.kubernetes\.io/last-applied-configuration["']?[ \t]*:[ \t]*)([^\n]+)`)
 )

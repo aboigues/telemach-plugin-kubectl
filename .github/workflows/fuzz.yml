@@ -1,0 +1,28 @@
+# Fuzzing hebdomadaire (T086) : nettoyage, masquage, localisation dans les manifestes et
+# reconnaissance des erreurs. Toutes les actions sont épinglées par SHA de commit complet.
+name: fuzz
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Fuzzing (60 s par cible)
+        run: |
+          go test -run='^$' -fuzz=FuzzSanitize -fuzztime=60s ./internal/sanitize
+          go test -run='^$' -fuzz=FuzzRedact -fuzztime=60s ./internal/redact
+          go test -run='^$' -fuzz=FuzzLocate -fuzztime=60s ./internal/manifest
+          go test -run='^$' -fuzz=FuzzMatch -fuzztime=60s ./internal/diagnose

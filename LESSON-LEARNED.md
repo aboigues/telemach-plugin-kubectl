@@ -71,4 +71,19 @@ dans le registre d'origine ; seule la règle préventive, transposée à kubectl
 
 ## Incidents
 
-Aucun incident consigné pour l'instant.
+### LL-001 — Masquage de --token déclenché au milieu d'un mot
+
+- **Date** : 2026-10-16
+- **Catégorie** : bug
+- **Contexte** : ajout de la cible de fuzzing FuzzMatch (T086), avant toute publication.
+- **Cause racine** : les motifs de `internal/redact` pour `--token`, `--password`,
+  `--docker-password` et `--from-literal` n'étaient pas ancrés sur un début de mot : « 0--token
+  00 » était masqué en texte libre mais pas comme argument, ce qui rendait le masquage
+  incohérent entre la ligne de commande et la commande corrigée.
+- **Impact** : aucun en production (détecté par le fuzzing) ; risque de corrections affichées
+  différemment masquées.
+- **Correctif** : motifs ancrés sur le début du texte, une espace ou un guillemet.
+- **Règle préventive** : tout motif de masquage d'une option commence par `(?:^|[\s'"])` ; toute
+  nouvelle règle de masquage reçoit une cible ou un cas de fuzzing.
+- **Suivi** : cas `internal/diagnose/testdata/fuzz/FuzzMatch/71c034aa449f1db2` conservé comme test
+  de non-régression ; fuzzing hebdomadaire (`.github/workflows/fuzz.yml`).

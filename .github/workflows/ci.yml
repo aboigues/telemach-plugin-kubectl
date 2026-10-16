@@ -39,6 +39,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends zsh
       - name: Tests unitaires et de régression
         run: go test -race -cover ./...
+      - name: Couverture des paquets internal/ (80 % minimum)
+        run: scripts/couverture 80
 
   manifest-lint:
     # Manifestes Kubernetes du dépôt : validation par les règles embarquées et règles de
