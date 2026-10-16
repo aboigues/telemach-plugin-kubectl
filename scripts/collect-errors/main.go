@@ -96,7 +96,15 @@ func main() {
 	out := flag.String("out", "testdata/errors", "dossier du corpus")
 	variant := flag.String("variant", "", "version mineure relevée (ex. 1.35) : variante rangée dans <id>@<version> si le message diffère")
 	only := flag.String("only", "", "identifiant d'un seul cas à relever")
+	manifests := flag.String("manifests", "", "dossier du corpus de manifestes : relève le message de « kubectl apply -f » de chaque cas")
 	flag.Parse()
+	if *manifests != "" {
+		if err := collectManifests(*manifests); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	if err := collect(*out, *variant, *only); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -285,4 +293,64 @@ func firstLine(s string) string {
 		return s[:i+1]
 	}
 	return s + "\n"
+}
+
+// collectManifests applique chaque manifeste erroné du corpus (champ apply: true de
+// expected.yaml) sur un cluster jetable et range le message de kubectl dans le dossier du cas.
+func collectManifests(root string) error {
+	image := os.Getenv("TELEMACH_KIND_IMAGE")
+	if image == "" {
+		return fmt.Errorf("TELEMACH_KIND_IMAGE est obligatoire (image kindest/node épinglée par digest)")
+	}
+	dirs, err := filepath.Glob(filepath.Join(root, "*"))
+	if err != nil {
+		return err
+	}
+	c, err := kindcluster.Create(image)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := c.Delete(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+	}()
+	if err := c.Must("create", "namespace", "demo"); err != nil {
+		return err
+	}
+	for _, dir := range dirs {
+		exp, err := os.ReadFile(filepath.Join(dir, "expected.yaml")) //nolint:gosec // corpus du dépôt
+		if err != nil || !strings.Contains(string(exp), "apply: true") {
+			continue
+		}
+		file := ""
+		for _, line := range strings.Split(string(exp), "\n") {
+			if v, ok := strings.CutPrefix(line, "file: "); ok {
+				file = strings.Trim(v, "'")
+			}
+		}
+		args := []string{"apply", "-f", file, "-n", "demo"}
+		abs, err := filepath.Abs(dir)
+		if err != nil {
+			return err
+		}
+		r := c.KubectlIn(abs, args...)
+		if r.ExitCode == 0 {
+			fmt.Fprintf(os.Stderr, "⚠ %s : apply a réussi\n", filepath.Base(dir))
+			_ = c.KubectlIn(abs, "delete", "-f", file, "-n", "demo", "--wait=false")
+			continue
+		}
+		files := map[string]string{
+			"args.txt":      strings.Join(args, "\n") + "\n",
+			"stderr.txt":    normalize(r.Stderr, c),
+			"exit-code.txt": fmt.Sprintf("%d\n", r.ExitCode),
+		}
+		for name, content := range files {
+			if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o600); err != nil { //nolint:gosec // corpus du dépôt
+				return err
+			}
+		}
+		fmt.Printf("%-28s %s", filepath.Base(dir), firstLine(files["stderr.txt"]))
+	}
+	return nil
 }

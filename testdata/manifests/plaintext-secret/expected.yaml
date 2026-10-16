@@ -1,0 +1,8 @@
+file: 'secret.yaml'
+document: 1
+line: 7
+column: 13
+resource: 'Secret/db'
+field_path: 'stringData.password'
+kind: 'plaintext-secret'
+apply: false

@@ -10,6 +10,7 @@ import (
 
 	"github.com/aboigues/telemach-plugin-kubectl/internal/catalog"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/diagnose"
+	"github.com/aboigues/telemach-plugin-kubectl/internal/manifest"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/render"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/state"
 )
@@ -63,7 +64,26 @@ func (a *app) renderLast(w io.Writer, last state.LastDiagnosis, theme render.The
 		Theme: theme, Width: width, KubectlVersion: last.KubectlVersion,
 		Interactive: last.Interactive, ExitCode: last.ExitCode,
 	}
-	return render.RenderExplanation(w, d, last.Stderr, opts)
+	if last.Source != state.SourceCheck {
+		if err := render.RenderExplanation(w, d, last.Stderr, opts); err != nil {
+			return err
+		}
+	}
+	if len(last.Files) == 0 {
+		return nil
+	}
+	// Manifestes réanalysés dans leur état actuel (contracts/cli.md § last).
+	r := manifest.Analyze(last.Files, false, last.KubectlVersion)
+	if last.Source != state.SourceCheck {
+		r.AddLocations(manifest.Locate(last.Stderr, r.Files), firstLine(last.Stderr))
+		fmt.Fprintln(w)
+	}
+	cat, _ := catalog.Default()
+	kubectl := last.InvokedAs
+	if kubectl == "" {
+		kubectl = "kubectl"
+	}
+	return render.RenderManifestIssues(w, r, cat, render.ManifestOptions{Options: opts, Kubectl: kubectl, ShowRules: true, ShowSuccess: true})
 }
 
 // lastHeader rappelle la date et la commande du diagnostic réaffiché.

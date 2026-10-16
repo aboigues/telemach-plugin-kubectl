@@ -31,6 +31,8 @@ type Cluster struct {
 	Dir        string // dossier temporaire du cluster
 	Kind       string // binaire kind
 	KubectlBin string // binaire kubectl
+
+	workDir string // dossier de travail de la prochaine commande (KubectlIn)
 }
 
 // Result est le résultat d'une commande kubectl.
@@ -98,6 +100,13 @@ func (c *Cluster) Kubectl(args ...string) Result {
 	return c.KubectlEnv(nil, args...)
 }
 
+// KubectlIn exécute kubectl dans le dossier dir (chemins de -f relatifs à ce dossier).
+func (c *Cluster) KubectlIn(dir string, args ...string) Result {
+	c.workDir = dir
+	defer func() { c.workDir = "" }()
+	return c.Kubectl(args...)
+}
+
 // KubectlEnv est Kubectl avec des variables d'environnement supplémentaires.
 func (c *Cluster) KubectlEnv(extra []string, args ...string) Result {
 	if !strings.HasPrefix(c.Context, "kind-"+Prefix) {
@@ -132,6 +141,7 @@ func (c *Cluster) run(extra []string, args ...string) Result {
 	defer cancel()
 	cmd := exec.CommandContext(ctx, c.KubectlBin, args...) //nolint:gosec // binaire de test
 	cmd.Env = append(c.Env(), extra...)
+	cmd.Dir = c.workDir
 	var out, errb bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &errb
 	err := cmd.Run()

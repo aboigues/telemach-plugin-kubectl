@@ -1,0 +1,2 @@
+error: resource mapping not found for name: "demo" namespace: "" from "widget.yaml": no matches for kind "Widget" in version "example.com/v1"
+ensure CRDs are installed first

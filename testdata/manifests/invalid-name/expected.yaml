@@ -1,0 +1,9 @@
+file: 'cm.yaml'
+document: 1
+line: 4
+column: 9
+resource: 'ConfigMap/Web_Config'
+field_path: 'metadata.name'
+kind: 'invalid-name'
+suggestion: 'web-config'
+apply: true

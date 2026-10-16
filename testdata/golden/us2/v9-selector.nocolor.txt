@@ -1,0 +1,24 @@
+Règles Kubernetes 1.37
+✖ Problème 1/1 — selector-mismatch/deploy.yaml:9:7 (document 1, Deployment/web)
+   champ « spec.selector.matchLabels »
+   Le selector attend « app: web », absent des labels du modèle de pod (ligne
+   marquée ›).
+
+      7 │   selector:
+      8 │     matchLabels:
+   ➤  9 │       app: web
+                ^
+     10 │   template:
+     11 │     metadata:
+     12 │       labels:
+   › 13 │         app: api
+     14 │     spec:
+
+   💡 Version corrigée
+     13 │         app: web
+
+📘 Concept — label selector
+   Le selector d'un deployment désigne ses pods par leurs labels : il doit
+   correspondre aux labels de son modèle de pod.
+
+➜ Pour aller plus loin : kubectl telemach deepen

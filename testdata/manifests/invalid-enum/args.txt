@@ -1,0 +1,5 @@
+apply
+-f
+pod.yaml
+-n
+demo

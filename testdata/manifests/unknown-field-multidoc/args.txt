@@ -1,0 +1,5 @@
+apply
+-f
+all.yaml
+-n
+demo

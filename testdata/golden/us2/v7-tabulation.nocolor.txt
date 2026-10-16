@@ -1,0 +1,19 @@
+Règles Kubernetes 1.37
+✖ Problème 1/1 — tab-indent/deploy.yaml:18:1 (document 1, Deployment/web)
+   Cette ligne est indentée avec une tabulation, ce que YAML interdit.
+
+     16 │         runAsNonRoot: true
+     17 │       containers:
+   ➤ 18 │ →- name: web
+          ^
+     19 │         image: nginxinc/nginx-unprivileged:1.30-alpine
+     20 │         ports:
+
+   💡 Version corrigée
+     18 │       - name: web
+
+📘 Concept — YAML indentation
+   YAML interdit les tabulations dans l'indentation : seuls les espaces comptent
+   (deux par niveau, par convention).
+
+➜ Pour aller plus loin : kubectl telemach deepen

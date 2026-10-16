@@ -1,0 +1,5 @@
+apply
+-f
+deploy.yaml
+-n
+demo

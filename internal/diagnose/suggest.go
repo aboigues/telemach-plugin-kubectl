@@ -1,6 +1,7 @@
 package diagnose
 
 import (
+	"regexp"
 	"strings"
 	"unicode"
 
@@ -64,7 +65,27 @@ func suggest(in Input, d *Diagnosis) {
 		}
 	}
 	d.Captures["fixed_command"] = joinArgs(fixed)
+	if field := d.Captures["field"]; field != "" {
+		d.Captures["explain_path"] = ExplainPath(d.Captures["kind"], field)
+	}
 }
+
+// ExplainPath construit l'argument de « kubectl explain » qui documente le niveau où se
+// trouve un champ : « deployment.spec.template.spec.containers » pour
+// « spec.template.spec.containers[0].imagePullPolicyy ».
+func ExplainPath(kind, field string) string {
+	bare := indexes.ReplaceAllString(field, "")
+	parent := ""
+	if i := strings.LastIndex(bare, "."); i > 0 {
+		parent = "." + bare[:i]
+	}
+	if kind == "" {
+		kind = "RESSOURCE"
+	}
+	return strings.ToLower(kind) + parent
+}
+
+var indexes = regexp.MustCompile(`\[\d*\]`)
 
 // replaceType remplace le type tapé, seul (« pdos ») ou suivi d'un nom (« pdo/web »).
 func replaceType(args []string, typed, repl string) []string {

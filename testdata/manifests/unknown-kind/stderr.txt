@@ -1,0 +1,2 @@
+error: resource mapping not found for name: "web" namespace: "" from "deploy.yaml": no matches for kind "Deployement" in version "apps/v1"
+ensure CRDs are installed first

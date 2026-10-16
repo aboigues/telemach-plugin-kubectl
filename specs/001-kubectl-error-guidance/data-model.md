@@ -79,12 +79,13 @@ nœud), `SensitiveValues` (positions des valeurs masquées).
 
 | Champ | Type | Description |
 |-------|------|-------------|
-| `Kind` | `enum` | `yaml-syntax`, `tab-indent`, `missing-api-version`, `missing-kind`, `unknown-kind`, `removed-api-version`, `unknown-field`, `wrong-level`, `wrong-type`, `required-missing`, `invalid-enum`, `selector-mismatch`, `invalid-name`, `plaintext-secret`, `unknown-crd`, `file-not-found`, `file-unreadable` |
+| `Kind` | `enum` | `yaml-syntax`, `tab-indent`, `missing-api-version`, `missing-kind`, `unknown-kind`, `removed-api-version`, `unknown-field`, `wrong-level`, `wrong-type`, `required-missing`, `invalid-enum`, `selector-mismatch`, `invalid-name`, `plaintext-secret`, `unknown-crd`, `file-not-found`, `file-unreadable`, `no-manifest-file` (dossier sans manifeste), `not-utf8` (kubectl l'accepte, mais les accents seraient mal enregistrés), `server-rejected` (champ désigné par le serveur sans règle locale) |
 | `File`, `Document`, `Line`, `Column` | `string`, `int`… | Position dans le **fichier** (1-based ; 0 si inconnue) |
 | `Resource` | `string` | `Deployment/web` |
 | `FieldPath` | `string` | `spec.template.spec.containers[0].imagePullPolicyy` |
 | `Suggestion` | `string` | Champ, niveau ou `apiVersion` proposé |
 | `RelatedLines` | `[]int` | Autres lignes concernées (ex. labels du template pour `selector-mismatch`) |
+| `RelatedPaths` | `[]string` | Autres champs concernés, pour rattacher un message de kubectl qui les désigne |
 | `Excerpt`, `Fixed` | `[]Line` | Extrait masqué et version corrigée (FR-016) |
 | `Blocking` | `bool` | Erreur de syntaxe qui empêche le reste de l'analyse |
 | `RulesVersion` | `string` | Version de règles appliquée (`1.37`), indiquée par `check` (FR-014a) |

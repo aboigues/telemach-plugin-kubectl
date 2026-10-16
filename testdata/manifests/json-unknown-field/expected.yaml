@@ -1,0 +1,9 @@
+file: 'cm.json'
+document: 1
+line: 5
+column: 3
+resource: 'ConfigMap/web-config'
+field_path: 'dat'
+kind: 'unknown-field'
+suggestion: 'data'
+apply: true

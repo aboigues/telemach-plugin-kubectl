@@ -1,0 +1,21 @@
+[2;38;2;138;143;152mRègles Kubernetes 1.37[m
+[1;38;2;255;122;122m✖ Problème 1/1 — unknown-field-multidoc/all.yaml:24:3 (document 3, Deployment/web)[m
+   [2;38;2;138;143;152mchamp « [m[1;38;2;125;207;255mspec.replica[m[2;38;2;138;143;152m »[m
+   Ce champ n'existe pas : tu voulais sans doute écrire « replicas ».
+
+     [2;38;2;138;143;152m22 │ [m[38;2;248;248;242m  [0m[38;2;249;38;114mname[0m[38;2;248;248;242m:[0m[38;2;248;248;242m [0m[38;2;174;129;255mweb[0m[38;2;248;248;242m[0m
+     [2;38;2;138;143;152m23 │ [m[38;2;249;38;114mspec[0m[38;2;248;248;242m:[0m[38;2;248;248;242m[0m
+   [1;38;2;255;122;122m➤ [m[1;38;2;255;122;122m24 │ [m[38;2;248;248;242m  [0m[38;2;249;38;114mreplica[0m[38;2;248;248;242m:[0m[38;2;248;248;242m [0m[38;2;174;129;255m2[0m[38;2;248;248;242m[0m
+            [1;38;2;255;122;122m^[m
+     [2;38;2;138;143;152m25 │ [m[38;2;248;248;242m  [0m[38;2;249;38;114mselector[0m[38;2;248;248;242m:[0m[38;2;248;248;242m[0m
+     [2;38;2;138;143;152m26 │ [m[38;2;248;248;242m    [0m[38;2;174;129;255mmatchLabels:[0m
+
+   [1;38;2;158;206;106m💡 Version corrigée[m
+   [1;38;2;158;206;106m  24 │ [m[38;2;248;248;242m  [0m[38;2;249;38;114mreplicas[0m[38;2;248;248;242m:[0m[38;2;248;248;242m [0m[38;2;174;129;255m2[0m
+
+[1;38;2;122;162;247m📘 Concept — field validation[m
+   Chaque ressource a une liste précise de champs ; un champ inconnu est refusé
+   par le serveur API, pour qu'une faute de frappe ne soit pas ignorée en
+   silence.
+
+[3;38;2;125;207;255m➜ Pour aller plus loin : kubectl telemach deepen[m

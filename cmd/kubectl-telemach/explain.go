@@ -5,12 +5,14 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/aboigues/telemach-plugin-kubectl/internal/catalog"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/command"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/diagnose"
+	"github.com/aboigues/telemach-plugin-kubectl/internal/manifest"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/redact"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/render"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/sanitize"
@@ -92,9 +94,15 @@ func (a *app) explain(f explainFlags, args []string) error {
 		Theme: theme, Width: width, KubectlVersion: kubectlVersion, Repeated: repeated,
 		Interactive: in.Interactive, ExitCode: f.exitCode,
 	}
+	analysis, analyzed := a.manifestAnalysis(cmd, d, stderr, kubectlVersion)
 	fmt.Fprintln(w)
 	if err := render.RenderExplanation(w, d, stderr, opts); err != nil {
 		return err
+	}
+	if !repeated {
+		if err := a.renderManifestPart(w, cmd, analysis, analyzed, opts, f.invokedAs); err != nil {
+			return err
+		}
 	}
 	last := state.LastDiagnosis{
 		Fingerprint: d.Fingerprint, Captures: d.Captures, RecordedAt: now, Source: state.SourceCommand,
@@ -105,8 +113,65 @@ func (a *app) explain(f explainFlags, args []string) error {
 	if d.Entry != nil {
 		last.EntryID = d.Entry.ID
 	}
+	if analyzed {
+		last.Files = absPaths(cmd.LocalFiles())
+	}
 	_ = a.store.Save(last)
 	return nil
+}
+
+// manifestVerbs sont les sous-commandes qui lisent des manifestes avec -f.
+var manifestVerbs = map[string]bool{"apply": true, "create": true, "diff": true, "replace": true, "delete": true}
+
+// manifestAnalysis relit les manifestes locaux d'une commande en échec et rattache le
+// message de kubectl à leurs lignes (FR-013, FR-015). Elle complète aussi la commande
+// « kubectl explain » proposée avec le kind du document concerné.
+func (a *app) manifestAnalysis(cmd command.Command, d diagnose.Diagnosis, stderr, kubectlVersion string) (manifest.Result, bool) {
+	if !manifestVerbs[cmd.Verb()] || len(cmd.LocalFiles()) == 0 {
+		return manifest.Result{}, false
+	}
+	r := manifest.Analyze(cmd.LocalFiles(), cmd.Recursive, kubectlVersion)
+	locs := manifest.Locate(stderr, r.Files)
+	relevant := len(locs) > 0 || d.Entry == nil ||
+		(d.Entry.Category == "manifest" || d.Entry.Category == "schema" || d.Entry.ID == "cmdline.invalid-name")
+	if !relevant {
+		return manifest.Result{}, false
+	}
+	r.AddLocations(locs, firstLine(stderr))
+	if len(locs) > 0 {
+		kind, _, _ := strings.Cut(locs[0].Resource, "/")
+		if field := d.Captures["field"]; field != "" && kind != "" {
+			d.Captures["explain_path"] = diagnose.ExplainPath(kind, field)
+		}
+	}
+	return r, true
+}
+
+// renderManifestPart affiche les problèmes localisés après l'explication, ou indique pourquoi
+// la ligne ne peut pas être localisée (-f -, URL, -k).
+func (a *app) renderManifestPart(w io.Writer, cmd command.Command, r manifest.Result, analyzed bool, opts render.Options, invokedAs string) error {
+	t := opts.Theme
+	if manifestVerbs[cmd.Verb()] && cmd.HasUnrereadableFiles() {
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, t.Dim(render.Wrap("ℹ La ligne en cause ne peut pas être localisée : le manifeste est lu sur "+
+			"l'entrée standard (-f -), par une URL ou avec -k, et TELEMACH ne relit que les fichiers locaux.", opts.Width, "   ")))
+	}
+	if !analyzed || len(r.Issues) == 0 {
+		return nil
+	}
+	cat, _ := catalog.Default()
+	fmt.Fprintln(w)
+	return render.RenderManifestIssues(w, r, cat, render.ManifestOptions{Options: opts, Kubectl: invokedAs, ShowRules: true})
+}
+
+// firstLine renvoie la première ligne non vide d'un message.
+func firstLine(s string) string {
+	for _, l := range strings.Split(s, "\n") {
+		if t := strings.TrimSpace(l); t != "" {
+			return t
+		}
+	}
+	return ""
 }
 
 // readTail lit au plus limit octets, en gardant la fin du fichier, sans le modifier.

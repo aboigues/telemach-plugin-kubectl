@@ -149,3 +149,41 @@ func TestShellInitAndVersion(t *testing.T) {
 		t.Errorf("version : code %d\n%s", code, out)
 	}
 }
+
+// T064, quickstart V8 : après un « kubectl apply -f » réel en échec, le champ inconnu est
+// localisé dans le 3e document, à la ligne du fichier (et non du document).
+func TestExplainManifestLocated(t *testing.T) {
+	dir := "../../testdata/manifests/unknown-field-multidoc"
+	stderr, err := os.ReadFile(filepath.Join(dir, "stderr.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	wd, _ := os.Getwd()
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(wd) //nolint:errcheck
+	a, _, errb := newTestApp(t, nil)
+	f := writeStderr(t, string(stderr))
+	if code := run(a, []string{"explain", "--color=never", "--exit-code", "1", "--stderr-file", f, "--kubectl-version", "v1.36.5", "--", "apply", "-f", "all.yaml", "-n", "demo"}); code != 0 {
+		t.Fatalf("code %d", code)
+	}
+	got := errb.String()
+	for _, want := range []string{"Le champ « spec.replica » n'existe pas", "kubectl explain deployment.spec", "Règles Kubernetes 1.36", "all.yaml:24:3 (document 3, Deployment/web)", "replicas: 2"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("sortie sans %q :\n%s", want, got)
+		}
+	}
+}
+
+// -f - : la ligne ne peut pas être localisée, et TELEMACH le dit.
+func TestExplainManifestFromStdin(t *testing.T) {
+	a, _, errb := newTestApp(t, nil)
+	f := writeStderr(t, `Error from server (BadRequest): error when creating "STDIN": Deployment in version "v1" cannot be handled as a Deployment: strict decoding error: unknown field "spec.replica"`+"\n")
+	if code := run(a, []string{"explain", "--color=never", "--exit-code", "1", "--stderr-file", f, "--", "apply", "-f", "-"}); code != 0 {
+		t.Fatalf("code %d", code)
+	}
+	if !strings.Contains(errb.String(), "ne peut pas être localisée") {
+		t.Errorf("mention attendue :\n%s", errb)
+	}
+}

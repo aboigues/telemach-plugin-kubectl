@@ -1,0 +1,1 @@
+error: error validating "cm.yaml": error validating data: apiVersion not set; if you choose to ignore these errors, turn validation off with --validate=false

@@ -119,8 +119,11 @@ func checkTestCase(t *testing.T, e *Entry, name string) {
 		}
 	default:
 		data, err := os.ReadFile(filepath.Join(root, "errors", name, "stderr.txt"))
+		if err != nil && e.Category == "manifest" {
+			data, err = os.ReadFile(filepath.Join(root, "manifests", name, "stderr.txt"))
+		}
 		if err != nil {
-			t.Errorf("%s : cas %q absent de testdata/errors/ : %v", e.ID, name, err)
+			t.Errorf("%s : cas %q absent de testdata/errors/ (et testdata/manifests/) : %v", e.ID, name, err)
 			return
 		}
 		if len(e.Patterns) == 0 {

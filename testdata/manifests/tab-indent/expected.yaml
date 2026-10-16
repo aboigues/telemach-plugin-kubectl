@@ -1,0 +1,7 @@
+file: 'deploy.yaml'
+document: 1
+line: 18
+column: 1
+resource: 'Deployment/web'
+kind: 'tab-indent'
+apply: true

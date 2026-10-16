@@ -1,0 +1,9 @@
+file: 'deploy.yaml'
+document: 1
+line: 21
+column: 26
+resource: 'Deployment/web'
+field_path: 'spec.template.spec.containers[0].ports[0].containerPort'
+kind: 'wrong-type'
+suggestion: '8080'
+apply: true

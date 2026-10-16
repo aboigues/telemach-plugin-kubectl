@@ -1,0 +1,8 @@
+file: 'pod.yaml'
+document: 1
+line: 9
+column: 5
+resource: 'Pod/web'
+field_path: 'spec.containers'
+kind: 'wrong-type'
+apply: true

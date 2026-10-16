@@ -1,0 +1,2 @@
+Règles Kubernetes 1.36
+✔ Aucun problème détecté dans valid/all.yaml, valid/deploy.yaml, valid/service.yaml (4 documents)

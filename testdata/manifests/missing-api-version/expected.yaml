@@ -1,0 +1,7 @@
+file: 'cm.yaml'
+document: 1
+line: 1
+column: 1
+resource: 'ConfigMap/web-config'
+kind: 'missing-api-version'
+apply: true
