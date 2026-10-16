@@ -7,11 +7,21 @@ func TestResolveType(t *testing.T) {
 		in       string
 		singular string
 	}{
-		{"po", "pod"}, {"pods", "pod"}, {"Pod", "pod"},
-		{"deploy", "deployment"}, {"deployments.apps", "deployment"},
-		{"svc", "service"}, {"cm", "configmap"}, {"ns", "namespace"}, {"ing", "ingress"},
-		{"pvc", "persistentvolumeclaim"}, {"sts", "statefulset"}, {"ds", "daemonset"},
-		{"cj", "cronjob"}, {"job", "job"}, {"secret", "secret"},
+		{"po", "pod"},
+		{"pods", "pod"},
+		{"Pod", "pod"},
+		{"deploy", "deployment"},
+		{"deployments.apps", "deployment"},
+		{"svc", "service"},
+		{"cm", "configmap"},
+		{"ns", "namespace"},
+		{"ing", "ingress"},
+		{"pvc", "persistentvolumeclaim"},
+		{"sts", "statefulset"},
+		{"ds", "daemonset"},
+		{"cj", "cronjob"},
+		{"job", "job"},
+		{"secret", "secret"},
 	}
 	for _, tt := range tests {
 		rt, ok := ResolveType(tt.in)

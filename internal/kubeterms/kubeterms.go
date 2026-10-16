@@ -101,14 +101,18 @@ var subcommands = []string{
 
 // subSubcommands liste, pour les sous-commandes qui en ont, les mots de second niveau.
 var subSubcommands = map[string][]string{
-	"config": {"use-context", "current-context", "get-contexts", "set-context", "view",
+	"config": {
+		"use-context", "current-context", "get-contexts", "set-context", "view",
 		"get-clusters", "get-users", "set-cluster", "set-credentials", "delete-context",
-		"rename-context", "set", "unset", "delete-cluster", "delete-user"},
+		"rename-context", "set", "unset", "delete-cluster", "delete-user",
+	},
 	"rollout": {"status", "history", "undo", "restart", "pause", "resume"},
 	"set":     {"image", "env", "resources", "selector", "serviceaccount", "subject"},
-	"create": {"deployment", "namespace", "secret", "configmap", "service", "job", "cronjob",
+	"create": {
+		"deployment", "namespace", "secret", "configmap", "service", "job", "cronjob",
 		"ingress", "role", "rolebinding", "clusterrole", "clusterrolebinding", "serviceaccount",
-		"quota", "priorityclass", "poddisruptionbudget", "token"},
+		"quota", "priorityclass", "poddisruptionbudget", "token",
+	},
 	"auth":        {"can-i", "reconcile", "whoami"},
 	"top":         {"pod", "pods", "node", "nodes"},
 	"certificate": {"approve", "deny"},
