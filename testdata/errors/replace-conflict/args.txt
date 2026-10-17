@@ -1,0 +1,3 @@
+replace
+-f
+/tmp/telemach/web-stale.yaml

@@ -1,0 +1,3 @@
+state: failing
+reason: NodeSelectorMismatch
+entry: pod.unschedulable-nodeselector

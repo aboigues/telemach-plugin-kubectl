@@ -1,0 +1,18 @@
+✖ Le pod « pending-pvc » reste en attente, son volume persistant n'est pas lié.
+   pod pending-pvc · namespace demo · image nginxinc/nginx-unprivileged:1.30-alpine · état UnboundPersistentVolumeClaim
+
+📘 Concept — PersistentVolumeClaim
+   Un PersistentVolumeClaim (PVC) demande un espace de stockage ; il doit être
+   lié (Bound) à un volume avant que le pod qui l'utilise puisse être placé.
+
+🔎 Cause probable
+   Le PVC utilisé par le pod n'est lié à aucun volume : classe de stockage
+   inexistante, aucun volume compatible, ou PVC absent.
+
+💡 Corrections
+   1. Voir l'état des PVC du namespace et leurs événements.
+      kubectl get pvc -n demo
+   2. Vérifier les classes de stockage disponibles et corriger storageClassName.
+      kubectl get storageclass
+
+➜ Pour aller plus loin : kubectl telemach deepen

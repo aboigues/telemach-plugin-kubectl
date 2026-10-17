@@ -1,0 +1,1 @@
+error: error from server (NotFound): pods "absent" not found in namespace "demo"

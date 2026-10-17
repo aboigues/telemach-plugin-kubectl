@@ -1,0 +1,6 @@
+expose
+deployment
+absent
+--port=8080
+-n
+demo

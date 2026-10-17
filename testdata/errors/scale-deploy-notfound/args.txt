@@ -1,0 +1,6 @@
+scale
+deployment
+absent
+--replicas=2
+-n
+demo

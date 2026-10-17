@@ -117,7 +117,7 @@ Règles Kubernetes 1.37
 ## `diagnose` — diagnostiquer les pods en difficulté (FR-022 à FR-027)
 
 ```text
-kubectl telemach diagnose [pod/<nom> | deployment/<nom> | <nom de pod>] [-n <ns>] [--context <ctx>] [--kubeconfig <chemin>]
+kubectl telemach diagnose [pod/<nom> | deployment/<nom> | <nom de pod>] [-n <ns>] [--context <ctx>] [--kubeconfig <chemin>] [--as <identité>]
 ```
 
 - Sans argument : pods en échec du namespace (R10) ; explication complète du plus récent, puis
@@ -125,7 +125,7 @@ kubectl telemach diagnose [pod/<nom> | deployment/<nom> | <nom de pod>] [-n <ns>
 - Lectures autorisées : **uniquement** celles de R8 (`get pods|pod|deployment|events -o json`,
   `logs --tail=20 [--previous]`), via la commande kubectl de l'apprenant
   (`TELEMACH_KUBECTL`, sinon `kubectl` du `PATH`), avec ses `--context`, `-n`, `--kubeconfig`,
-  et `--request-timeout=10s`.
+  `--as` (pour vérifier ce qu'une autre identité peut lire), et `--request-timeout=10s`.
 - Lecture refusée (RBAC) → diagnostic partiel, lecture refusée nommée ; cluster injoignable →
   explication du catalogue (`connection.*`).
 - Aucun pod en difficulté → « ✔ Aucun pod en difficulté dans le namespace demo », avec le

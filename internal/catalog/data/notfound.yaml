@@ -1,0 +1,112 @@
+# Ressources, conteneurs et fichiers introuvables (US1, scénario 2).
+- id: notfound.resource
+  category: notfound
+  patterns:
+    - '(?i:error from server) \(NotFound\): (?P<restype>[a-z0-9.]+) "(?P<name>[^"]+)" not found(?: in namespace "(?P<namespace>[^"]+)")?'
+  concept:
+    name: namespace
+    definition: >-
+      Un objet Kubernetes est rangé dans un namespace. Sans option -n, kubectl cherche dans le
+      namespace par défaut du contexte (souvent « default ») : un objet d'un autre namespace y
+      est introuvable.
+  summary: '« {{.name}} » ({{.restype}}) est introuvable{{if .namespace}} dans le namespace « {{.namespace}} »{{else}} dans le namespace courant{{end}}.'
+  cause: >-
+    {{if .namespace}}Aucun objet de ce nom n'existe dans ce namespace : nom mal écrit, objet
+    supprimé, ou objet créé dans un autre namespace.{{else}}La commande ne précise pas de
+    namespace : kubectl a cherché dans le namespace courant de ton contexte. L'objet est
+    peut-être dans un autre namespace, ou son nom est mal écrit.{{end}}
+  fixes:
+    - description: Chercher l'objet dans tous les namespaces.
+      command: '{{.kubectl}} get {{.restype}} -A{{if .context}} --context {{.context}}{{end}}'
+      safe: true
+    - description: Puis relancer ta commande en précisant le bon namespace.
+      command: '{{.kubectl}} {{.fixed_command}} -n NAMESPACE'
+      safe: true
+    - description: Voir le namespace par défaut de ton contexte.
+      command: '{{.kubectl}} config view --minify -o jsonpath=''{..namespace}'''
+      safe: true
+  deepen:
+    explanation: >-
+      Deux objets de même nom peuvent exister dans deux namespaces différents : le nom complet
+      d'un objet est donc « namespace/nom ». kubectl utilise le namespace du contexte courant
+      sauf si -n est donné ; « kubectl config set-context --current --namespace=… » change ce
+      namespace par défaut.
+    example: |-
+      kubectl get pods -A
+      kubectl get pods -n kube-system
+      kubectl config set-context --current --namespace=kube-system
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-ns », crée-y un pod avec
+      « kubectl run web --image=nginxinc/nginx-unprivileged:1.30-alpine -n exo-ns », puis
+      cherche-le sans -n, avec -n, puis avec -A. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+  tests: [get-pod-notfound-default, describe-deploy-notfound, delete-pod-notfound, logs-pod-notfound, exec-pod-notfound, scale-deploy-notfound, rollout-status-notfound, edit-deploy-notfound, port-forward-notfound, expose-notfound]
+
+- id: notfound.container
+  category: notfound
+  patterns:
+    - 'unable to find container named "(?P<container>[^"]+)"'
+  concept:
+    name: container name
+    definition: >-
+      Un pod contient un ou plusieurs conteneurs, chacun avec un nom (champ
+      spec.containers[].name). Les commandes qui visent un conteneur précis utilisent ce nom,
+      pas celui de l'image.
+  summary: Aucun conteneur ne s'appelle « {{.container}} » dans cette ressource.
+  cause: >-
+    Le nom donné n'est pas celui d'un conteneur du modèle de pod : souvent, c'est le nom de
+    l'image ou de l'application qui a été utilisé à la place.
+  fixes:
+    - description: Afficher les noms des conteneurs de la ressource.
+      command: '{{.kubectl}} get {{.type}} {{.name}}{{if .scope}} {{.scope}}{{end}} -o jsonpath=''{..containers[*].name}'''
+      safe: true
+  deepen:
+    explanation: >-
+      « kubectl set image deployment/web web=IMAGE » change l'image du conteneur nommé « web ».
+      kubectl create deployment nomme le conteneur d'après l'image (« nginx-unprivileged » pour
+      nginxinc/nginx-unprivileged) : il est donc prudent de vérifier ce nom.
+    example: |-
+      kubectl get deployment web -o jsonpath='{..containers[*].name}'
+      kubectl set image deployment/web web=nginxinc/nginx-unprivileged:1.30-alpine
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-conteneurs », crée un
+      deployment avec « kubectl create deployment web --image=nginxinc/nginx-unprivileged:1.30-alpine
+      -n exo-conteneurs », puis retrouve le nom de son conteneur. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_set/kubectl_set_image/
+  tests: [set-image-unknown-container]
+
+- id: notfound.file
+  category: notfound
+  patterns:
+    - 'the path "(?P<path>[^"]+)" does not exist'
+  concept:
+    name: manifest file
+    definition: >-
+      L'option -f désigne un fichier de manifeste (YAML ou JSON), un dossier qui en contient,
+      ou une URL. Un chemin relatif part du dossier où la commande est lancée.
+  summary: Le fichier ou dossier « {{.path}} » est introuvable.
+  cause: >-
+    Le chemin est mal écrit, ou la commande est lancée depuis un autre dossier que celui qui
+    contient le manifeste.
+  fixes:
+    - description: Vérifier le dossier courant et les manifestes qu'il contient.
+      command: ls *.yaml *.yml
+      safe: true
+    - description: Donner un chemin complet vers le manifeste, ou le dossier qui le contient.
+      command: '{{.kubectl}} {{.sub}} -f ./chemin/vers/manifeste.yaml{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      « kubectl apply -f dossier/ » applique tous les manifestes .yaml, .yml et .json du
+      dossier ; « -R » descend aussi dans les sous-dossiers. Avant d'appliquer, « kubectl
+      telemach check -f » vérifie les manifestes sans contacter le cluster.
+    example: |-
+      kubectl apply -f manifests/ --dry-run=client
+      kubectl telemach check -f manifests/
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-fichiers », génère un
+      manifeste avec « kubectl create configmap demo --from-file=/etc/hostname -n exo-fichiers
+      --dry-run=client -o yaml > demo.yaml », puis applique-le avec -f. Supprime le namespace
+      ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/manage-kubernetes-objects/declarative-config/
+  tests: [apply-missing-file, diff-missing-file]

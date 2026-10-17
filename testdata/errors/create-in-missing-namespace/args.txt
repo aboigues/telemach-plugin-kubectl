@@ -1,0 +1,6 @@
+create
+configmap
+c
+--from-literal=mode=••••••
+-n
+inexistant

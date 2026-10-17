@@ -1,0 +1,2 @@
+Règles Kubernetes 1.37 (version de kubectl inconnue ou hors des versions 1.35 à 1.37 : règles les plus récentes)
+✔ Aucun problème détecté dans valid/deploy.yaml (1 document)

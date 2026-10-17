@@ -1,0 +1,141 @@
+{
+    "apiVersion": "v1",
+    "kind": "Pod",
+    "metadata": {
+        "annotations": {
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Pod\",\"metadata\":{\"annotations\":{},\"labels\":{\"telemach/scenario\":\"pending-pvc\"},\"name\":\"pending-pvc\",\"namespace\":\"demo\"},\"spec\":{\"containers\":[{\"image\":\"nginxinc/nginx-unprivileged:1.30-alpine\",\"name\":\"app\",\"resources\":{\"limits\":{\"cpu\":\"100m\",\"memory\":\"32Mi\"},\"requests\":{\"cpu\":\"10m\",\"memory\":\"16Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false},\"volumeMounts\":[{\"mountPath\":\"/donnees\",\"name\":\"donnees\"}]}],\"securityContext\":{\"runAsNonRoot\":true,\"runAsUser\":65534},\"volumes\":[{\"name\":\"donnees\",\"persistentVolumeClaim\":{\"claimName\":\"donnees\"}}]}}\n"
+        },
+        "creationTimestamp": "2026-10-16T20:57:26Z",
+        "generation": 1,
+        "labels": {
+            "telemach/scenario": "pending-pvc"
+        },
+        "name": "pending-pvc",
+        "namespace": "demo",
+        "resourceVersion": "596",
+        "uid": "906a6f89-20d4-472d-95ca-3c4cc9a7a079"
+    },
+    "spec": {
+        "containers": [
+            {
+                "image": "nginxinc/nginx-unprivileged:1.30-alpine",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "app",
+                "resources": {
+                    "limits": {
+                        "cpu": "100m",
+                        "memory": "32Mi"
+                    },
+                    "requests": {
+                        "cpu": "10m",
+                        "memory": "16Mi"
+                    }
+                },
+                "securityContext": {
+                    "allowPrivilegeEscalation": false
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                    {
+                        "mountPath": "/donnees",
+                        "name": "donnees"
+                    },
+                    {
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                        "name": "kube-api-access-pt8cp",
+                        "readOnly": true
+                    }
+                ]
+            }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": true,
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "restartPolicy": "Always",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+            "runAsNonRoot": true,
+            "runAsUser": 65534
+        },
+        "serviceAccount": "default",
+        "serviceAccountName": "default",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+            {
+                "effect": "NoExecute",
+                "key": "node.kubernetes.io/not-ready",
+                "operator": "Exists",
+                "tolerationSeconds": 300
+            },
+            {
+                "effect": "NoExecute",
+                "key": "node.kubernetes.io/unreachable",
+                "operator": "Exists",
+                "tolerationSeconds": 300
+            }
+        ],
+        "volumes": [
+            {
+                "name": "donnees",
+                "persistentVolumeClaim": {
+                    "claimName": "donnees"
+                }
+            },
+            {
+                "name": "kube-api-access-pt8cp",
+                "projected": {
+                    "defaultMode": 420,
+                    "sources": [
+                        {
+                            "serviceAccountToken": {
+                                "expirationSeconds": 3607,
+                                "path": "token"
+                            }
+                        },
+                        {
+                            "configMap": {
+                                "items": [
+                                    {
+                                        "key": "ca.crt",
+                                        "path": "ca.crt"
+                                    }
+                                ],
+                                "name": "kube-root-ca.crt"
+                            }
+                        },
+                        {
+                            "downwardAPI": {
+                                "items": [
+                                    {
+                                        "fieldRef": {
+                                            "apiVersion": "v1",
+                                            "fieldPath": "metadata.namespace"
+                                        },
+                                        "path": "namespace"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    },
+    "status": {
+        "conditions": [
+            {
+                "lastProbeTime": null,
+                "lastTransitionTime": "2026-10-16T20:57:26Z",
+                "message": "0/1 nodes are available: pod has unbound immediate PersistentVolumeClaims. not found",
+                "observedGeneration": 1,
+                "reason": "Unschedulable",
+                "status": "False",
+                "type": "PodScheduled"
+            }
+        ],
+        "phase": "Pending",
+        "qosClass": "Burstable"
+    }
+}

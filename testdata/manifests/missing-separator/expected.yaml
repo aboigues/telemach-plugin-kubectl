@@ -1,0 +1,7 @@
+file: 'all.yaml'
+document: 1
+line: 11
+column: 1
+resource: 'Service/web'
+kind: 'yaml-syntax'
+apply: true

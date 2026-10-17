@@ -1,0 +1,7 @@
+file: 'deploy.yaml'
+document: 1
+line: 8
+column: 5
+resource: 'Deployment/web'
+kind: 'yaml-syntax'
+apply: true

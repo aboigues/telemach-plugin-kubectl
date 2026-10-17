@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: crash
+  labels:
+    telemach/scenario: crash
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+  containers:
+  - name: app
+    image: busybox:1.38
+    command: ["sh", "-c", "echo démarrage; echo 'erreur : la variable DB_URL est obligatoire' >&2; exit 1"]
+    env:
+    - name: DB_PASSWORD
+      value: s3cret-fake
+    securityContext: {allowPrivilegeEscalation: false}
+    resources:
+      requests: {cpu: 10m, memory: 16Mi}
+      limits: {cpu: 100m, memory: 32Mi}

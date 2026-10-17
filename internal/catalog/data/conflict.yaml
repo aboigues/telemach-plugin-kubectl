@@ -1,0 +1,73 @@
+# Conflits avec l'état du cluster.
+- id: conflict.already-exists
+  category: conflict
+  patterns:
+    - '(?P<restype>[a-z0-9.]+) "(?P<name>[^"]+)" already exists'
+  concept:
+    name: imperative vs declarative
+    definition: >-
+      « kubectl create » crée un objet et échoue s'il existe déjà. « kubectl apply -f »
+      décrit l'état voulu : il crée l'objet s'il manque et le met à jour sinon.
+  summary: '« {{.name}} » ({{.restype}}) existe déjà.'
+  cause: >-
+    Un objet du même type et du même nom existe déjà dans ce namespace ; create refuse de
+    l'écraser.
+  fixes:
+    - description: Voir l'objet existant.
+      command: '{{.kubectl}} get {{.restype}} {{.name}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Pour mettre à jour un objet décrit dans un manifeste, utiliser apply plutôt que create.
+      command: '{{.kubectl}} apply -f manifeste.yaml{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Ou choisir un autre nom.
+      safe: true
+  deepen:
+    explanation: >-
+      L'approche impérative (create, scale, set image) dit quoi faire ; l'approche déclarative
+      (apply -f) dit quel état obtenir. La seconde se rejoue sans erreur et garde la
+      configuration dans des fichiers versionnés : c'est la pratique recommandée.
+    example: |-
+      kubectl create deployment web --image=nginxinc/nginx-unprivileged:1.30-alpine --dry-run=client -o yaml > web.yaml
+      kubectl apply -f web.yaml
+      kubectl apply -f web.yaml
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-apply », puis applique
+      deux fois de suite le même manifeste avec « kubectl apply -f » dans ce namespace :
+      observe « created » puis « unchanged ». Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/overview/working-with-objects/object-management/
+  tests: [create-already-exists]
+
+- id: conflict.modified
+  category: conflict
+  patterns:
+    - 'the object has been modified; please apply your changes to the latest version'
+  concept:
+    name: resourceVersion
+    definition: >-
+      Chaque objet porte un numéro de version (metadata.resourceVersion) qui change à chaque
+      modification. Kubernetes refuse un remplacement fondé sur une version périmée, pour ne
+      pas écraser le travail de quelqu'un d'autre.
+  summary: L'objet a été modifié entre ta lecture et ta mise à jour.
+  cause: >-
+    Le fichier envoyé contient une ancienne resourceVersion : l'objet a changé depuis qu'il a
+    été lu (autre utilisateur, contrôleur, mise à l'échelle automatique).
+  fixes:
+    - description: Relire l'état actuel de l'objet avant de le modifier.
+      command: '{{.kubectl}} get {{.type}} {{.name}}{{if .scope}} {{.scope}}{{end}} -o yaml'
+      safe: true
+    - description: Préférer apply, qui fusionne tes changements avec l'état actuel au lieu de tout remplacer.
+      command: '{{.kubectl}} apply -f manifeste.yaml{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Ce mécanisme s'appelle verrouillage optimiste : personne ne bloque l'objet, mais une
+      écriture fondée sur une version dépassée est rejetée. Un manifeste versionné ne devrait
+      pas contenir de resourceVersion ; « kubectl get -o yaml » en ajoute une.
+    example: |-
+      kubectl get deployment web -o jsonpath='{.metadata.resourceVersion}'
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-version », crée une
+      configmap, note sa resourceVersion, modifie-la avec « kubectl label », puis compare la
+      nouvelle resourceVersion. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/reference/using-api/api-concepts/#resource-versions
+  tests: [replace-conflict]

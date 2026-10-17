@@ -1,0 +1,6 @@
+file: 'cm.yaml'
+document: 1
+line: 6
+column: 15
+kind: 'not-utf8'
+apply: false

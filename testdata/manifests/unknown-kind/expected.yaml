@@ -1,0 +1,9 @@
+file: 'deploy.yaml'
+document: 1
+line: 2
+column: 7
+resource: 'Deployement/web'
+field_path: 'kind'
+kind: 'unknown-kind'
+suggestion: 'Deployment'
+apply: true

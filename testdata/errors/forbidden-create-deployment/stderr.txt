@@ -1,0 +1,1 @@
+error: failed to create deployment: deployments.apps is forbidden: User "system:serviceaccount:demo:default" cannot create resource "deployments" in API group "apps" in the namespace "demo"

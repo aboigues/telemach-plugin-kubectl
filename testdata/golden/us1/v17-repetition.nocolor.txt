@@ -1,0 +1,4 @@
+✖ Le type de ressource « pdos » n'existe pas dans ce cluster.
+↺ Même erreur que précédemment (moins de 10 minutes).
+↺ Explication complète : kubectl telemach last
+➜ Pour aller plus loin : kubectl telemach deepen

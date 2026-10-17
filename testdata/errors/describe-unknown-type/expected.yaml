@@ -1,0 +1,3 @@
+entry: cmdline.unknown-resource-type
+origin: kubectl
+fixed_command_contains: 'describe pod web'

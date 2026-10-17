@@ -1,0 +1,22 @@
+✖ Le conteneur « app » du pod « exit-127 » ne peut pas être lancé.
+   pod exit-127 · namespace demo · image busybox:1.38 · état RunContainerError · 4 redémarrages
+
+📘 Concept — container command
+   Le champ command (et args) d'un conteneur remplace la commande prévue par
+   l'image. Le programme indiqué doit exister dans l'image.
+
+🔎 Cause probable
+   Le programme demandé n'a pas pu être exécuté (souvent : introuvable dans
+   l'image, ou fichier non exécutable). Message : « failed to create containerd
+   task: failed to create shim task: OCI runtime create failed: runc create
+   failed: unable to start container process: error during container init: exec:
+   "commande-inexistante": executable file … ».
+
+💡 Corrections
+   1. Vérifier command et args dans le manifeste du pod.
+      kubectl get pod exit-127 -n demo -o jsonpath='{.spec.containers[*].command}'
+   2. Tester la commande dans un conteneur de la même image, dans un namespace
+      d'essai.
+      kubectl run essai --image=busybox:1.38 --rm -it --restart=Never -n NAMESPACE-ESSAI -- sh
+
+➜ Pour aller plus loin : kubectl telemach deepen

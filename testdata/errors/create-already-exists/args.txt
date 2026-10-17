@@ -1,0 +1,6 @@
+create
+deployment
+web
+--image=nginxinc/nginx-unprivileged:1.30-alpine
+-n
+demo

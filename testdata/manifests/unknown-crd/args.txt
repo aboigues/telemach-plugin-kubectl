@@ -1,0 +1,5 @@
+apply
+-f
+widget.yaml
+-n
+demo

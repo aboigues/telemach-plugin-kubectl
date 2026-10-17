@@ -1,0 +1,3 @@
+state: failing
+reason: LivenessProbeFailed
+entry: pod.liveness-probe

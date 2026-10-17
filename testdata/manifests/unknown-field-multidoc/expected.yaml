@@ -1,0 +1,9 @@
+file: 'all.yaml'
+document: 3
+line: 24
+column: 3
+resource: 'Deployment/web'
+field_path: 'spec.replica'
+kind: 'unknown-field'
+suggestion: 'replicas'
+apply: true

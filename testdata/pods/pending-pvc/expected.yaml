@@ -1,0 +1,3 @@
+state: failing
+reason: UnboundPersistentVolumeClaim
+entry: pod.unschedulable-pvc

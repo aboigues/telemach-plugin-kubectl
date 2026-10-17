@@ -1,0 +1,3 @@
+The Deployment "web" is invalid: 
+* spec.selector: Required value
+* spec.template.metadata.labels: Invalid value: {"app":"web"}: `selector` does not match template `labels`

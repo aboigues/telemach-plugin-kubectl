@@ -1,0 +1,9 @@
+[1;38;2;255;122;122m✖ Erreur non reconnue[m
+   TELEMACH ne reconnaît pas encore cette erreur et préfère ne pas deviner sa
+   cause.
+   [2;38;2;138;143;152mCommande : kubectl get — code de sortie 1 — kubectl v1.37.1[m
+   Piste : relis attentivement le message de kubectl ; la documentation
+   officielle est sur https://kubernetes.io/docs/
+
+[2;38;2;138;143;152m── Message kubectl d'origine ───────────────────────────────────────────────────[m
+[2;38;2;138;143;152merror: something totally new[m

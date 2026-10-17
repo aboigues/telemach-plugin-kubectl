@@ -1,0 +1,21 @@
+✖ Le conteneur « app » du pod « oom » a dépassé sa limite de mémoire (OOMKilled).
+   pod oom · namespace demo · image busybox:1.38 · état OOMKilled · 4 redémarrages
+
+📘 Concept — memory limit
+   resources.limits.memory fixe la mémoire maximale d'un conteneur. Au-delà, le
+   noyau arrête le programme (code 137, raison OOMKilled).
+
+🔎 Cause probable
+   Le programme a consommé plus de mémoire que sa limite : il a été arrêté par
+   le noyau, pas par une erreur de l'application elle-même.
+
+💡 Corrections
+   1. Voir les requests et limits de mémoire du conteneur.
+      kubectl get pod oom -n demo -o jsonpath='{.spec.containers[*].resources}'
+   2. Augmenter raisonnablement resources.limits.memory dans le manifeste, ou
+      réduire la consommation du programme.
+      resources:
+        requests: {memory: 128Mi}
+        limits: {memory: 256Mi}
+
+➜ Pour aller plus loin : kubectl telemach deepen

@@ -1,0 +1,3 @@
+entry: cmdline.unknown-command
+origin: kubectl
+fixed_command_contains: 'get pods'

@@ -1,0 +1,3 @@
+state: failing
+reason: CrashLoopBackOff
+entry: pod.crash-loop

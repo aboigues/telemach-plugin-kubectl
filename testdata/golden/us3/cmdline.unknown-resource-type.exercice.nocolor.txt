@@ -1,0 +1,23 @@
+📘 Concept — resource type
+   Chaque objet Kubernetes a un type : pod, deployment, service, configmap…
+   kubectl accepte le nom au singulier, au pluriel ou en abrégé (po, deploy,
+   svc, cm), mais seulement pour les types que le cluster publie.
+
+   Le serveur API publie la liste de ses types de ressources ; kubectl la
+   consulte pour comprendre « get pods » ou « get po ». Chaque type a un nom
+   pluriel (pods), un nom singulier (pod), parfois des noms courts (po) et un
+   groupe d'API (apps pour les deployments). Les ressources personnalisées (CRD)
+   n'apparaissent qu'une fois installées.
+
+▶ Exemple
+     kubectl api-resources --namespaced=true
+     kubectl api-resources --api-group=apps
+     kubectl explain deployment
+
+🧪 Exercice
+   Crée un namespace d'exercice avec « kubectl create namespace exo-types »,
+   puis liste les pods, les deployments et les services de ce namespace en
+   utilisant uniquement les noms courts (po, deploy, svc). Supprime-le ensuite
+   avec « kubectl delete namespace exo-types ».
+
+📖 Documentation : https://kubernetes.io/docs/reference/kubectl/#resource-types

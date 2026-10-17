@@ -1,0 +1,82 @@
+# Authentification et autorisations (RBAC) — US1, scénario 4. Ne jamais proposer de
+# s'attribuer cluster-admin (FR-010).
+- id: auth.unauthorized
+  category: auth
+  patterns:
+    - 'You must be logged in to the server \(Unauthorized\)'
+  concept:
+    name: authentication
+    definition: >-
+      Avant tout, le serveur API vérifie qui tu es (authentification) grâce aux identifiants
+      du kubeconfig : certificat client, jeton, ou programme d'authentification du
+      fournisseur cloud.
+  summary: Le serveur API ne reconnaît pas tes identifiants.
+  cause: >-
+    Les identifiants envoyés sont absents, expirés ou invalides (jeton périmé, certificat
+    révoqué, session cloud expirée).
+  fixes:
+    - description: Vérifier l'utilisateur associé au contexte courant.
+      command: '{{.kubectl}} config view --minify'
+      safe: true
+    - description: Renouveler la connexion avec l'outil du fournisseur (par exemple « az aks get-credentials », « gcloud container clusters get-credentials », ou « kind export kubeconfig » pour kind).
+      command: kind export kubeconfig --name apprentissage
+      safe: true
+  deepen:
+    explanation: >-
+      Le serveur API traite chaque requête en trois étapes : authentification (qui es-tu ?),
+      autorisation (as-tu le droit ?), puis admission (la demande est-elle acceptable ?).
+      « Unauthorized » signale un échec de la première étape ; « Forbidden », de la deuxième.
+    example: |-
+      kubectl auth whoami
+      kubectl config view --minify
+    exercise: >-
+      Avec un cluster de test, crée un namespace d'exercice avec « kubectl create namespace
+      exo-auth », puis lance « kubectl auth whoami » pour voir sous quelle identité tu agis.
+      Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/reference/access-authn-authz/authentication/
+  tests: [unauthorized]
+
+- id: auth.forbidden
+  category: auth
+  patterns:
+    - '(?P<restype>[a-z0-9.]+) is forbidden: User "(?P<user>[^"]+)" cannot (?P<verb>[a-z]+) resource "(?P<resource>[^"]+)" in API group "(?P<group>[^"]*)"(?: in the namespace "(?P<namespace>[^"]+)")?'
+  concept:
+    name: RBAC
+    definition: >-
+      RBAC (contrôle d'accès basé sur les rôles) décide qui peut faire quoi : un rôle liste des
+      verbes (get, list, create, delete…) autorisés sur des ressources, et une liaison
+      (rolebinding) donne ce rôle à un utilisateur ou à un compte de service.
+  summary: L'utilisateur « {{.user}} » n'a pas le droit de faire « {{.verb}} » sur les {{.resource}}.
+  cause: >-
+    Aucun rôle attribué à « {{.user}} » n'autorise le verbe « {{.verb}} » sur la ressource
+    « {{.resource}} »{{if .namespace}} dans le namespace « {{.namespace}} »{{end}}. Ton identité
+    est bien reconnue : c'est l'autorisation qui manque.
+  fixes:
+    - description: Vérifier précisément ce droit (réponse yes ou no).
+      command: '{{.kubectl}} auth can-i {{.verb}} {{.resource}}{{if .namespace}} -n {{.namespace}}{{end}}'
+      safe: true
+    - description: Lister tout ce que tu as le droit de faire dans ce namespace.
+      command: '{{.kubectl}} auth can-i --list{{if .namespace}} -n {{.namespace}}{{end}}'
+      safe: true
+    - description: Demander à l'administrateur du cluster un rôle limité à ce besoin (verbe, ressource et namespace précis).
+      safe: true
+  anti_pattern:
+    description: >-
+      Se donner le rôle cluster-admin « pour que ça marche » donne tous les droits sur tout le
+      cluster : une erreur ou un jeton volé suffit alors à tout casser. Demande un rôle limité
+      au strict nécessaire.
+  deepen:
+    explanation: >-
+      Un Role vaut pour un namespace, un ClusterRole pour tout le cluster. Le principe du
+      moindre privilège consiste à n'accorder que les verbes et ressources nécessaires, dans le
+      namespace concerné : par exemple « get » et « list » sur les pods pour lire des journaux.
+    example: |-
+      kubectl auth can-i list pods -n demo
+      kubectl create role lecteur-pods --verb=get,list --resource=pods -n demo --dry-run=client -o yaml
+    exercise: >-
+      Avec un cluster de test, crée un namespace d'exercice avec « kubectl create namespace
+      exo-rbac », puis vérifie avec « kubectl auth can-i list pods -n exo-rbac
+      --as=system:serviceaccount:exo-rbac:default » que le compte de service par défaut ne peut
+      pas lister les pods. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/reference/access-authn-authz/rbac/
+  tests: [forbidden-list-pods, forbidden-create-deployment]

@@ -1,0 +1,5 @@
+kind: ConfigMap
+metadata:
+  name: web-config
+data:
+  LOG_LEVEL: info

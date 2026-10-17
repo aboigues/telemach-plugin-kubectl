@@ -1,0 +1,4 @@
+config
+current-context
+--kubeconfig
+/tmp/telemach/empty-kubeconfig

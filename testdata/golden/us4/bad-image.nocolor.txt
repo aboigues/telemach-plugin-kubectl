@@ -1,0 +1,25 @@
+✖ Le pod « bad-image » ne démarre pas, son image « nginxinc/nginx-unprivileged:0.0.0-inexistant » ne peut pas être téléchargée.
+   pod bad-image · namespace demo · image nginxinc/nginx-unprivileged:0.0.0-inexistant · état ImagePullBackOff
+
+📘 Concept — image pull
+   Avant de démarrer un conteneur, le nœud télécharge son image depuis un
+   registre. En cas d'échec, Kubernetes réessaie à intervalles croissants
+   (BackOff).
+
+🔎 Cause probable
+   Le nœud n'arrive pas à télécharger l'image : nom ou tag inexistant, registre
+   privé sans identifiants (imagePullSecrets), ou registre injoignable. Message
+   du nœud : « Back-off pulling image
+   "nginxinc/nginx-unprivileged:0.0.0-inexistant": ErrImagePull: rpc error: code
+   = NotFound desc = failed to pull and unpack image
+   "docker.io/nginxinc/nginx-unprivileged:0.0.0-inexistant": failed to … ».
+
+💡 Corrections
+   1. Vérifier le nom et le tag de l'image sur son registre (Docker Hub, GHCR…),
+      puis corriger le manifeste et l'appliquer de nouveau.
+      kubectl get pod bad-image -n demo -o jsonpath='{.spec.containers[*].image}'
+   2. Pour une image privée, créer un Secret d'accès au registre à partir de ta
+      configuration Docker, puis le référencer dans imagePullSecrets.
+      kubectl create secret generic registre --from-file=.dockerconfigjson=$HOME/.docker/config.json --type=kubernetes.io/dockerconfigjson -n demo
+
+➜ Pour aller plus loin : kubectl telemach deepen

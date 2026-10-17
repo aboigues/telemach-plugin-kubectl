@@ -1,0 +1,3 @@
+entry: cmdline.invalid-name
+origin: cluster
+fixed_command_contains: 'run web-1'

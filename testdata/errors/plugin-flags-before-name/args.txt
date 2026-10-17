@@ -1,0 +1,4 @@
+-n
+demo
+telemach
+diagnose

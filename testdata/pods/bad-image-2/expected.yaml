@@ -1,0 +1,3 @@
+state: failing
+reason: ImagePullBackOff
+entry: pod.image-pull

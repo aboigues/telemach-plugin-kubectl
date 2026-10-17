@@ -1,0 +1,21 @@
+✖ Le programme du pod « error-exit » s'est terminé en erreur (code 2).
+   pod error-exit · namespace demo · image busybox:1.38 · état Error
+   (l'erreur vient du programme exécuté dans le conteneur, pas de Kubernetes)
+
+📘 Concept — exit code
+   Un programme se termine par un code de sortie : 0 signifie succès. Avec
+   restartPolicy Never ou OnFailure, un pod dont le programme échoue passe à
+   l'état Failed.
+
+🔎 Cause probable
+   Kubernetes a bien exécuté le conteneur ; c'est le programme qui a signalé un
+   échec — son journal indique « fichier de configuration introuvable ».
+
+💡 Corrections
+   1. Lire le journal du conteneur.
+      kubectl logs error-exit -c app -n demo
+
+📜 Fin du journal (conteneur app)
+   fichier de configuration introuvable
+
+➜ Pour aller plus loin : kubectl telemach deepen

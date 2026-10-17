@@ -1,0 +1,9 @@
+file: 'pod.yaml'
+document: 1
+line: 5
+column: 1
+resource: 'Pod/web'
+field_path: 'spec.containers'
+kind: 'required-missing'
+suggestion: 'containers'
+apply: true

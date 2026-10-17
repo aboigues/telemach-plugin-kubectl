@@ -1,0 +1,6 @@
+error: unknown command "gt" for "kubectl"
+
+Did you mean this?
+	set
+	get
+	cp

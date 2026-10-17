@@ -1,0 +1,9 @@
+✖ Erreur non reconnue
+   TELEMACH ne reconnaît pas encore cette erreur et préfère ne pas deviner sa
+   cause.
+   Commande : kubectl get — code de sortie 1 — kubectl v1.37.1
+   Piste : relis attentivement le message de kubectl ; la documentation
+   officielle est sur https://kubernetes.io/docs/
+
+── Message kubectl d'origine ───────────────────────────────────────────────────
+error: something totally new

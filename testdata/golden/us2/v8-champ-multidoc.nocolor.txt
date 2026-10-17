@@ -1,0 +1,21 @@
+Règles Kubernetes 1.37
+✖ Problème 1/1 — unknown-field-multidoc/all.yaml:24:3 (document 3, Deployment/web)
+   champ « spec.replica »
+   Ce champ n'existe pas : tu voulais sans doute écrire « replicas ».
+
+     22 │   name: web
+     23 │ spec:
+   ➤ 24 │   replica: 2
+            ^
+     25 │   selector:
+     26 │     matchLabels:
+
+   💡 Version corrigée
+     24 │   replicas: 2
+
+📘 Concept — field validation
+   Chaque ressource a une liste précise de champs ; un champ inconnu est refusé
+   par le serveur API, pour qu'une faute de frappe ne soit pas ignorée en
+   silence.
+
+➜ Pour aller plus loin : kubectl telemach deepen

@@ -1,0 +1,9 @@
+file: 'deploy.yaml'
+document: 1
+line: 1
+column: 13
+resource: 'Deployment/web'
+field_path: 'apiVersion'
+kind: 'removed-api-version'
+suggestion: 'apps/v1'
+apply: true

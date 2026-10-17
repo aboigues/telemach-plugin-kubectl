@@ -1,0 +1,19 @@
+[2;38;2;138;143;152mRègles Kubernetes 1.37[m
+[1;38;2;255;122;122m✖ Problème 1/1 — tab-indent/deploy.yaml:18:1 (document 1, Deployment/web)[m
+   Cette ligne est indentée avec une tabulation, ce que YAML interdit.
+
+     [2;38;2;138;143;152m16 │ [m[38;2;248;248;242m        [0m[38;2;249;38;114mrunAsNonRoot[0m[38;2;248;248;242m:[0m[38;2;248;248;242m [0m[38;2;102;217;239mtrue[0m[38;2;248;248;242m[0m
+     [2;38;2;138;143;152m17 │ [m[38;2;248;248;242m      [0m[38;2;249;38;114mcontainers[0m[38;2;248;248;242m:[0m[38;2;248;248;242m[0m
+   [1;38;2;255;122;122m➤ [m[1;38;2;255;122;122m18 │ [m[38;2;249;38;114m→- name[0m[38;2;248;248;242m:[0m[38;2;248;248;242m [0m[38;2;174;129;255mweb[0m[38;2;248;248;242m[0m
+          [1;38;2;255;122;122m^[m
+     [2;38;2;138;143;152m19 │ [m[38;2;248;248;242m        [0m[38;2;249;38;114mimage[0m[38;2;248;248;242m:[0m[38;2;248;248;242m [0m[38;2;174;129;255mnginxinc/nginx-unprivileged:1.30-alpine[0m[38;2;248;248;242m[0m
+     [2;38;2;138;143;152m20 │ [m[38;2;248;248;242m        [0m[38;2;174;129;255mports:[0m
+
+   [1;38;2;158;206;106m💡 Version corrigée[m
+   [1;38;2;158;206;106m  18 │ [m[38;2;248;248;242m      [0m[38;2;248;248;242m- [0m[38;2;249;38;114mname[0m[38;2;248;248;242m:[0m[38;2;248;248;242m [0m[38;2;174;129;255mweb[0m
+
+[1;38;2;122;162;247m📘 Concept — YAML indentation[m
+   YAML interdit les tabulations dans l'indentation : seuls les espaces comptent
+   (deux par niveau, par convention).
+
+[3;38;2;125;207;255m➜ Pour aller plus loin : kubectl telemach deepen[m

@@ -1,0 +1,30 @@
+✖ L'utilisateur « system:serviceaccount:demo:default » n'a pas le droit de faire « list » sur les pods.
+
+📘 Concept — RBAC
+   RBAC (contrôle d'accès basé sur les rôles) décide qui peut faire quoi : un
+   rôle liste des verbes (get, list, create, delete…) autorisés sur des
+   ressources, et une liaison (rolebinding) donne ce rôle à un utilisateur ou à
+   un compte de service.
+
+🔎 Cause probable
+   Aucun rôle attribué à « system:serviceaccount:demo:default » n'autorise le
+   verbe « list » sur la ressource « pods » dans le namespace « demo ». Ton
+   identité est bien reconnue : c'est l'autorisation qui manque.
+
+💡 Corrections
+   1. Vérifier précisément ce droit (réponse yes ou no).
+      kubectl auth can-i list pods -n demo
+   2. Lister tout ce que tu as le droit de faire dans ce namespace.
+      kubectl auth can-i --list -n demo
+   3. Demander à l'administrateur du cluster un rôle limité à ce besoin (verbe,
+      ressource et namespace précis).
+
+⚠ Anti-pattern
+   Se donner le rôle cluster-admin « pour que ça marche » donne tous les droits
+   sur tout le cluster : une erreur ou un jeton volé suffit alors à tout casser.
+   Demande un rôle limité au strict nécessaire.
+
+── Message kubectl d'origine ───────────────────────────────────────────────────
+Error from server (Forbidden): pods is forbidden: User "system:serviceaccount:demo:default" cannot list resource "pods" in API group "" in the namespace "demo"
+
+➜ Pour aller plus loin : kubectl telemach deepen

@@ -1,0 +1,8 @@
+exec
+deploy/web
+-n
+demo
+--
+sh
+-c
+exit 3

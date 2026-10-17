@@ -1,0 +1,26 @@
+✖ Le pod « crash » redémarre en boucle, son programme s'arrête avec le code 1.
+   pod crash · namespace demo · image busybox:1.38 · état CrashLoopBackOff · 4 redémarrages
+   (l'erreur vient du programme exécuté dans le conteneur, pas de Kubernetes)
+
+📘 Concept — restart policy
+   Quand le programme d'un conteneur s'arrête, Kubernetes le redémarre
+   (restartPolicy: Always par défaut), en attendant de plus en plus longtemps
+   entre deux essais : c'est la boucle CrashLoopBackOff.
+
+🔎 Cause probable
+   Kubernetes démarre bien le conteneur, mais le programme s'arrête aussitôt (4
+   redémarrages). La cause est dans l'application ou sa configuration ; son
+   journal indique « erreur : la variable DB_URL est obligatoire ».
+
+💡 Corrections
+   1. Lire le journal de l'exécution précédente du conteneur.
+      kubectl logs crash -c app -n demo --previous
+   2. Vérifier la configuration attendue par le programme (variables
+      d'environnement, fichiers, commande).
+      kubectl get pod crash -n demo -o yaml
+
+📜 Fin du journal (conteneur app)
+   erreur : la variable DB_URL est obligatoire
+   démarrage
+
+➜ Pour aller plus loin : kubectl telemach deepen

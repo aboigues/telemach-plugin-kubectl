@@ -1,0 +1,2 @@
+entry: connection.current-context-not-set
+origin: kubectl

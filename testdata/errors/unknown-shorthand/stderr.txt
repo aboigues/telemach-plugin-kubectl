@@ -1,0 +1,2 @@
+error: unknown shorthand flag: 'z' in -z
+See 'kubectl get --help' for usage.

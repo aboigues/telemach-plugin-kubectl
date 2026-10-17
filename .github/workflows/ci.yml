@@ -1,0 +1,153 @@
+# Gates obligatoires du projet (principe IV de la constitution).
+# Toutes les actions tierces sont épinglées par SHA de commit complet (vérifiés le 2026-10-16).
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.15.0
+          # Compilation avec la chaîne d'outils du projet (Go 1.27), voir D-LL-001.
+          install-mode: goinstall
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Installer zsh (tests de l'intégration shell)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends zsh
+      - name: Tests unitaires et de régression
+        run: go test -race -cover ./...
+      - name: Couverture des paquets internal/ (80 % minimum)
+        run: scripts/couverture 80
+
+  manifest-lint:
+    # Manifestes Kubernetes du dépôt : validation par les règles embarquées et règles de
+    # sécurité (principe IV). Réussit tant qu'aucun manifeste n'existe.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Contrôle des manifestes (catalogue, testdata/manifests/valid, testdata/pods/scenarios)
+        run: go test -count=1 -v ./tests/manifests/...
+
+  integration-kind:
+    # Cluster kind jetable, une version de Kubernetes par entrée de la matrice (D-LL-015 :
+    # jamais d'autre cluster que celui créé par le test).
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - kubectl: v1.35.9
+            image: kindest/node:v1.35.8@sha256:07b2536e30b803ed61d1677a79df6115f798ce64c80f9e22f6ed45afd09323c0
+          - kubectl: v1.36.5
+            image: kindest/node:v1.36.4@sha256:099e049362a1526b2db71494e1947aae99bd16290d7c895f2b7ea312e3cbfaed
+          - kubectl: v1.37.1
+            image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Installer zsh
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends zsh
+      - name: Installer kind v0.33.0 (module vérifié par la base de sommes Go)
+        run: go install sigs.k8s.io/kind@v0.33.0
+      - name: Installer kubectl ${{ matrix.kubectl }} (somme SHA-256 vérifiée)
+        env:
+          KUBECTL_VERSION: ${{ matrix.kubectl }}
+        run: |
+          curl -sSfL -o kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+          echo "$(curl -sSfL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl.sha256")  kubectl" | sha256sum -c -
+          chmod +x kubectl
+          mkdir -p "$HOME/.local/bin" && mv kubectl "$HOME/.local/bin/"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Scénarios du quickstart sur un cluster kind jetable
+        env:
+          TELEMACH_KIND_IMAGE: ${{ matrix.image }}
+        # -v : chaque scénario apparaît par son nom dans le journal, PASS ou SKIP (D-LL-009).
+        run: go test -tags integration -count=1 -v -timeout 30m ./tests/integration/...
+
+  integration:
+    # Check obligatoire unique : les checks d'une matrice portent un suffixe
+    # (« integration-kind (v1.35.9, …) ») et ne peuvent pas être déclarés « required » tels quels.
+    if: always()
+    needs: integration-kind
+    runs-on: ubuntu-latest
+    steps:
+      - name: Résultat des trois versions de Kubernetes
+        env:
+          RESULT: ${{ needs.integration-kind.result }}
+        run: |
+          echo "integration-kind : ${RESULT}"
+          test "${RESULT}" = "success"
+
+  vuln:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: govulncheck
+        # Compilé avec la chaîne d'outils du projet (D-LL-001).
+        env:
+          GOTOOLCHAIN: go1.27.2
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Installer gitleaks v8.30.1 (somme de contrôle vérifiée)
+        run: |
+          curl -sSfL -o gitleaks.tar.gz \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks
+      - name: Recherche de secrets dans tout l'historique
+        run: ./gitleaks git --config .gitleaks.toml --redact --verbose .
+
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high

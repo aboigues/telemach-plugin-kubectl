@@ -1,0 +1,5 @@
+get
+pods
+-n
+demo
+--as=system:serviceaccount:demo:default

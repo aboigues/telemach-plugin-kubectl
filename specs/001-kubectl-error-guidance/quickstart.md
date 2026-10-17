@@ -30,6 +30,11 @@ kubectl telemach version                        # le plugin est découvert par k
 
 ## Scénarios de validation
 
+Chaque scénario est automatisé dans `tests/integration/` (`us1_test.go`, `us4_test.go`,
+`quickstart_test.go`) et rejoué par la gate `integration` sur les trois images kind, sous bash
+et zsh ; V16 l'est par `tests/shell/` dans la gate `test`. V3 y remplace l'arrêt du nœud par un
+port fermé (`--server=https://127.0.0.1:1`), pour ne pas perturber les autres scénarios.
+
 ### V1 — Type de ressource mal orthographié (US1-1, FR-011)
 
 ```bash
@@ -117,8 +122,11 @@ Attendu : les deux lignes concernées, explication du lien selector/labels, corr
 ### V10 — Secret en clair (US2-5, SC-006)
 
 ```bash
-kubectl telemach check -f testdata/manifests/plaintext-secret/
+kubectl telemach check -f testdata/manifests/plaintext-secret/secret.yaml
 ```
+
+(Le fichier seul, et non le dossier : celui-ci contient aussi `expected.yaml`, les attentes du
+test, que `check` analyserait comme un manifeste — LL-004.)
 
 Attendu : valeurs `••••••` partout (sortie et `~/.local/state/telemach-kubectl/last.json`),
 mauvaise pratique signalée, alternative `secretKeyRef`.

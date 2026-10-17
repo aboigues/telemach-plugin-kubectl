@@ -1,0 +1,442 @@
+# Charges de travail : pods qui ne démarrent pas. Complété par la feature US4 (diagnose).
+- id: workload.container-waiting
+  category: workload
+  patterns:
+    - 'container "(?P<container>[^"]+)" in pod "(?P<name>[^"]+)" is waiting to start: (?P<reason>[^\n]+)'
+  concept:
+    name: container state
+    definition: >-
+      Un conteneur passe par trois états : Waiting (en attente : téléchargement de l'image,
+      configuration), Running (en cours d'exécution) et Terminated (terminé). Tant qu'il
+      attend, il n'a encore rien écrit dans son journal.
+  summary: Le conteneur « {{.container}} » du pod « {{.name}} » n'a pas encore démarré.
+  cause: >-
+    Le conteneur est encore en attente ({{.reason}}) : il n'y a donc pas de journal à lire.
+    La raison de l'attente se trouve dans le statut et les événements du pod.
+  fixes:
+    - description: Laisser TELEMACH diagnostiquer le pod (lecture seule).
+      command: '{{.kubectl}} telemach diagnose pod/{{.name}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Lire soi-même les événements du pod, en bas de la sortie.
+      command: '{{.kubectl}} describe pod {{.name}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      « kubectl logs » lit la sortie d'un programme qui a démarré. Si l'image ne peut pas être
+      téléchargée, ou si un Secret attendu manque, le programme ne démarre jamais : les
+      événements (« kubectl describe » ou « kubectl get events ») expliquent alors pourquoi.
+    example: |-
+      kubectl get pod web -o jsonpath='{.status.containerStatuses[*].state}'
+      kubectl get events --field-selector involvedObject.name=web
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-attente », lance un pod
+      avec une image inexistante (« nginxinc/nginx-unprivileged:0.0.0 »), puis compare
+      « kubectl logs », « kubectl describe pod » et « kubectl telemach diagnose ». Supprime le
+      namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-states
+  tests: [logs-waiting]
+
+# États de pods diagnostiqués par « kubectl telemach diagnose » (FR-025). Captures : pod,
+# container, image, reason, message, exit_code, restarts, missing, missing_kind, resource,
+# log_last, owner, scope.
+- id: pod.image-pull
+  category: workload
+  pod_reasons: [ImagePullBackOff, ErrImagePull]
+  concept:
+    name: image pull
+    definition: >-
+      Avant de démarrer un conteneur, le nœud télécharge son image depuis un registre. En cas
+      d'échec, Kubernetes réessaie à intervalles croissants (BackOff).
+  summary: Le pod « {{.pod}} » ne démarre pas, son image « {{.image}} » ne peut pas être téléchargée.
+  cause: >-
+    Le nœud n'arrive pas à télécharger l'image : nom ou tag inexistant, registre privé sans
+    identifiants (imagePullSecrets), ou registre injoignable.{{if .message}} Message du nœud :
+    « {{.message}} ».{{end}}
+  fixes:
+    - description: Vérifier le nom et le tag de l'image sur son registre (Docker Hub, GHCR…), puis corriger le manifeste et l'appliquer de nouveau.
+      command: '{{.kubectl}} get pod {{.pod}} {{.scope}} -o jsonpath=''{.spec.containers[*].image}'''
+      safe: true
+    - description: Pour une image privée, créer un Secret d'accès au registre à partir de ta configuration Docker, puis le référencer dans imagePullSecrets.
+      command: '{{.kubectl}} create secret generic registre --from-file=.dockerconfigjson=$HOME/.docker/config.json --type=kubernetes.io/dockerconfigjson {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      L'image est désignée par registre/dépôt:tag ; sans registre, c'est Docker Hub. Le champ
+      imagePullPolicy décide quand la télécharger (Always, IfNotPresent, Never). Un tag
+      inexistant produit d'abord ErrImagePull, puis ImagePullBackOff pendant les nouvelles
+      tentatives.
+    example: |-
+      kubectl run web --image=nginxinc/nginx-unprivileged:1.30-alpine --dry-run=client -o yaml
+      kubectl describe pod web
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-images », lance un pod
+      avec un tag inexistant, observe son état avec « kubectl get pods -w », puis corrige le
+      tag. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/containers/images/
+  tests: [bad-image, bad-image-2]
+
+- id: pod.invalid-image-name
+  category: workload
+  pod_reasons: [InvalidImageName]
+  concept:
+    name: image reference
+    definition: >-
+      Une référence d'image s'écrit registre/dépôt:tag, en minuscules pour le dépôt (par
+      exemple nginxinc/nginx-unprivileged:1.30-alpine).
+  summary: Le nom d'image « {{.image}} » du pod « {{.pod}} » n'est pas une référence valide.
+  cause: >-
+    Le nom contient des majuscules ou des caractères interdits : le nœud ne peut même pas
+    chercher l'image.
+  fixes:
+    - description: Écrire le nom du dépôt en minuscules dans le manifeste, puis l'appliquer de nouveau.
+      safe: true
+  deepen:
+    explanation: >-
+      Le dépôt (repository) n'accepte que des minuscules, chiffres, points, tirets et « / » ;
+      le tag accepte aussi les majuscules. Le digest (@sha256:…) désigne une version exacte.
+    example: |-
+      kubectl run web --image=nginxinc/nginx-unprivileged:1.30-alpine --dry-run=client -o yaml
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-images », lance un pod
+      avec une image en majuscules, observe l'état InvalidImageName, puis corrige-le. Supprime
+      le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/containers/images/#image-names
+  tests: [invalid-image-name]
+
+- id: pod.crash-loop
+  category: workload
+  pod_reasons: [CrashLoopBackOff]
+  concept:
+    name: restart policy
+    definition: >-
+      Quand le programme d'un conteneur s'arrête, Kubernetes le redémarre (restartPolicy:
+      Always par défaut), en attendant de plus en plus longtemps entre deux essais : c'est la
+      boucle CrashLoopBackOff.
+  summary: Le pod « {{.pod}} » redémarre en boucle{{if .exit_code}}, son programme s'arrête avec le code {{.exit_code}}{{end}}.
+  cause: >-
+    Kubernetes démarre bien le conteneur, mais le programme s'arrête aussitôt ({{.restarts}}
+    redémarrages). La cause est dans l'application ou sa configuration{{if .log_last}} ; son
+    journal indique « {{.log_last}} »{{end}}.
+  fixes:
+    - description: Lire le journal de l'exécution précédente du conteneur.
+      command: '{{.kubectl}} logs {{.pod}} -c {{.container}} {{.scope}} --previous'
+      safe: true
+    - description: Vérifier la configuration attendue par le programme (variables d'environnement, fichiers, commande).
+      command: '{{.kubectl}} get pod {{.pod}} {{.scope}} -o yaml'
+      safe: true
+  deepen:
+    explanation: >-
+      Le délai entre deux redémarrages double à chaque échec, jusqu'à cinq minutes. Le journal
+      courant d'un conteneur qui vient de redémarrer est souvent vide : « kubectl logs
+      --previous » lit celui de l'exécution qui a échoué.
+    example: |-
+      kubectl get pods -w
+      kubectl logs POD --previous
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-boucle », lance
+      « kubectl run boucle --image=busybox:1.38 -n exo-boucle -- sh -c 'echo départ; exit 1' »,
+      observe les redémarrages, puis lis le journal précédent. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-restarts
+  tests: [crash]
+
+- id: pod.oom
+  category: workload
+  pod_reasons: [OOMKilled]
+  concept:
+    name: memory limit
+    definition: >-
+      resources.limits.memory fixe la mémoire maximale d'un conteneur. Au-delà, le noyau
+      arrête le programme (code 137, raison OOMKilled).
+  summary: Le conteneur « {{.container}} » du pod « {{.pod}} » a dépassé sa limite de mémoire (OOMKilled).
+  cause: >-
+    Le programme a consommé plus de mémoire que sa limite : il a été arrêté par le noyau, pas
+    par une erreur de l'application elle-même.
+  fixes:
+    - description: Voir les requests et limits de mémoire du conteneur.
+      command: '{{.kubectl}} get pod {{.pod}} {{.scope}} -o jsonpath=''{.spec.containers[*].resources}'''
+      safe: true
+    - description: Augmenter raisonnablement resources.limits.memory dans le manifeste, ou réduire la consommation du programme.
+      manifest: |-
+        resources:
+          requests: {memory: 128Mi}
+          limits: {memory: 256Mi}
+      safe: true
+  deepen:
+    explanation: >-
+      requests réserve une ressource pour placer le pod sur un nœud ; limits plafonne sa
+      consommation. Dépasser la limite de CPU ralentit le programme ; dépasser celle de mémoire
+      l'arrête (OOMKilled), car la mémoire ne peut pas être reprise autrement.
+    example: |-
+      kubectl explain pod.spec.containers.resources
+      kubectl top pod
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-memoire », lance un pod
+      busybox:1.38 avec une limite de 32Mi qui exécute « tail /dev/zero », puis observe
+      l'état OOMKilled. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+  tests: [oom]
+
+- id: pod.config-missing
+  category: workload
+  pod_reasons: [CreateContainerConfigError]
+  concept:
+    name: Secret and ConfigMap references
+    definition: >-
+      Un conteneur peut recevoir des variables d'environnement issues d'un Secret ou d'une
+      ConfigMap. L'objet référencé doit exister dans le même namespace avant le démarrage.
+  summary: 'Le pod « {{.pod}} » ne peut pas démarrer : {{if .missing}}{{.missing_kind}} « {{.missing}} » introuvable{{else}}configuration du conteneur invalide{{end}}.'
+  cause: >-
+    {{if .missing}}Le conteneur référence {{.missing_kind}} « {{.missing}} », qui n'existe pas
+    dans ce namespace : Kubernetes ne peut pas construire son environnement.{{else}}{{.message}}{{end}}
+  fixes:
+    - description: Vérifier que l'objet existe dans le namespace du pod.
+      command: '{{.kubectl}} get secrets,configmaps {{.scope}}'
+      safe: true
+    - description: Créer l'objet manquant (sans écrire de secret dans un fichier versionné), ou corriger son nom dans le manifeste.
+      command: '{{.kubectl}} create {{if eq .missing_kind "ConfigMap"}}configmap{{else}}secret generic{{end}} {{.missing}} --from-file=./fichier-local {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Les variables issues d'un Secret ou d'une ConfigMap sont lues au démarrage du conteneur :
+      si l'objet manque, le conteneur reste en attente (CreateContainerConfigError) jusqu'à sa
+      création. TELEMACH ne lit jamais le contenu d'un Secret, seulement le nom référencé.
+    example: |-
+      kubectl explain pod.spec.containers.envFrom
+      kubectl get secrets
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-config », lance un pod
+      qui référence une ConfigMap absente, observe son état, puis crée la ConfigMap avec
+      --from-file et vérifie que le pod démarre. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/configuration/configmap/
+  tests: [missing-secret, missing-configmap]
+
+- id: pod.start-error
+  category: workload
+  pod_reasons: [RunContainerError, CreateContainerError]
+  concept:
+    name: container command
+    definition: >-
+      Le champ command (et args) d'un conteneur remplace la commande prévue par l'image. Le
+      programme indiqué doit exister dans l'image.
+  summary: Le conteneur « {{.container}} » du pod « {{.pod}} » ne peut pas être lancé.
+  cause: >-
+    Le programme demandé n'a pas pu être exécuté (souvent : introuvable dans l'image, ou fichier
+    non exécutable).{{if .message}} Message : « {{.message}} ».{{end}}
+  fixes:
+    - description: Vérifier command et args dans le manifeste du pod.
+      command: '{{.kubectl}} get pod {{.pod}} {{.scope}} -o jsonpath=''{.spec.containers[*].command}'''
+      safe: true
+    - description: Tester la commande dans un conteneur de la même image, dans un namespace d'essai.
+      command: '{{.kubectl}} run essai --image={{.image}} --rm -it --restart=Never -n NAMESPACE-ESSAI -- sh'
+      safe: true
+  deepen:
+    explanation: >-
+      command correspond à l'ENTRYPOINT de l'image et args à son CMD. Un chemin relatif est
+      cherché dans le PATH du conteneur ; une image minimale peut ne contenir aucun shell.
+    example: |-
+      kubectl explain pod.spec.containers.command
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-commande », lance un pod
+      busybox:1.38 avec une commande inexistante, observe RunContainerError, puis corrige la
+      commande. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/
+  tests: [exit-127]
+
+- id: pod.error-exit
+  category: workload
+  pod_reasons: [Error]
+  concept:
+    name: exit code
+    definition: >-
+      Un programme se termine par un code de sortie : 0 signifie succès. Avec restartPolicy
+      Never ou OnFailure, un pod dont le programme échoue passe à l'état Failed.
+  summary: Le programme du pod « {{.pod}} » s'est terminé en erreur{{if .exit_code}} (code {{.exit_code}}){{end}}.
+  cause: >-
+    Kubernetes a bien exécuté le conteneur ; c'est le programme qui a signalé un échec{{if
+    .log_last}} — son journal indique « {{.log_last}} »{{end}}.
+  fixes:
+    - description: Lire le journal du conteneur.
+      command: '{{.kubectl}} logs {{.pod}} -c {{.container}} {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Les codes 126 (non exécutable), 127 (introuvable), 137 (arrêt forcé) et 143 (SIGTERM) ont
+      un sens conventionnel ; les autres dépendent du programme. Un Job relance ses pods selon
+      backoffLimit.
+    example: |-
+      kubectl get pod POD -o jsonpath='{.status.containerStatuses[*].state.terminated.exitCode}'
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-sortie », lance
+      « kubectl run sortie --image=busybox:1.38 --restart=Never -n exo-sortie -- sh -c 'exit 2' »,
+      puis retrouve son code de sortie dans son statut. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase
+  tests: [error-exit]
+
+- id: pod.unschedulable-resources
+  category: workload
+  pod_reasons: [InsufficientResources]
+  concept:
+    name: scheduler
+    definition: >-
+      Le scheduler choisit le nœud de chaque pod en vérifiant qu'il reste assez de CPU et de
+      mémoire pour ses requests. Faute de nœud adapté, le pod reste Pending.
+  summary: Le pod « {{.pod}} » reste en attente, aucun nœud n'a assez de {{if .resource}}« {{.resource}} »{{else}}ressources{{end}} libre.
+  cause: >-
+    Les requests du pod dépassent ce qui reste disponible sur les nœuds. Message du scheduler :
+    « {{.message}} ».
+  fixes:
+    - description: Comparer les requests du pod à la capacité des nœuds.
+      command: '{{.kubectl}} describe nodes'
+      safe: true
+    - description: Réduire les requests du conteneur dans le manifeste à une valeur réaliste.
+      manifest: |-
+        resources:
+          requests: {cpu: 100m, memory: 128Mi}
+          limits: {cpu: 500m, memory: 256Mi}
+      safe: true
+  deepen:
+    explanation: >-
+      requests compte pour le placement, même si le programme consomme moins. Sur un cluster
+      d'apprentissage (un seul nœud), quelques pods trop gourmands suffisent à bloquer les
+      suivants. « 1 » CPU vaut 1000m.
+    example: |-
+      kubectl describe node | grep -A 8 "Allocated resources"
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-ressources », lance un
+      pod qui demande 100 CPU, observe l'événement FailedScheduling, puis réduis la demande.
+      Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+  tests: [pending-resources]
+
+- id: pod.unschedulable-pvc
+  category: workload
+  pod_reasons: [UnboundPersistentVolumeClaim]
+  concept:
+    name: PersistentVolumeClaim
+    definition: >-
+      Un PersistentVolumeClaim (PVC) demande un espace de stockage ; il doit être lié (Bound) à
+      un volume avant que le pod qui l'utilise puisse être placé.
+  summary: Le pod « {{.pod}} » reste en attente, son volume persistant n'est pas lié.
+  cause: >-
+    Le PVC utilisé par le pod n'est lié à aucun volume : classe de stockage inexistante, aucun
+    volume compatible, ou PVC absent.
+  fixes:
+    - description: Voir l'état des PVC du namespace et leurs événements.
+      command: '{{.kubectl}} get pvc {{.scope}}'
+      safe: true
+    - description: Vérifier les classes de stockage disponibles et corriger storageClassName.
+      command: '{{.kubectl}} get storageclass'
+      safe: true
+  deepen:
+    explanation: >-
+      Une StorageClass crée les volumes à la demande (provisionnement dynamique). Si le
+      storageClassName du PVC ne correspond à aucune classe, le PVC reste Pending, et le pod
+      avec lui.
+    example: |-
+      kubectl get storageclass
+      kubectl describe pvc NOM
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-stockage », crée un PVC
+      avec la classe de stockage par défaut, puis vérifie qu'il devient Bound quand un pod
+      l'utilise. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+  tests: [pending-pvc]
+
+- id: pod.unschedulable-nodeselector
+  category: workload
+  pod_reasons: [NodeSelectorMismatch]
+  concept:
+    name: node selector
+    definition: >-
+      nodeSelector (ou l'affinité de nœud) limite un pod aux nœuds qui portent certains
+      labels. Si aucun nœud ne les porte, le pod reste Pending.
+  summary: Le pod « {{.pod}} » reste en attente, aucun nœud ne correspond à son nodeSelector.
+  cause: >-
+    Les labels demandés par nodeSelector ou par l'affinité de nœud ne sont portés par aucun
+    nœud du cluster.
+  fixes:
+    - description: Comparer les labels des nœuds au nodeSelector du pod.
+      command: '{{.kubectl}} get nodes --show-labels'
+      safe: true
+    - description: Corriger ou retirer le nodeSelector dans le manifeste.
+      safe: true
+  deepen:
+    explanation: >-
+      Les labels de nœuds servent à placer certains pods sur certaines machines (disque SSD,
+      GPU, zone). Sans besoin particulier, il vaut mieux laisser le scheduler choisir.
+    example: |-
+      kubectl get nodes --show-labels
+      kubectl explain pod.spec.nodeSelector
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-placement », lance un pod
+      avec un nodeSelector impossible, observe FailedScheduling, puis retire le nodeSelector.
+      Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
+  tests: [pending-nodeselector]
+
+- id: pod.readiness-probe
+  category: workload
+  pod_reasons: [ReadinessProbeFailed]
+  concept:
+    name: readiness probe
+    definition: >-
+      La sonde de disponibilité (readinessProbe) dit si le conteneur peut recevoir du trafic.
+      Tant qu'elle échoue, le pod n'est pas Ready et les services ne lui envoient rien.
+  summary: Le pod « {{.pod}} » tourne mais n'est jamais prêt, sa sonde de disponibilité échoue.
+  cause: >-
+    La readinessProbe ne reçoit pas de réponse correcte : mauvais port ou chemin, ou
+    application pas encore à l'écoute. Dernier échec : « {{.message}} ».
+  fixes:
+    - description: Comparer le port et le chemin de la sonde à ceux sur lesquels l'application écoute réellement.
+      command: '{{.kubectl}} get pod {{.pod}} {{.scope}} -o jsonpath=''{.spec.containers[*].readinessProbe}'''
+      safe: true
+    - description: Tester l'application depuis ton poste, sans l'exposer (port-forward).
+      command: '{{.kubectl}} port-forward pod/{{.pod}} 8080:PORT-DE-L-APPLICATION {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      readinessProbe retire temporairement un pod des services ; livenessProbe redémarre le
+      conteneur ; startupProbe laisse le temps de démarrer. Une sonde mal réglée peut rendre
+      une application saine inaccessible.
+    example: |-
+      kubectl explain pod.spec.containers.readinessProbe
+      kubectl get endpoints
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-sondes », lance
+      nginx-unprivileged avec une readinessProbe sur le port 8080 puis sur le port 9999, et
+      compare la colonne READY. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+  tests: [readiness]
+
+- id: pod.liveness-probe
+  category: workload
+  pod_reasons: [LivenessProbeFailed]
+  concept:
+    name: liveness probe
+    definition: >-
+      La sonde de vie (livenessProbe) vérifie que le conteneur fonctionne encore ; quand elle
+      échoue, Kubernetes le redémarre.
+  summary: Le conteneur « {{.container}} » du pod « {{.pod}} » est redémarré, sa sonde de vie échoue.
+  cause: >-
+    La livenessProbe échoue ({{.restarts}} redémarrages) : le programme est bloqué, ou la sonde
+    vise un mauvais port, chemin ou commande. Dernier échec : « {{.message}} ».
+  fixes:
+    - description: Vérifier la définition de la sonde de vie.
+      command: '{{.kubectl}} get pod {{.pod}} {{.scope}} -o jsonpath=''{.spec.containers[*].livenessProbe}'''
+      safe: true
+    - description: Lire le journal de l'exécution précédente, juste avant le redémarrage.
+      command: '{{.kubectl}} logs {{.pod}} -c {{.container}} {{.scope}} --previous'
+      safe: true
+  deepen:
+    explanation: >-
+      Une sonde de vie trop stricte (délai initial trop court, seuil d'échec à 1) redémarre
+      sans cesse un programme sain mais lent à démarrer : startupProbe sert à couvrir ce
+      démarrage.
+    example: |-
+      kubectl explain pod.spec.containers.livenessProbe
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-vie », lance un pod
+      busybox:1.38 avec une livenessProbe « exec: false », puis observe le nombre de
+      redémarrages augmenter. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+  tests: [liveness]

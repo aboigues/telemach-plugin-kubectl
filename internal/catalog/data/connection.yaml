@@ -1,0 +1,190 @@
+# Connexion au cluster : kubeconfig, contexte, serveur API (US1, scénario 3). Le contenu du
+# kubeconfig n'est jamais affiché.
+- id: connection.no-kubeconfig
+  category: connection
+  patterns:
+    - 'The connection to the server localhost:8080 was refused'
+  concept:
+    name: kubeconfig
+    definition: >-
+      kubectl est un client : il envoie chaque commande au serveur API du cluster. L'adresse du
+      serveur et tes identifiants sont rangés dans un fichier kubeconfig (par défaut
+      ~/.kube/config, ou celui de la variable KUBECONFIG).
+  summary: kubectl ne trouve aucun cluster configuré et tente localhost:8080, où rien ne répond.
+  cause: >-
+    Aucun kubeconfig n'est chargé (fichier absent, vide ou variable KUBECONFIG qui pointe
+    ailleurs) : kubectl se rabat alors sur l'adresse par défaut localhost:8080.
+  fixes:
+    - description: Voir quel fichier et quel contexte kubectl utilise (le contenu sensible est masqué).
+      command: '{{.kubectl}} config view --minify'
+      safe: true
+    - description: Lister les contextes disponibles.
+      command: '{{.kubectl}} config get-contexts'
+      safe: true
+    - description: Avec un cluster local (kind, minikube, microk8s), le démarrer ; il écrit alors son contexte, par exemple « kind create cluster ».
+      command: kind create cluster --name apprentissage
+      safe: true
+  deepen:
+    explanation: >-
+      Un kubeconfig regroupe des clusters (adresses), des utilisateurs (identifiants) et des
+      contextes, qui associent un cluster, un utilisateur et un namespace par défaut. Le
+      contexte courant décide où part chaque commande kubectl.
+    example: |-
+      kubectl config get-contexts
+      kubectl config current-context
+      echo "$KUBECONFIG"
+    exercise: >-
+      Avec un cluster de test, crée un namespace d'exercice avec « kubectl create namespace
+      exo-contexte », puis définis-le comme namespace par défaut de ton contexte avec
+      « kubectl config set-context --current --namespace=exo-contexte ». Reviens ensuite à
+      « default » et supprime le namespace.
+  doc_url: https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/
+  tests: [connection-refused-localhost]
+
+- id: connection.refused
+  category: connection
+  patterns:
+    - 'The connection to the server (?P<host>\S+) was refused'
+    - 'dial tcp (?P<host>[^:]+:\d+): connect: connection refused'
+  concept:
+    name: API server
+    definition: >-
+      Le serveur API est la porte d'entrée du cluster : kubectl lui envoie toutes ses requêtes.
+      S'il ne répond pas, aucune commande ne peut aboutir.
+  summary: Le serveur API {{.host}} refuse la connexion.
+  cause: >-
+    Le cluster visé par le contexte courant est arrêté (cluster local éteint), ou le contexte
+    pointe vers une mauvaise adresse.
+  fixes:
+    - description: Vérifier le contexte courant et l'adresse du serveur.
+      command: '{{.kubectl}} config view --minify'
+      safe: true
+    - description: Changer de contexte si ce n'est pas le bon cluster.
+      command: '{{.kubectl}} config get-contexts'
+      safe: true
+    - description: Pour un cluster local, vérifier qu'il tourne (par exemple « kind get clusters », « minikube status », « microk8s status »).
+      command: kind get clusters
+      safe: true
+  deepen:
+    explanation: >-
+      kubectl ne contacte jamais les nœuds directement : tout passe par le serveur API, qui
+      vérifie ton identité, tes droits, puis lit ou modifie l'état du cluster. Un cluster local
+      arrêté (machine virtuelle ou conteneurs éteints) fait disparaître ce serveur.
+    example: |-
+      kubectl cluster-info
+      kubectl get --raw /readyz
+    exercise: >-
+      Avec un cluster de test, crée un namespace d'exercice avec « kubectl create namespace
+      exo-api », lance « kubectl get pods -n exo-api -v=6 » et repère dans le détail affiché
+      l'adresse du serveur API appelée. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/debug/debug-cluster/
+  tests: [connection-refused-localhost]
+
+- id: connection.current-context-not-set
+  category: connection
+  patterns:
+    - 'current-context is not set'
+  concept:
+    name: kubeconfig context
+    definition: >-
+      Un contexte associe un cluster, un utilisateur et un namespace par défaut. Le contexte
+      courant (current-context) est celui que kubectl utilise quand tu n'en précises pas.
+  summary: Aucun contexte courant n'est défini dans ton kubeconfig.
+  cause: >-
+    Le fichier kubeconfig est vide ou ne désigne aucun contexte par défaut.
+  fixes:
+    - description: Lister les contextes disponibles.
+      command: '{{.kubectl}} config get-contexts'
+      safe: true
+    - description: Choisir le contexte à utiliser.
+      command: '{{.kubectl}} config use-context NOM-DU-CONTEXTE'
+      safe: true
+  deepen:
+    explanation: >-
+      « kubectl config use-context » modifie le champ current-context du kubeconfig : toutes
+      les commandes suivantes visent ce cluster. L'option --context permet au contraire de
+      viser un autre cluster pour une seule commande.
+    example: |-
+      kubectl config get-contexts
+      kubectl config use-context kind-apprentissage
+    exercise: >-
+      Avec un cluster de test, crée un namespace d'exercice avec « kubectl create namespace
+      exo-contexte », puis liste ses pods une fois avec --context et une fois sans. Supprime
+      le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_config/kubectl_config_use-context/
+  tests: [current-context-not-set]
+
+- id: connection.context-not-found
+  category: connection
+  patterns:
+    - 'context was not found for specified context: (?P<context>\S+)'
+    - 'context "(?P<context>[^"]+)" does not exist'
+    - 'no context exists with the name: "(?P<context>[^"]+)"'
+    - 'error: context (?P<context>\S+) not found'
+  concept:
+    name: kubeconfig context
+    definition: >-
+      Un contexte associe un cluster, un utilisateur et un namespace par défaut. Son nom est
+      libre ; les clusters locaux en créent un à leur démarrage (kind-NOM, minikube…).
+  summary: Le contexte « {{.context}} » n'existe pas dans ton kubeconfig.
+  cause: >-
+    Le nom du contexte est mal écrit, ou ce cluster n'a jamais été ajouté à ce kubeconfig
+    (variable KUBECONFIG différente, cluster supprimé).
+  fixes:
+    - description: Lister les contextes existants et copier le bon nom.
+      command: '{{.kubectl}} config get-contexts -o name'
+      safe: true
+  deepen:
+    explanation: >-
+      Un même poste peut accéder à plusieurs clusters : chaque outil (kind, minikube, un
+      fournisseur cloud) ajoute son contexte au kubeconfig. Lister les contextes avant d'en
+      choisir un évite d'agir sur le mauvais cluster.
+    example: |-
+      kubectl config get-contexts
+      kubectl --context kind-apprentissage get nodes
+    exercise: >-
+      Avec un cluster de test, crée un namespace d'exercice avec « kubectl create namespace
+      exo-contexte », affiche-le avec --context suivi du nom exact de ton contexte, puis
+      supprime le namespace.
+  doc_url: https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/
+  tests: [context-not-exist, use-context-missing, get-contexts-missing]
+
+- id: connection.x509-unknown-authority
+  category: connection
+  patterns:
+    - 'x509: certificate signed by unknown authority'
+    - 'x509: certificate is valid for (?P<host>[^,]+)'
+  concept:
+    name: TLS certificate
+    definition: >-
+      Le serveur API présente un certificat TLS ; kubectl le vérifie avec l'autorité de
+      certification (CA) déclarée dans le kubeconfig, pour être sûr de parler au vrai cluster.
+  summary: kubectl refuse le certificat du serveur API, signé par une autorité qu'il ne connaît pas.
+  cause: >-
+    Le kubeconfig ne contient pas la bonne autorité de certification pour ce cluster (adresse
+    donnée à la main, cluster recréé, kubeconfig copié d'un autre cluster).
+  fixes:
+    - description: Utiliser le contexte fourni par l'outil qui a créé le cluster, plutôt qu'une adresse saisie à la main.
+      command: '{{.kubectl}} config get-contexts'
+      safe: true
+    - description: Pour un cluster recréé, régénérer son kubeconfig (exemple avec kind).
+      command: kind export kubeconfig --name apprentissage
+      safe: true
+  anti_pattern:
+    description: >-
+      L'option --insecure-skip-tls-verify fait disparaître l'erreur, mais kubectl ne vérifie
+      plus l'identité du serveur : tes identifiants peuvent alors être envoyés à n'importe qui.
+  deepen:
+    explanation: >-
+      Le champ certificate-authority-data du kubeconfig contient le certificat de l'autorité
+      qui a signé celui du serveur API. Sans lui, kubectl ne peut pas distinguer le vrai
+      serveur d'un imposteur : refuser la connexion est le comportement attendu.
+    example: |-
+      kubectl config view --minify
+      kubectl cluster-info
+    exercise: >-
+      Avec un cluster de test, crée un namespace d'exercice avec « kubectl create namespace
+      exo-tls », puis repère dans « kubectl config view --minify » le champ qui désigne
+      l'autorité de certification (sa valeur est masquée). Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/security/controlling-access/
+  tests: [x509-unknown-authority]

@@ -1,0 +1,9 @@
+file: 'deploy.yaml'
+document: 1
+line: 6
+column: 13
+resource: 'Deployment/web'
+field_path: 'spec.replicas'
+kind: 'wrong-type'
+suggestion: '2'
+apply: true

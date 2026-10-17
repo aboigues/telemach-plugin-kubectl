@@ -1,0 +1,263 @@
+# Messages de kubectl liés à un manifeste (US2). Le problème est ensuite localisé dans le
+# fichier par l'analyse des manifestes (ligne, colonne, champ).
+- id: manifest.yaml-parse
+  category: manifest
+  patterns:
+    - 'error converting YAML to JSON: yaml: (?:line (?P<line>\d+): )?(?P<detail>[^\n]+)'
+  concept:
+    name: YAML syntax
+    definition: >-
+      Un manifeste est écrit en YAML : l'indentation (des espaces, jamais de tabulations)
+      indique quel champ appartient à quel objet, et chaque clé est suivie de « : ».
+  summary: Le manifeste n'est pas un YAML valide, kubectl ne peut pas le lire.
+  cause: >-
+    Le fichier contient une erreur de syntaxe YAML{{if .detail}} (« {{.detail}} »){{end}} :
+    tabulation, deux-points oublié, indentation incohérente ou guillemet non fermé.
+  fixes:
+    - description: Corriger la ligne désignée ci-dessous, puis vérifier tout le fichier sans contacter le cluster.
+      command: '{{.kubectl}} telemach check -f FICHIER'
+      safe: true
+  deepen:
+    explanation: >-
+      En YAML, l'indentation remplace les accolades : deux champs alignés appartiennent au
+      même objet, un champ décalé vers la droite appartient à celui du dessus. Une tabulation
+      est interdite parce que sa largeur varie selon l'éditeur. kubectl indique la ligne
+      relative au document (après un « --- »), TELEMACH la ramène au fichier.
+    example: |-
+      kubectl create deployment web --image=nginxinc/nginx-unprivileged:1.30-alpine --dry-run=client -o yaml
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-yaml », génère le
+      manifeste d'un deployment avec --dry-run=client -o yaml dans un fichier, remplace une
+      indentation par une tabulation, puis compare « kubectl apply -f » et « kubectl telemach
+      check -f ». Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/overview/working-with-objects/
+  tests: [tab-indent, missing-colon]
+
+- id: manifest.unknown-field
+  category: manifest
+  patterns:
+    - '(?P<kind>\w+) in version "[^"]+" cannot be handled as a \w+: strict decoding error: unknown field "(?P<field>[^"]+)"'
+    - 'strict decoding error: unknown field "(?P<field>[^"]+)"'
+  concept:
+    name: field validation
+    definition: >-
+      Le serveur API vérifie chaque champ d'un manifeste : un champ que la ressource ne
+      connaît pas est refusé plutôt qu'ignoré, pour qu'une faute de frappe ne passe pas
+      inaperçue.
+  summary: Le champ « {{.field}} » n'existe pas pour cette ressource.
+  cause: >-
+    Le nom du champ est mal écrit, ou le champ est placé au mauvais niveau d'indentation (sous
+    le mauvais objet).
+  fixes:
+    - description: Corriger le nom ou l'indentation du champ, à la ligne désignée ci-dessous.
+      safe: true
+    - description: Consulter la liste des champs valides à cet endroit.
+      command: '{{.kubectl}} explain {{.explain_path}}'
+      safe: true
+  deepen:
+    explanation: >-
+      « kubectl explain » affiche la documentation de chaque champ, niveau par niveau :
+      « kubectl explain deployment.spec.template.spec.containers » liste tous les champs d'un
+      conteneur. C'est le moyen le plus sûr de vérifier un nom de champ et son niveau.
+    example: |-
+      kubectl explain pod.spec.containers
+      kubectl explain deployment.spec --recursive
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-champs », puis retrouve
+      avec « kubectl explain » le champ qui règle la politique de téléchargement d'image d'un
+      conteneur. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/reference/using-api/api-concepts/#field-validation
+  tests: [unknown-field, wrong-level, unknown-field-multidoc, json-unknown-field]
+
+- id: manifest.wrong-type
+  category: manifest
+  patterns:
+    - '(?P<kind>\w+) in version "[^"]+" cannot be handled as a \w+: json: cannot unmarshal (?P<got>\w+) into Go struct field \w+\.(?P<field>[\w.]+) of type (?P<want>\S+)'
+    - 'json: cannot unmarshal (?P<got>\w+) into Go struct field \w+\.(?P<field>[\w.]+) of type (?P<want>\S+)'
+  concept:
+    name: field type
+    definition: >-
+      Chaque champ attend un type précis : nombre entier (replicas: 2), texte (image: …), liste
+      (éléments précédés de « - ») ou objet (paires « clé: valeur »). Des guillemets
+      transforment un nombre en texte.
+  summary: Le champ « {{.field}} » n'a pas le bon type de valeur.
+  cause: >-
+    La valeur donnée est de type « {{.got}} » alors que Kubernetes attend « {{.want}} » : par
+    exemple un nombre entre guillemets, ou un objet à la place d'une liste.
+  fixes:
+    - description: "Corriger la valeur à la ligne désignée ci-dessous (souvent : retirer les guillemets, ou ajouter un « - » pour faire une liste)."
+      safe: true
+    - description: Vérifier le type attendu par ce champ.
+      command: '{{.kubectl}} explain {{.explain_path}}'
+      safe: true
+  deepen:
+    explanation: >-
+      YAML devine le type d'une valeur : 2 est un nombre, "2" est un texte, true est un booléen.
+      Une liste s'écrit avec des tirets ; sans tiret, on écrit un objet. « kubectl explain »
+      affiche le type attendu de chaque champ (<integer>, <string>, <[]Object>…).
+    example: |-
+      kubectl explain deployment.spec.replicas
+      kubectl explain pod.spec.containers
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-types », puis cherche
+      avec « kubectl explain » le type des champs replicas, containers et containerPort.
+      Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_explain/
+  tests: [wrong-type-replicas, wrong-type-port, wrong-type-containers-map]
+
+- id: manifest.selector-mismatch
+  category: manifest
+  patterns:
+    - '(?s)The (?P<kind>\w+) "(?P<name>[^"]+)" is invalid:.*`selector` does not match template `labels`'
+  concept:
+    name: label selector
+    definition: >-
+      Un deployment retrouve ses pods grâce à leurs labels : son selector (spec.selector) doit
+      correspondre aux labels de son modèle de pod (spec.template.metadata.labels).
+  summary: Le selector du {{.kind}} ne correspond pas aux labels de son modèle de pod.
+  cause: >-
+    Les labels de spec.selector.matchLabels ne figurent pas, avec les mêmes valeurs, dans
+    spec.template.metadata.labels : le {{.kind}} ne reconnaîtrait pas ses propres pods.
+  fixes:
+    - description: Donner aux labels du modèle de pod les mêmes valeurs que le selector (lignes désignées ci-dessous).
+      safe: true
+  deepen:
+    explanation: >-
+      Les labels sont des étiquettes clé/valeur ; les selectors filtrent les objets d'après
+      elles. Un deployment, un service ou une network policy ne désignent jamais des pods par
+      leur nom, mais par leurs labels. Le selector d'un deployment ne peut plus être modifié
+      après sa création.
+    example: |-
+      kubectl get pods --show-labels
+      kubectl get pods -l app=web
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-labels », crée-y un
+      deployment, puis affiche ses pods avec « -l » et le label de son selector. Supprime le
+      namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+  tests: [selector-mismatch]
+
+- id: manifest.required-value
+  category: manifest
+  patterns:
+    - '(?P<field>[\w.\[\]]+): Required value'
+  concept:
+    name: required field
+    definition: >-
+      Certains champs sont obligatoires : un pod doit avoir au moins un conteneur
+      (spec.containers), un deployment un selector et un modèle de pod.
+  summary: Le champ obligatoire « {{.field}} » manque.
+  cause: >-
+    Le manifeste ne définit pas « {{.field}} », sans lequel Kubernetes ne peut pas créer la
+    ressource.
+  fixes:
+    - description: Ajouter le champ manquant sous l'objet désigné ci-dessous.
+      safe: true
+    - description: Générer un manifeste complet de départ, sans rien créer.
+      command: '{{.kubectl}} create deployment web --image=nginxinc/nginx-unprivileged:1.30-alpine --dry-run=client -o yaml'
+      safe: true
+  deepen:
+    explanation: >-
+      « kubectl explain » marque les champs obligatoires par « -required- ». Partir d'un
+      manifeste généré par --dry-run=client -o yaml évite d'oublier ces champs.
+    example: |-
+      kubectl explain deployment.spec
+      kubectl run web --image=nginxinc/nginx-unprivileged:1.30-alpine --dry-run=client -o yaml
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-requis », puis repère
+      avec « kubectl explain deployment.spec » les champs marqués -required-. Supprime le
+      namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/overview/working-with-objects/#required-fields
+  tests: [required-containers]
+
+- id: manifest.unsupported-value
+  category: manifest
+  patterns:
+    - '(?P<field>[\w.\[\]]+): Unsupported value: "(?P<value>[^"]+)"'
+  concept:
+    name: allowed values
+    definition: >-
+      Certains champs n'acceptent qu'une liste fermée de valeurs, sensibles à la casse : par
+      exemple restartPolicy vaut Always, OnFailure ou Never.
+  summary: La valeur « {{.value}} » n'est pas autorisée pour « {{.field}} ».
+  cause: >-
+    La valeur est mal orthographiée ou n'existe pas pour ce champ ; Kubernetes affiche la
+    liste des valeurs autorisées à la fin de son message.
+  fixes:
+    - description: Remplacer la valeur par une valeur autorisée (voir la ligne désignée ci-dessous).
+      safe: true
+  deepen:
+    explanation: >-
+      Ces valeurs sont des constantes du code de Kubernetes : la casse compte (« always »
+      est refusé). « kubectl explain » liste les valeurs possibles dans la description du
+      champ.
+    example: |-
+      kubectl explain pod.spec.restartPolicy
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-valeurs », puis lis
+      avec « kubectl explain » les valeurs possibles de imagePullPolicy. Supprime le namespace
+      ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy
+  tests: [invalid-enum]
+
+- id: manifest.no-kind-match
+  category: manifest
+  patterns:
+    - 'no matches for kind "(?P<kind>[^"]+)" in version "(?P<api_version>[^"]+)"'
+  concept:
+    name: apiVersion and kind
+    definition: >-
+      apiVersion (groupe/version d'API) et kind (type) identifient la ressource. Le couple
+      doit exister dans le cluster : les API évoluent et les anciennes versions sont retirées.
+  summary: Le cluster ne connaît pas le kind « {{.kind}} » dans la version « {{.api_version}} ».
+  cause: >-
+    Le kind est mal orthographié, l'apiVersion est retirée (par exemple extensions/v1beta1),
+    ou il s'agit d'une ressource personnalisée (CRD) qui n'est pas installée.
+  fixes:
+    - description: Vérifier l'apiVersion attendue pour ce type de ressource.
+      command: '{{.kubectl}} api-resources | grep -i {{.kind}}'
+      safe: true
+    - description: Corriger la ligne désignée ci-dessous.
+      safe: true
+  deepen:
+    explanation: >-
+      Une API passe par des versions alpha et beta avant d'être stable (v1) ; les versions
+      beta sont ensuite retirées. Les manifestes anciens trouvés sur Internet utilisent
+      souvent des apiVersion qui n'existent plus.
+    example: |-
+      kubectl api-versions
+      kubectl explain deployment | head -n 3
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-api », puis retrouve
+      avec « kubectl api-resources » l'apiVersion des Ingress et des CronJob. Supprime le
+      namespace ensuite.
+  doc_url: https://kubernetes.io/docs/reference/using-api/deprecation-guide/
+  tests: [unknown-kind, removed-api-version, unknown-crd]
+
+- id: manifest.validation-not-set
+  category: manifest
+  patterns:
+    - 'error validating data: (?P<field>apiVersion|kind) not set'
+  concept:
+    name: apiVersion and kind
+    definition: >-
+      Tout manifeste commence par apiVersion et kind, qui disent quelle ressource créer.
+      Sans eux, kubectl ne sait pas comment lire le reste du document.
+  summary: Le champ « {{.field}} » manque dans le manifeste.
+  cause: >-
+    Le document ne déclare pas « {{.field}} » (oubli, ou ligne supprimée par erreur).
+  fixes:
+    - description: Ajouter le champ en tête du document (voir la ligne désignée ci-dessous).
+      safe: true
+  deepen:
+    explanation: >-
+      Un manifeste a toujours quatre parties : apiVersion, kind, metadata (nom, labels) et
+      spec (l'état voulu). Les ConfigMap et Secret utilisent data à la place de spec.
+    example: |-
+      kubectl create configmap demo --from-file=/etc/hostname --dry-run=client -o yaml
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-entete », génère un
+      manifeste avec --dry-run=client -o yaml et repère ses quatre parties. Supprime le
+      namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/overview/working-with-objects/#required-fields
+  tests: [missing-api-version, missing-kind]

@@ -1,0 +1,238 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:23Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "kind": "Pod",
+                "name": "exit-127",
+                "namespace": "demo",
+                "resourceVersion": "519",
+                "uid": "9e732270-fc61-4641-ad09-cccd3cc713df"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:23Z",
+            "message": "Successfully assigned demo/exit-127 to telemach-cluster-control-plane",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:23Z",
+                "name": "exit-127.18df1e13080d9b07",
+                "namespace": "demo",
+                "resourceVersion": "525",
+                "uid": "cb0c7c39-98e2-4879-a684-960992be01c3"
+            },
+            "reason": "Scheduled",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "",
+            "source": {
+                "component": "default-scheduler"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:24Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "exit-127",
+                "namespace": "demo",
+                "resourceVersion": "523",
+                "uid": "9e732270-fc61-4641-ad09-cccd3cc713df"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:24Z",
+            "message": "Pulling image \"busybox:1.38\"",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:24Z",
+                "name": "exit-127.18df1e13469adaa0",
+                "namespace": "demo",
+                "resourceVersion": "558",
+                "uid": "72dd1a46-0c5b-4ddc-8b11-2a4f3fd5d1c3"
+            },
+            "reason": "Pulling",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:28Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "exit-127",
+                "namespace": "demo",
+                "resourceVersion": "523",
+                "uid": "9e732270-fc61-4641-ad09-cccd3cc713df"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:57:28Z",
+            "message": "Successfully pulled image \"busybox:1.38\" in 673ms (3.71s including waiting). Image size: 2236767 bytes.",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:28Z",
+                "name": "exit-127.18df1e1423cce81b",
+                "namespace": "demo",
+                "resourceVersion": "630",
+                "uid": "87e218a0-ba6c-45f9-9d70-ab2fb9e944a5"
+            },
+            "reason": "Pulled",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 5,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:28Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "exit-127",
+                "namespace": "demo",
+                "resourceVersion": "523",
+                "uid": "9e732270-fc61-4641-ad09-cccd3cc713df"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:58:58Z",
+            "message": "Container created",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:28Z",
+                "name": "exit-127.18df1e1425de7aee",
+                "namespace": "demo",
+                "resourceVersion": "989",
+                "uid": "a708564c-0788-4bde-9f0f-3fee435eee8d"
+            },
+            "reason": "Created",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 5,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:28Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "exit-127",
+                "namespace": "demo",
+                "resourceVersion": "523",
+                "uid": "9e732270-fc61-4641-ad09-cccd3cc713df"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:58:58Z",
+            "message": "Error: failed to create containerd task: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: \"commande-inexistante\": executable file not found in $PATH",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:28Z",
+                "name": "exit-127.18df1e142f791c37",
+                "namespace": "demo",
+                "resourceVersion": "990",
+                "uid": "9a9fbcc1-3b03-446f-8705-000d3e370748"
+            },
+            "reason": "Failed",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Warning"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 4,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:29Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "exit-127",
+                "namespace": "demo",
+                "resourceVersion": "523",
+                "uid": "9e732270-fc61-4641-ad09-cccd3cc713df"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:58:58Z",
+            "message": "Container image \"busybox:1.38\" already present on machine and can be accessed by the pod",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:29Z",
+                "name": "exit-127.18df1e1469abc998",
+                "namespace": "demo",
+                "resourceVersion": "988",
+                "uid": "2b6c9169-3902-4f82-aa9d-608bc8910118"
+            },
+            "reason": "Pulled",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 5,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-16T20:57:30Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{app}",
+                "kind": "Pod",
+                "name": "exit-127",
+                "namespace": "demo",
+                "resourceVersion": "523",
+                "uid": "9e732270-fc61-4641-ad09-cccd3cc713df"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-16T20:58:59Z",
+            "message": "Back-off restarting failed container app in pod exit-127_demo(9e732270-fc61-4641-ad09-cccd3cc713df)",
+            "metadata": {
+                "creationTimestamp": "2026-10-16T20:57:30Z",
+                "name": "exit-127.18df1e14a7228e76",
+                "namespace": "demo",
+                "resourceVersion": "991",
+                "uid": "3aaf4a08-fd29-431b-9b99-708b2fba9d57"
+            },
+            "reason": "BackOff",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "telemach-cluster-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "telemach-cluster-control-plane"
+            },
+            "type": "Warning"
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

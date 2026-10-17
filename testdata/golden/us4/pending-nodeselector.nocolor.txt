@@ -1,0 +1,17 @@
+✖ Le pod « pending-nodeselector » reste en attente, aucun nœud ne correspond à son nodeSelector.
+   pod pending-nodeselector · namespace demo · image nginxinc/nginx-unprivileged:1.30-alpine · état NodeSelectorMismatch
+
+📘 Concept — node selector
+   nodeSelector (ou l'affinité de nœud) limite un pod aux nœuds qui portent
+   certains labels. Si aucun nœud ne les porte, le pod reste Pending.
+
+🔎 Cause probable
+   Les labels demandés par nodeSelector ou par l'affinité de nœud ne sont portés
+   par aucun nœud du cluster.
+
+💡 Corrections
+   1. Comparer les labels des nœuds au nodeSelector du pod.
+      kubectl get nodes --show-labels
+   2. Corriger ou retirer le nodeSelector dans le manifeste.
+
+➜ Pour aller plus loin : kubectl telemach deepen

@@ -1,0 +1,1 @@
+The Pod "web" is invalid: spec.containers: Required value

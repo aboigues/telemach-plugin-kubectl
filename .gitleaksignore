@@ -1,0 +1,6 @@
+# Faux positifs de gitleaks, un par ligne (empreinte commit:fichier:règle:ligne).
+# Chaque ajout est justifié ici et consigné dans LESSON-LEARNED.md.
+
+# LL-002 : table des noms de schémas OpenAPI (« v1/Secret » → « io.k8s.api.core.v1.… »),
+# aucun secret ; règle generic-api-key déclenchée par le mot « Secret ».
+eb1988d79b873f73b0761c4ead2d7091f55ac39e:scripts/gen-schemas/main.go:generic-api-key:53

@@ -1,0 +1,30 @@
+[1;38;2;255;122;122m✖ L'utilisateur « system:serviceaccount:demo:default » n'a pas le droit de faire « list » sur les pods.[m
+
+[1;38;2;122;162;247m📘 Concept — RBAC[m
+   RBAC (contrôle d'accès basé sur les rôles) décide qui peut faire quoi : un
+   rôle liste des verbes (get, list, create, delete…) autorisés sur des
+   ressources, et une liaison (rolebinding) donne ce rôle à un utilisateur ou à
+   un compte de service.
+
+[1;38;2;224;175;104m🔎 Cause probable[m
+   Aucun rôle attribué à « system:serviceaccount:demo:default » n'autorise le
+   verbe « list » sur la ressource « pods » dans le namespace « demo ». Ton
+   identité est bien reconnue : c'est l'autorisation qui manque.
+
+[1;38;2;158;206;106m💡 Corrections[m
+   1. Vérifier précisément ce droit (réponse yes ou no).
+      [38;2;248;248;242mkubectl auth can-i list pods -n demo[0m
+   2. Lister tout ce que tu as le droit de faire dans ce namespace.
+      [38;2;248;248;242mkubectl auth can-i --list -n demo[0m
+   3. Demander à l'administrateur du cluster un rôle limité à ce besoin (verbe,
+      ressource et namespace précis).
+
+[1;38;2;215;160;255m⚠ Anti-pattern[m
+   Se donner le rôle cluster-admin « pour que ça marche » donne tous les droits
+   sur tout le cluster : une erreur ou un jeton volé suffit alors à tout casser.
+   Demande un rôle limité au strict nécessaire.
+
+[2;38;2;138;143;152m── Message kubectl d'origine ───────────────────────────────────────────────────[m
+[2;38;2;138;143;152mError from server (Forbidden): [m[1;38;2;125;207;255mpods[m[2;38;2;138;143;152m is forbidden: User "[m[1;38;2;125;207;255msystem:serviceaccount:demo:default[m[2;38;2;138;143;152m" cannot [m[1;38;2;125;207;255mlist[m[2;38;2;138;143;152m resource "[m[1;38;2;125;207;255mpods[m[2;38;2;138;143;152m" in API group "" in the namespace "[m[1;38;2;125;207;255mdemo[m[2;38;2;138;143;152m"[m
+
+[3;38;2;125;207;255m➜ Pour aller plus loin : kubectl telemach deepen[m
