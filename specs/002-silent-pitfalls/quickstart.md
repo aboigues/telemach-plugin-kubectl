@@ -34,6 +34,7 @@ eval "$(kubectl-telemach shell-init zsh)"      # ou bash
 
 ```bash
 kubectl apply -n demo -f testdata/objects/scenarios/selector-typo.yaml
+kubectl wait -n demo --for=condition=Available deployment/frontend --timeout=90s
 kubectl telemach diagnose service/web -n demo; echo "code: $?"
 ```
 
@@ -45,6 +46,7 @@ selector*, `kubectl get pods --show-labels -n demo` proposé, aucune commande `g
 
 ```bash
 kubectl apply -n demo -f testdata/objects/scenarios/not-ready.yaml
+kubectl wait -n demo --for=jsonpath='{.status.replicas}'=1 deployment/api --timeout=90s
 kubectl telemach diagnose service/api -n demo
 ```
 
@@ -55,13 +57,20 @@ proposé.
 
 ```bash
 kubectl apply -n demo -f testdata/objects/scenarios/targetport-name.yaml
+kubectl wait -n demo --for=condition=Available deployment/shop --timeout=90s
 kubectl telemach diagnose service/shop -n demo
+kubectl apply -n demo -f testdata/objects/scenarios/targetport-number.yaml
+kubectl wait -n demo --for=condition=Available deployment/cart --timeout=90s
+kubectl telemach diagnose service/cart -n demo
 kubectl apply -n demo -f testdata/objects/scenarios/targetport-undeclared.yaml
+kubectl wait -n demo --for=condition=Available deployment/blog --timeout=90s
 kubectl telemach diagnose service/blog -n demo
 ```
 
-Attendu : `targetPort` nommé `http` introuvable (cause affirmée) ; pour `blog`, conteneur sans
-port déclaré : **aucune cause affirmée**, démarche de vérification expliquée.
+Attendu : `targetPort` nommé `http` introuvable (cause affirmée) ; pour `cart`, `targetPort`
+8081 absent des ports déclarés (8080), avec la mention « déclaration facultative » ; pour
+`blog`, conteneur sans port déclaré : **aucune cause affirmée**, démarche de vérification
+expliquée.
 
 ### W4 — Service sans selector et Service sain (US1-4, US1-5)
 

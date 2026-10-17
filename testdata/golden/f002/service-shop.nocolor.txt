@@ -1,0 +1,25 @@
+✖ Le port 80 du Service « shop » vise le port nommé « http », qu'aucun conteneur ne déclare.
+   service shop · namespace demo · ClusterIP · ports 80 → http
+
+   ✔ type               ClusterIP
+   ✔ selector           app=shop : 1 pod
+   ✔ pods prêts         1/1 prêt(s)
+   ✔ endpoints          1 prêt(s)
+   ✖ ports              80 → http : introuvable
+
+📘 Concept — Service ports
+   Un Service reçoit le trafic sur son port (port) et l'envoie au port du
+   conteneur désigné par targetPort. targetPort peut être un numéro, ou le nom
+   d'un port déclaré par le conteneur (containerPort avec un nom).
+
+🔎 Cause probable
+   targetPort « http » est un nom : il doit correspondre au champ name d'un port
+   déclaré par les conteneurs des pods désignés. Ports déclarés : 8080 (web).
+
+💡 Corrections
+   1. Utiliser dans targetPort le nom d'un port déclaré, ou son numéro.
+      kubectl get pods -l app=shop -n demo -o jsonpath='{.items[0].spec.containers[*].ports}'
+   2. Vérifier ensuite que le Service répond, depuis ton poste.
+      kubectl port-forward service/shop 8080:80 -n demo
+
+➜ Pour aller plus loin : kubectl telemach deepen

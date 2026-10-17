@@ -86,13 +86,18 @@ func (a *app) diagnose(w io.Writer, r *kuberead.Reader, cat *catalog.Catalog, ta
 		return exitError{code: 2}
 	}
 	if kind == "" && name != "" {
-		kind = "pod"
+		resolved, err := a.resolveName(w, r, name, opts)
+		if err != nil || resolved == "" {
+			return err
+		}
+		kind = resolved
 	}
 	switch kind {
 	case "service", "ingress", "pvc":
 		return a.diagnoseObject(w, r, cat, pitfall.Kind(kind), name, opts)
 	}
 	var candidates []workload.Candidate
+	var allPods []kuberead.Pod // pods du namespace (diagnose sans argument)
 	label := ""
 	switch {
 	case target == "":
@@ -100,6 +105,7 @@ func (a *app) diagnose(w io.Writer, r *kuberead.Reader, cat *catalog.Catalog, ta
 		if err != nil {
 			return a.readFailure(w, err, []string{"get", "pods"}, r.Scope, cat, opts)
 		}
+		allPods = pods.Items
 		candidates = workload.SelectFailing(pods.Items, a.now())
 		label = "dans le namespace " + nsLabel(r.Scope)
 	case kind == "pod":
@@ -141,12 +147,78 @@ func (a *app) diagnose(w io.Writer, r *kuberead.Reader, cat *catalog.Catalog, ta
 			}
 			snap.Others = append(snap.Others, workload.PodSummary{Name: other.Pod.Metadata.Name, Reason: other.Class.Reason})
 		}
-		return a.showPod(w, snap, d, opts)
+		if err := a.showPod(w, snap, d, opts); err != nil {
+			return err
+		}
+		if target == "" {
+			return a.showSummaries(w, r, cat, allPods, pitfall.MaxSummaries-len(snap.Others), opts)
+		}
+		return nil
 	}
 	fmt.Fprintln(w, opts.Theme.Success(render.SymbolSuccess+" Aucun pod en difficulté "+label+"."))
 	fmt.Fprintln(w, render.Wrap("Pour un autre namespace : « kubectl telemach diagnose -n NAMESPACE ». "+
 		"Un pod encore en cours de création n'est pas signalé.", opts.Width, "   "))
+	if target == "" {
+		return a.showSummaries(w, r, cat, allPods, pitfall.MaxSummaries, opts)
+	}
 	return nil
+}
+
+// showSummaries liste, après les pods, les autres objets en difficulté du namespace (FR-015).
+// Une lecture refusée est signalée sans empêcher le reste de la liste.
+func (a *app) showSummaries(w io.Writer, r *kuberead.Reader, cat *catalog.Catalog, pods []kuberead.Pod, limit int, opts render.Options) error {
+	ctx := pitfall.Context{Reader: r, Scope: r.Scope, Catalog: cat, Now: a.now()}
+	list, denied := pitfall.Summaries(ctx, pods, limit)
+	captures := map[string]string{"kubectl": "kubectl", "scope": r.Scope.Flags()}
+	if err := render.RenderObjectSummaries(w, list, cat, captures, opts); err != nil {
+		return err
+	}
+	if len(denied) > 0 {
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, opts.Theme.Cause(render.LabelPartial))
+		fmt.Fprintln(w, render.Wrap("Lecture refusée par RBAC : "+strings.Join(denied, ", ")+" ; ces objets n'ont pas été vérifiés.", opts.Width, "   "))
+	}
+	return nil
+}
+
+// resolveName cherche un nom sans type parmi les pods, Services et Deployments (FR-016) : un
+// seul objet trouvé donne son type ; plusieurs, la liste des objets à copier (code 2) ; aucun,
+// le message de pod introuvable de la feature 001.
+func (a *app) resolveName(w io.Writer, r *kuberead.Reader, name string, opts render.Options) (string, error) {
+	type lookup struct {
+		kind string
+		get  func() error
+	}
+	lookups := []lookup{
+		{"pod", func() error { _, err := r.GetPod(name); return err }},
+		{"service", func() error { _, err := r.GetService(name); return err }},
+		{"deployment", func() error { _, err := r.GetDeployment(name); return err }},
+	}
+	var found []string
+	for _, l := range lookups {
+		err := l.get()
+		switch {
+		case err == nil:
+			found = append(found, l.kind)
+		case !kuberead.IsNotFound(err):
+			// Lecture impossible (cluster injoignable, droits) : le diagnostic de pod l'expliquera.
+			return "pod", nil
+		}
+	}
+	switch len(found) {
+	case 0:
+		return "", a.notFound(w, r, "pod", name, opts)
+	case 1:
+		return found[0], nil
+	}
+	t := opts.Theme
+	fmt.Fprintln(w, t.Title(render.SymbolError+" « "+name+" » désigne plusieurs objets du namespace "+nsLabel(r.Scope)+" : précise son type."))
+	for _, k := range found {
+		cmd := "kubectl telemach diagnose " + k + "/" + name + strings.TrimRight(" "+r.Scope.Flags(), " ")
+		fmt.Fprintln(w, "   • "+k+"/"+name)
+		fmt.Fprintln(w, "     "+t.Highlight(cmd, "bash"))
+	}
+	return "", exitError{code: 2}
 }
 
 // diagnoseObject diagnostique un Service, un Deployment, un Ingress ou un PVC (feature 002).

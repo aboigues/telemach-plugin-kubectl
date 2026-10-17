@@ -113,26 +113,27 @@ func RenderObject(w io.Writer, snap pitfall.ObjectSnapshot, cat *catalog.Catalog
 	}
 
 	if len(snap.Others) > 0 {
-		b.WriteString("\n" + t.Label(LabelOtherObjects) + "\n")
-		for _, other := range snap.Others {
-			summary := other.Pitfall
-			if cat != nil {
-				if e, ok := cat.ByPitfall(other.Pitfall); ok {
-					summary = catalog.Render(e.Summary, mergeName(captures, other))
-				}
-			}
-			cmd := captures["kubectl"] + " telemach diagnose " + string(other.Kind) + "/" + other.Name
-			if scope := captures["scope"]; scope != "" {
-				cmd += " " + scope
-			}
-			fmt.Fprintf(&b, "%s• %s/%s — %s\n%s  %s\n", indent, other.Kind, other.Name, summary, indent, t.Highlight(cmd, "bash"))
-		}
+		b.WriteString("\n")
+		writeOthers(&b, snap, cat, captures, t)
 	}
 
 	if entry != nil {
 		b.WriteString("\n" + t.Hint(LabelDeepen+" : "+telemach(captures)+" deepen") + "\n")
 	}
 	_, err := io.WriteString(w, b.String())
+	return err
+}
+
+// RenderObjectSummaries affiche la liste courte des objets en difficulté de diagnose sans
+// argument (FR-015), avec la commande à copier pour chacun.
+func RenderObjectSummaries(w io.Writer, list []pitfall.ObjectSummary, cat *catalog.Catalog, captures map[string]string, o Options) error {
+	if len(list) == 0 {
+		return nil
+	}
+	snap := pitfall.ObjectSnapshot{Others: list, Captures: captures}
+	var b strings.Builder
+	writeOthers(&b, snap, cat, captures, o.Theme)
+	_, err := io.WriteString(w, "\n"+b.String())
 	return err
 }
 
@@ -206,6 +207,28 @@ func linkLine(l pitfall.Link, t Theme) string {
 		return line
 	default:
 		return t.Dim(line)
+	}
+}
+
+// writeOthers écrit la liste des autres objets en difficulté.
+func writeOthers(b *strings.Builder, snap pitfall.ObjectSnapshot, cat *catalog.Catalog, captures map[string]string, t Theme) {
+	b.WriteString(t.Label(LabelOtherObjects) + "\n")
+	kubectl := captures["kubectl"]
+	if kubectl == "" {
+		kubectl = "kubectl"
+	}
+	for _, other := range snap.Others {
+		summary := other.Pitfall
+		if cat != nil {
+			if e, ok := cat.ByPitfall(other.Pitfall); ok {
+				summary = catalog.Render(e.Summary, mergeName(captures, other))
+			}
+		}
+		cmd := kubectl + " telemach diagnose " + string(other.Kind) + "/" + other.Name
+		if scope := captures["scope"]; scope != "" {
+			cmd += " " + scope
+		}
+		fmt.Fprintf(b, "%s• %s/%s — %s\n%s  %s\n", indent, other.Kind, other.Name, summary, indent, t.Highlight(cmd, "bash"))
 	}
 }
 

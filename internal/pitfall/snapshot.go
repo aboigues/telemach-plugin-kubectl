@@ -148,12 +148,13 @@ func (s *ObjectSnapshot) LessonCaptures(p Pitfall) map[string]string {
 	return out
 }
 
-// Add ajoute un piège et casse son maillon s'il s'agit d'un avertissement. Il refuse un piège
-// dont le maillon n'a pas pu être lu ou n'existe pas : aucune cause n'est affirmée sur une
-// information manquante (FR-020).
+// Add ajoute un piège et casse son maillon s'il s'agit d'un avertissement. Il refuse un
+// avertissement dont le maillon n'a pas pu être lu ou n'a pas été vérifié : aucune cause n'est
+// affirmée sur une information manquante (FR-020). Une information peut, elle, porter sur un
+// maillon non vérifiable (port non déclaré).
 func (s *ObjectSnapshot) Add(p Pitfall) bool {
 	l := s.link(p.Step)
-	if l == nil || l.State == StateUnknown || l.State == StateSkipped {
+	if l == nil || (p.Severity == Warning && (l.State == StateUnknown || l.State == StateSkipped)) {
 		return false
 	}
 	if p.Severity == Warning {

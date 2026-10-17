@@ -1,0 +1,22 @@
+ℹ Le Service « docs » est un alias DNS vers « kubernetes.io », il ne désigne aucun pod.
+   service docs · namespace demo · ExternalName
+
+   ✔ type               ExternalName
+   · selector           non vérifié
+   · pods prêts         non vérifié
+   · endpoints          non vérifié
+   · ports              non vérifié
+
+📘 Concept — ExternalName
+   Un Service de type ExternalName n'envoie pas de trafic à des pods : son nom
+   DNS renvoie vers un autre nom (externalName), à la manière d'un alias.
+
+🔎 Cause probable
+   Ce type de Service n'a ni selector ni endpoints : le nom
+   docs.demo.svc.cluster.local renvoie simplement vers kubernetes.io.
+
+💡 Corrections
+   1. Vérifier le nom vers lequel le Service renvoie.
+      kubectl get service docs -n demo -o jsonpath='{.spec.externalName}'
+
+➜ Pour aller plus loin : kubectl telemach deepen

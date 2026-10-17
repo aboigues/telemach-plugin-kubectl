@@ -1,0 +1,27 @@
+[1;38;2;255;122;122m✖ Le Service « web » ne désigne aucun pod, son selector ne correspond aux labels d'aucun pod.[m
+   [2;38;2;138;143;152mservice web · namespace demo · ClusterIP · ports 80 → 8080[m
+
+   ✔ type               ClusterIP
+[1;38;2;255;122;122m   ✖ selector           app=web : aucun pod[m
+[2;38;2;138;143;152m   · pods prêts         non vérifié[m
+   ✔ endpoints          0 prêt(s)
+[2;38;2;138;143;152m   · ports              non vérifié[m
+
+[1;38;2;122;162;247m📘 Concept — label selector[m
+   Un Service ne connaît pas ses pods par leur nom : il envoie le trafic aux
+   pods dont les labels satisfont son selector. Si aucun pod ne porte ces
+   labels, le Service existe mais n'a aucun endpoint.
+
+[1;38;2;224;175;104m🔎 Cause probable[m
+   Aucun pod du namespace demo ne porte les labels « app=web ». Les pods les
+   plus proches portent « app=frontend » : le selector du Service ou les labels
+   du modèle de pod ne sont sans doute pas écrits pareil.
+
+[1;38;2;158;206;106m💡 Corrections[m
+   1. Comparer les labels des pods au selector du Service.
+      [38;2;248;248;242mkubectl get pods --show-labels -n demo[0m
+   2. Corriger le selector du Service (spec.selector) ou les labels du modèle de
+      pod (spec.template.metadata.labels), puis vérifier les endpoints.
+      [38;2;248;248;242mkubectl get endpointslices -l kubernetes.io/service-name[0m[38;2;249;38;114m=[0m[38;2;248;248;242mweb -n demo[0m
+
+[3;38;2;125;207;255m➜ Pour aller plus loin : kubectl telemach deepen[m

@@ -33,3 +33,21 @@ func Diagnose(ctx Context, kind Kind, name string) (ObjectSnapshot, error) {
 	}
 	return d(ctx, name)
 }
+
+// newSnapshot prépare l'instantané d'un objet et les valeurs communes de ses leçons.
+func newSnapshot(ctx Context, kind Kind, name string) ObjectSnapshot {
+	return ObjectSnapshot{
+		Kind: kind, Name: name, Namespace: ctx.Scope.Namespace, Context: ctx.Scope.Context,
+		Captures: map[string]string{
+			"kubectl": "kubectl", "scope": ctx.Scope.Flags(), "name": name, string(kind): name,
+			"namespace": namespaceLabel(ctx.Scope),
+		},
+	}
+}
+
+func namespaceLabel(s kuberead.Scope) string {
+	if s.Namespace != "" {
+		return s.Namespace
+	}
+	return "courant"
+}

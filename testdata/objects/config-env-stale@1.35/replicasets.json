@@ -1,0 +1,136 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "apps/v1",
+      "kind": "ReplicaSet",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/desired-replicas": "1",
+          "deployment.kubernetes.io/max-replicas": "2",
+          "deployment.kubernetes.io/revision": "1"
+        },
+        "creationTimestamp": "2026-10-17T19:26:34Z",
+        "generation": 1,
+        "labels": {
+          "app": "conf",
+          "pod-template-hash": "77776dbd68"
+        },
+        "name": "conf-77776dbd68",
+        "namespace": "demo",
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "Deployment",
+            "name": "conf",
+            "uid": "4a0b52ce-f483-4aee-ac43-6cabaa7d271f"
+          }
+        ],
+        "resourceVersion": "912",
+        "uid": "fb30059f-c096-42f2-a4ae-74a2c6a7e1f9"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "conf",
+            "pod-template-hash": "77776dbd68"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "conf",
+              "pod-template-hash": "77776dbd68"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "command": [
+                  "sh",
+                  "-c",
+                  "echo MODE=$MODE; sleep 3600"
+                ],
+                "env": [
+                  {
+                    "name": "MODE",
+                    "valueFrom": {
+                      "configMapKeyRef": {
+                        "key": "MODE",
+                        "name": "conf-settings"
+                      }
+                    }
+                  }
+                ],
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "conf-secret"
+                    }
+                  }
+                ],
+                "image": "busybox:1.38",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "conf",
+                "resources": {
+                  "limits": {
+                    "cpu": "100m",
+                    "memory": "64Mi"
+                  },
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "16Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/etc/conf/mode",
+                    "name": "settings",
+                    "subPath": "MODE"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "runAsUser": 65534
+            },
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "name": "conf-settings"
+                },
+                "name": "settings"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 1,
+        "fullyLabeledReplicas": 1,
+        "observedGeneration": 1,
+        "readyReplicas": 1,
+        "replicas": 1,
+        "terminatingReplicas": 0
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

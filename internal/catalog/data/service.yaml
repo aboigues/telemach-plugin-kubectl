@@ -1,0 +1,283 @@
+# Pièges silencieux d'un Service (feature 002, US1) : le Service existe, mais le trafic
+# n'arrive pas aux pods. Chaque entrée est la leçon d'un maillon du chemin du trafic
+# (research.md S4) ; elle est choisie par son identifiant de piège, jamais par un motif.
+
+- id: service.no-matching-pods
+  category: service
+  pitfalls: [service.no-matching-pods]
+  concept:
+    name: label selector
+    definition: >-
+      Un Service ne connaît pas ses pods par leur nom : il envoie le trafic aux pods dont les
+      labels satisfont son selector. Si aucun pod ne porte ces labels, le Service existe mais
+      n'a aucun endpoint.
+  summary: Le Service « {{.service}} » ne désigne aucun pod, son selector ne correspond aux labels d'aucun pod.
+  cause: >-
+    Aucun pod du namespace {{.namespace}} ne porte les labels « {{.selector}} ».{{if .closest}}
+    Les pods les plus proches portent « {{.closest}} » : le selector du Service ou les labels
+    du modèle de pod ne sont sans doute pas écrits pareil.{{end}}
+  fixes:
+    - description: Comparer les labels des pods au selector du Service.
+      command: '{{.kubectl}} get pods --show-labels {{.scope}}'
+      safe: true
+    - description: Corriger le selector du Service (spec.selector) ou les labels du modèle de pod (spec.template.metadata.labels), puis vérifier les endpoints.
+      command: '{{.kubectl}} get endpointslices -l kubernetes.io/service-name={{.service}} {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Les labels sont des étiquettes clé=valeur posées sur les objets. Un selector est une
+      requête sur ces étiquettes : Service, Deployment et ReplicaSet retrouvent ainsi leurs
+      pods. Un pod créé plus tard avec les bons labels est ajouté automatiquement au Service.
+    example: |-
+      kubectl get pods -l app=web
+      kubectl get service web -o jsonpath='{.spec.selector}'
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-selector », lance un
+      deployment avec « kubectl create deployment web --image=nginxinc/nginx-unprivileged:1.30-alpine
+      -n exo-selector », expose-le avec « kubectl expose deployment web --port=80
+      --target-port=8080 -n exo-selector », puis change le label d'un pod avec « kubectl label
+      pod <nom> app=autre --overwrite » et observe les endpoints. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/services-networking/service/
+  tests: [selector-typo]
+
+- id: service.pods-not-ready
+  category: service
+  pitfalls: [service.pods-not-ready]
+  concept:
+    name: endpoints
+    definition: >-
+      Les endpoints d'un Service sont les adresses des pods qui reçoivent son trafic. Un pod
+      désigné par le selector n'y est ajouté que lorsqu'il est Ready, c'est-à-dire quand sa
+      sonde de disponibilité réussit.
+  summary: Le Service « {{.service}} » désigne {{.pods}} pod(s), mais aucun n'est prêt à recevoir du trafic.
+  cause: >-
+    Les pods désignés par « {{.selector}} » existent mais ne sont pas Ready ({{.notready}}) :
+    tant qu'ils ne le sont pas, le Service ne leur envoie rien. La cause est dans les pods
+    eux-mêmes (sonde de disponibilité, démarrage, image).
+  fixes:
+    - description: Diagnostiquer le pod qui n'est pas prêt.
+      command: '{{.kubectl}} telemach diagnose pod/{{.pod}} {{.scope}}'
+      safe: true
+    - description: Voir l'état Ready des pods désignés par le Service.
+      command: '{{.kubectl}} get pods -l {{.selector}} {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Un pod peut tourner (Running) sans être prêt (Ready). La sonde de disponibilité
+      (readinessProbe) décide s'il reçoit du trafic : pendant un démarrage lent ou une panne,
+      le Service l'écarte au lieu de lui envoyer des requêtes qui échoueraient.
+    example: |-
+      kubectl get endpointslices -l kubernetes.io/service-name=web -o wide
+      kubectl get pods -l app=web
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-ready », déploie
+      nginx-unprivileged avec une readinessProbe sur le port 9999 puis sur le port 8080, et
+      compare les endpoints du Service dans les deux cas. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/services-networking/service/
+  tests: [not-ready]
+
+- id: service.targetport-name
+  category: service
+  pitfalls: [service.targetport-name]
+  concept:
+    name: Service ports
+    definition: >-
+      Un Service reçoit le trafic sur son port (port) et l'envoie au port du conteneur désigné
+      par targetPort. targetPort peut être un numéro, ou le nom d'un port déclaré par le
+      conteneur (containerPort avec un nom).
+  summary: Le port {{.port}} du Service « {{.service}} » vise le port nommé « {{.targetPort}} », qu'aucun conteneur ne déclare.
+  cause: >-
+    targetPort « {{.targetPort}} » est un nom : il doit correspondre au champ name d'un port
+    déclaré par les conteneurs des pods désignés. Ports déclarés : {{.declared}}.
+  fixes:
+    - description: Utiliser dans targetPort le nom d'un port déclaré, ou son numéro.
+      command: '{{.kubectl}} get pods -l {{.selector}} {{.scope}} -o jsonpath=''{.items[0].spec.containers[*].ports}'''
+      safe: true
+    - description: Vérifier ensuite que le Service répond, depuis ton poste.
+      command: '{{.kubectl}} port-forward service/{{.service}} 8080:{{.port}} {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Nommer les ports (name: http) permet de changer le numéro d'écoute du conteneur sans
+      toucher au Service. La contrepartie : une faute dans le nom ne provoque aucune erreur à
+      la création, le trafic ne trouve simplement pas de destination.
+    example: |-
+      kubectl explain service.spec.ports.targetPort
+      kubectl explain pod.spec.containers.ports
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-ports », déploie
+      nginx-unprivileged avec un port nommé http (8080), crée un Service avec targetPort: http
+      puis targetPort: web, et teste chaque version avec kubectl port-forward. Supprime le
+      namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/services-networking/service/
+  tests: [targetport-name]
+
+- id: service.targetport-number
+  category: service
+  pitfalls: [service.targetport-number]
+  concept:
+    name: Service ports
+    definition: >-
+      Un Service reçoit le trafic sur son port (port) et l'envoie au port du conteneur désigné
+      par targetPort. Si le programme du conteneur n'écoute pas sur ce port, la connexion est
+      refusée (connection refused).
+  summary: Le port {{.port}} du Service « {{.service}} » envoie le trafic au port {{.targetPort}}, que les conteneurs ne déclarent pas.
+  cause: >-
+    Les conteneurs des pods désignés déclarent {{.declared}}, mais targetPort vaut
+    {{.targetPort}}. La déclaration des ports est facultative : vérifie le port sur lequel le
+    programme écoute réellement avant de corriger.
+  fixes:
+    - description: Mettre dans targetPort le port sur lequel le programme écoute (souvent celui déclaré par containerPort).
+      command: '{{.kubectl}} get service {{.service}} {{.scope}} -o jsonpath=''{.spec.ports}'''
+      safe: true
+    - description: Tester le port du conteneur directement, sans passer par le Service.
+      command: '{{.kubectl}} port-forward pod/{{.pod}} 8080:{{.declaredPort}} {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Trois numéros se suivent : port (celui du Service), targetPort (celui du conteneur
+      visé) et, pour un Service NodePort, nodePort (celui ouvert sur chaque nœud). containerPort
+      documente le port du conteneur, mais n'ouvre ni ne ferme rien.
+    example: |-
+      kubectl explain service.spec.ports
+      kubectl get service web -o wide
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-targetport », expose
+      nginx-unprivileged (port 8080) avec targetPort 8081 puis 8080, et compare le résultat
+      de kubectl port-forward. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/services-networking/service/
+  tests: [targetport-number]
+
+- id: service.ports-undeclared
+  category: service
+  pitfalls: [service.ports-undeclared]
+  concept:
+    name: Service ports
+    definition: >-
+      targetPort désigne le port du conteneur qui reçoit le trafic. Déclarer ce port dans le
+      conteneur (containerPort) est facultatif : quand il n'est pas déclaré, rien ne permet de
+      vérifier la correspondance sans tester.
+  summary: Le Service « {{.service}} » envoie le trafic au port {{.targetPort}} ; ses pods ne déclarent aucun port, la correspondance n'est pas vérifiable.
+  cause: >-
+    TELEMACH ne lit que la description des pods, jamais l'intérieur des conteneurs : sans
+    containerPort déclaré, il ne peut pas savoir si le programme écoute sur le port
+    {{.targetPort}}. Ce n'est pas forcément une erreur.
+  fixes:
+    - description: Tester le port directement sur un pod, depuis ton poste.
+      command: '{{.kubectl}} port-forward pod/{{.pod}} 8080:{{.targetPort}} {{.scope}}'
+      safe: true
+    - description: Déclarer le port dans le conteneur (ports.containerPort) pour documenter le manifeste.
+      command: '{{.kubectl}} explain pod.spec.containers.ports'
+      safe: true
+  deepen:
+    explanation: >-
+      containerPort est une documentation lue par les outils, pas une règle réseau : un
+      conteneur peut écouter sur un port non déclaré. Le déclarer, et le nommer, rend le
+      manifeste lisible et permet des targetPort nommés.
+    example: |-
+      kubectl explain pod.spec.containers.ports.containerPort
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-declaration », déploie
+      nginx-unprivileged sans déclarer de port, expose-le sur le port 8080, et vérifie avec
+      kubectl port-forward qu'il répond quand même. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/services-networking/service/
+  tests: [targetport-undeclared]
+
+- id: service.no-selector
+  category: service
+  pitfalls: [service.no-selector]
+  concept:
+    name: Service sans selector
+    definition: >-
+      Un Service sans selector ne cherche aucun pod : ses endpoints sont fournis à la main
+      (objets EndpointSlice) ou par un outil. C'est un cas voulu, par exemple pour joindre une
+      base de données hors du cluster.
+  summary: Le Service « {{.service}} » n'a pas de selector, ses endpoints ne sont pas choisis par Kubernetes.
+  cause: >-
+    Sans selector, Kubernetes ne crée aucun endpoint pour ce Service ; il en a
+    actuellement {{.ready}} prêt(s). Si tu voulais joindre des pods du cluster, ajoute un
+    selector qui correspond à leurs labels.
+  fixes:
+    - description: Voir les endpoints fournis pour ce Service.
+      command: '{{.kubectl}} get endpointslices -l kubernetes.io/service-name={{.service}} {{.scope}}'
+      safe: true
+    - description: Pour joindre des pods, ajouter un selector (spec.selector) qui correspond à leurs labels.
+      command: '{{.kubectl}} get pods --show-labels {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Selector et endpoints vont ensemble : avec un selector, Kubernetes tient la liste des
+      endpoints à jour ; sans selector, c'est à toi ou à un outil de la fournir.
+    example: |-
+      kubectl explain service.spec.selector
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-sans-selector », crée
+      un Service sans selector et observe qu'il n'a aucun endpoint. Supprime le namespace
+      ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/services-networking/service/#services-without-selectors
+  tests: [no-selector]
+
+- id: service.external-name
+  category: service
+  pitfalls: [service.external-name]
+  concept:
+    name: ExternalName
+    definition: >-
+      Un Service de type ExternalName n'envoie pas de trafic à des pods : son nom DNS renvoie
+      vers un autre nom (externalName), à la manière d'un alias.
+  summary: Le Service « {{.service}} » est un alias DNS vers « {{.external}} », il ne désigne aucun pod.
+  cause: >-
+    Ce type de Service n'a ni selector ni endpoints : le nom
+    {{.service}}.{{.namespace}}.svc.cluster.local renvoie simplement vers {{.external}}.
+  fixes:
+    - description: Vérifier le nom vers lequel le Service renvoie.
+      command: '{{.kubectl}} get service {{.service}} {{.scope}} -o jsonpath=''{.spec.externalName}'''
+      safe: true
+  deepen:
+    explanation: >-
+      ExternalName sert à donner un nom interne stable à un service externe : les
+      applications du cluster utilisent le nom du Service, et seul ce Service change si
+      l'adresse externe change.
+    example: |-
+      kubectl explain service.spec.externalName
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-externalname », crée un
+      Service ExternalName vers kubernetes.io, et lis sa définition. Supprime le namespace
+      ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/services-networking/service/#externalname
+  tests: [no-selector]
+
+- id: service.healthy
+  category: service
+  pitfalls: [service.healthy]
+  concept:
+    name: DNS d'un Service
+    definition: >-
+      Chaque Service reçoit un nom DNS : le nom court suffit depuis son namespace ; depuis un
+      autre namespace, il faut ajouter le namespace (nom.namespace) ou écrire le nom complet
+      (nom.namespace.svc.cluster.local).
+  summary: Le Service « {{.service}} » envoie le trafic à {{.ready}} pod(s) prêt(s).
+  cause: >-
+    Depuis le namespace {{.namespace}}, l'application le joint par « {{.service}} » ; depuis
+    un autre namespace, par « {{.service}}.{{.namespace}} » ou
+    « {{.service}}.{{.namespace}}.svc.cluster.local ».
+  fixes:
+    - description: Tester le Service depuis ton poste, sans l'exposer.
+      command: '{{.kubectl}} port-forward service/{{.service}} 8080:{{.port}} {{.scope}}'
+      safe: true
+    - description: Voir les pods qui reçoivent son trafic.
+      command: '{{.kubectl}} get endpointslices -l kubernetes.io/service-name={{.service}} {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Le DNS du cluster complète un nom court avec le namespace de celui qui le cherche :
+      « web » depuis le namespace demo devient web.demo.svc.cluster.local. Depuis un autre
+      namespace, le nom court désigne un autre Service, ou rien.
+    example: |-
+      kubectl run dns-test --rm -it --restart=Never --image=busybox:1.38 -- nslookup web
+    exercise: >-
+      Crée deux namespaces d'exercice (« kubectl create namespace exo-a » et « exo-b »), un
+      Service web dans exo-a, puis depuis un pod de exo-b essaie « web », « web.exo-a » et
+      « web.exo-a.svc.cluster.local ». Supprime les namespaces ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/
+  tests: [healthy]
