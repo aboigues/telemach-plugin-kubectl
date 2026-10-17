@@ -218,9 +218,9 @@ Dans chaque histoire, les tests sont écrits **avant** l'implémentation et doiv
 - [X] T084 [P] Rédiger `README.md` (français) sur le modèle de `../telemach-plugin-docker/README.md` : concept (une erreur = une leçon), exemple de sortie, installation (`go build`, `PATH`), `shell-init`, cas des alias (`microk8s kubectl`, `k`), règle « pas d'option avant `telemach` », sous-commandes, garanties de sécurité et liste des lectures du cluster, variables `TELEMACH_DISABLE`, `TELEMACH_WATCH`, `NO_COLOR`
 - [X] T085 [P] Créer `scripts/couverture` (sur le modèle du projet Docker) et viser ≥ 80 % de couverture sur `internal/` ; ajouter le résultat au job `test`
 - [X] T086 [P] Ajouter les cibles de fuzzing (`FuzzSanitize`, `FuzzRedact`, `FuzzLocate`, `FuzzMatch` dans `internal/diagnose/fuzz_test.go`) à un job CI hebdomadaire `fuzz` de courte durée (60 s par cible)
-- [ ] T087 Exécuter le quickstart complet (V1 à V17) sur kind avec chacune des trois images, sous bash et zsh, et consigner tout écart dans `LESSON-LEARNED.md`
+- [X] T087 Exécuter le quickstart complet (V1 à V17) sur kind avec chacune des trois images, sous bash et zsh, et consigner tout écart dans `LESSON-LEARNED.md`
 - [X] T088 Vérifier SC-005 et SC-006 sur l'ensemble des golden files et de `last.json` (aucun texte anglais hors termes Kubernetes et message d'origine ; aucun secret du corpus en clair) avec `internal/render/language_test.go`
-- [ ] T089 Relire `LESSON-LEARNED.md`, transformer les leçons automatisables en tests ou gates (principe V), et préparer la PR de la feature (description, liste des gates vertes)
+- [X] T089 Relire `LESSON-LEARNED.md`, transformer les leçons automatisables en tests ou gates (principe V), et préparer la PR de la feature (description, liste des gates vertes)
 
 ---
 
