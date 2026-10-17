@@ -1,0 +1,21 @@
+✖ Le pod « pending-resources » reste en attente, aucun nœud n'a assez de « cpu » libre.
+   pod pending-resources · namespace demo · image nginxinc/nginx-unprivileged:1.30-alpine · état InsufficientResources
+
+📘 Concept — scheduler
+   Le scheduler choisit le nœud de chaque pod en vérifiant qu'il reste assez de
+   CPU et de mémoire pour ses requests. Faute de nœud adapté, le pod reste
+   Pending.
+
+🔎 Cause probable
+   Les requests du pod dépassent ce qui reste disponible sur les nœuds. Message
+   du scheduler : « 0/1 nodes are available: 1 Insufficient cpu ».
+
+💡 Corrections
+   1. Comparer les requests du pod à la capacité des nœuds.
+      kubectl describe nodes
+   2. Réduire les requests du conteneur dans le manifeste à une valeur réaliste.
+      resources:
+        requests: {cpu: 100m, memory: 128Mi}
+        limits: {cpu: 500m, memory: 256Mi}
+
+➜ Pour aller plus loin : kubectl telemach deepen

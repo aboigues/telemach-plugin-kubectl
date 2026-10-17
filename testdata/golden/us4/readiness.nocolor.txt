@@ -1,0 +1,44 @@
+✖ Le pod « readiness » tourne mais n'est jamais prêt, sa sonde de disponibilité échoue.
+   pod readiness · namespace demo · image nginxinc/nginx-unprivileged:1.30-alpine · état ReadinessProbeFailed
+
+📘 Concept — readiness probe
+   La sonde de disponibilité (readinessProbe) dit si le conteneur peut recevoir
+   du trafic. Tant qu'elle échoue, le pod n'est pas Ready et les services ne lui
+   envoient rien.
+
+🔎 Cause probable
+   La readinessProbe ne reçoit pas de réponse correcte : mauvais port ou chemin,
+   ou application pas encore à l'écoute. Dernier échec : « Readiness probe
+   failed: Get "http://10.244.0.16:9999/": dial tcp 10.244.0.16:9999: connect:
+   connection refused ».
+
+💡 Corrections
+   1. Comparer le port et le chemin de la sonde à ceux sur lesquels
+      l'application écoute réellement.
+      kubectl get pod readiness -n demo -o jsonpath='{.spec.containers[*].readinessProbe}'
+   2. Tester l'application depuis ton poste, sans l'exposer (port-forward).
+      kubectl port-forward pod/readiness 8080:PORT-DE-L-APPLICATION -n demo
+
+📜 Fin du journal (conteneur app)
+   /docker-entrypoint.sh: Launching /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh
+   10-listen-on-ipv6-by-default.sh: info: can not modify /etc/nginx/conf.d/default.conf (read-only file system?)
+   /docker-entrypoint.sh: Sourcing /docker-entrypoint.d/15-local-resolvers.envsh
+   /docker-entrypoint.sh: Launching /docker-entrypoint.d/20-envsubst-on-templates.sh
+   /docker-entrypoint.sh: Launching /docker-entrypoint.d/30-tune-worker-processes.sh
+   /docker-entrypoint.sh: Configuration complete; ready for start up
+   2026/10/16 20:57:37 [notice] 1#1: using the "epoll" event method
+   2026/10/16 20:57:37 [notice] 1#1: nginx/1.30.6
+   2026/10/16 20:57:37 [notice] 1#1: built by gcc 15.2.0 (Alpine 15.2.0) 
+   2026/10/16 20:57:37 [notice] 1#1: OS: Linux 6.18.54.1-microsoft-standard-WSL2
+   2026/10/16 20:57:37 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1073741816:1073741816
+   2026/10/16 20:57:37 [notice] 1#1: start worker processes
+   2026/10/16 20:57:37 [notice] 1#1: start worker process 25
+   2026/10/16 20:57:37 [notice] 1#1: start worker process 26
+   2026/10/16 20:57:37 [notice] 1#1: start worker process 27
+   2026/10/16 20:57:37 [notice] 1#1: start worker process 28
+   2026/10/16 20:57:37 [notice] 1#1: start worker process 29
+   2026/10/16 20:57:37 [notice] 1#1: start worker process 30
+   2026/10/16 20:57:37 [notice] 1#1: start worker process 31
+   2026/10/16 20:57:37 [notice] 1#1: start worker process 32
+
+➜ Pour aller plus loin : kubectl telemach deepen

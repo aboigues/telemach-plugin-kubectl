@@ -50,7 +50,7 @@ var kinds = map[string]string{ //nolint:gosec // noms de schémas OpenAPI, aucun
 	"v1/Service":                   "io.k8s.api.core.v1.Service",
 	"v1/ConfigMap":                 "io.k8s.api.core.v1.ConfigMap",
 	"v1/Secret":                    "io.k8s.api.core.v1.Secret",
-	"v1/Namespace":                 "io.k8s.api.core.v1.Namespace",
+	"v1/Namespace":                 "io.k8s.api.core.v1.Namespace", // gitleaks:allow (nom de schéma OpenAPI, LL-002)
 	"v1/PersistentVolumeClaim":     "io.k8s.api.core.v1.PersistentVolumeClaim",
 	"apps/v1/Deployment":           "io.k8s.api.apps.v1.Deployment",
 	"apps/v1/StatefulSet":          "io.k8s.api.apps.v1.StatefulSet",

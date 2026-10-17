@@ -1,0 +1,1 @@
+✔ Le pod « healthy » n'est pas en difficulté (phase Running)

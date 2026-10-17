@@ -1,0 +1,20 @@
+✖ Le pod « missing-configmap » ne peut pas démarrer : ConfigMap « config-absente » introuvable.
+   pod missing-configmap · namespace demo · image busybox:1.38 · état CreateContainerConfigError
+
+📘 Concept — Secret and ConfigMap references
+   Un conteneur peut recevoir des variables d'environnement issues d'un Secret
+   ou d'une ConfigMap. L'objet référencé doit exister dans le même namespace
+   avant le démarrage.
+
+🔎 Cause probable
+   Le conteneur référence ConfigMap « config-absente », qui n'existe pas dans ce
+   namespace : Kubernetes ne peut pas construire son environnement.
+
+💡 Corrections
+   1. Vérifier que l'objet existe dans le namespace du pod.
+      kubectl get secrets,configmaps -n demo
+   2. Créer l'objet manquant (sans écrire de secret dans un fichier versionné),
+      ou corriger son nom dans le manifeste.
+      kubectl create configmap config-absente --from-file=./fichier-local -n demo
+
+➜ Pour aller plus loin : kubectl telemach deepen

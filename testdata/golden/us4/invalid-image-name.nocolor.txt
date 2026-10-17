@@ -1,0 +1,16 @@
+✖ Le nom d'image « NGINX:Majuscules » du pod « invalid-image-name » n'est pas une référence valide.
+   pod invalid-image-name · namespace demo · image NGINX:Majuscules · état InvalidImageName
+
+📘 Concept — image reference
+   Une référence d'image s'écrit registre/dépôt:tag, en minuscules pour le dépôt
+   (par exemple nginxinc/nginx-unprivileged:1.30-alpine).
+
+🔎 Cause probable
+   Le nom contient des majuscules ou des caractères interdits : le nœud ne peut
+   même pas chercher l'image.
+
+💡 Corrections
+   1. Écrire le nom du dépôt en minuscules dans le manifeste, puis l'appliquer
+      de nouveau.
+
+➜ Pour aller plus loin : kubectl telemach deepen

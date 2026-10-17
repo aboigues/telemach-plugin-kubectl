@@ -16,9 +16,10 @@ const sensitiveName = `[A-Za-z0-9_.-]*(?i:PASSWORD|PASSWD|SECRET|TOKEN|KEY|CREDE
 var (
 	// NOM: "valeur" ou NOM: 'valeur' (YAML, valeur entre guillemets).
 	quotedYAML = regexp.MustCompile(`(` + sensitiveName + `\s*:\s*)(["'])[^"'\n]*(["'])`)
-	// NOM: valeur (clé YAML en début de ligne, éventuellement après « - »). L'ancrage évite
-	// de masquer du texte libre comme « error: You must be logged in… ».
-	plainYAML = regexp.MustCompile(`(?m)^([ \t]*(?:-[ \t]+)?` + sensitiveName + `[ \t]*:[ \t]+)([^\s"'#|>][^\n]*)`)
+	// NOM: valeur (clé YAML en début de ligne, éventuellement après « - », ou recopiée par
+	// kubectl après le « : » d'un message, LL-003). L'ancrage évite de masquer du texte libre
+	// comme « error: You must be logged in… » ou « error: invalid token: … ».
+	plainYAML = regexp.MustCompile(`(?m)((?:^[ \t]*(?:-[ \t]+)?|:[ \t]+)` + sensitiveName + `[ \t]*:[ \t]+)([^\s"'#|>][^\n]*)`)
 	// NOM=valeur (variable d'environnement, fichier .env).
 	assignment = regexp.MustCompile(`(` + sensitiveName + `=)([^\s"']+|"[^"\n]*"|'[^'\n]*')`)
 	// Variable d'environnement d'un manifeste : « name: NOM_SENSIBLE » puis « value: … ».
@@ -151,7 +152,9 @@ func splitDocuments(s string) []string {
 	return append(docs, s[start:])
 }
 
-var secretKind = regexp.MustCompile(`(?m)^kind:[ \t]*["']?Secret["']?[ \t]*$`)
+// secretKind reconnaît « kind: Secret » en début de ligne ou recopié après le « : » d'un
+// message kubectl (LL-003).
+var secretKind = regexp.MustCompile(`(?m)(?:^|:[ \t]+)kind:[ \t]*["']?Secret["']?[ \t]*$`)
 
 func isSecretDocument(doc string) bool { return secretKind.MatchString(doc) }
 

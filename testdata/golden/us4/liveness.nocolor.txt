@@ -1,0 +1,19 @@
+✖ Le conteneur « app » du pod « liveness » est redémarré, sa sonde de vie échoue.
+   pod liveness · namespace demo · image busybox:1.38 · état LivenessProbeFailed · 3 redémarrages
+
+📘 Concept — liveness probe
+   La sonde de vie (livenessProbe) vérifie que le conteneur fonctionne encore ;
+   quand elle échoue, Kubernetes le redémarre.
+
+🔎 Cause probable
+   La livenessProbe échoue (3 redémarrages) : le programme est bloqué, ou la
+   sonde vise un mauvais port, chemin ou commande. Dernier échec : « Liveness
+   probe failed:  ».
+
+💡 Corrections
+   1. Vérifier la définition de la sonde de vie.
+      kubectl get pod liveness -n demo -o jsonpath='{.spec.containers[*].livenessProbe}'
+   2. Lire le journal de l'exécution précédente, juste avant le redémarrage.
+      kubectl logs liveness -c app -n demo --previous
+
+➜ Pour aller plus loin : kubectl telemach deepen

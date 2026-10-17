@@ -52,6 +52,8 @@ approbation formelle n'est exigée, GitHub interdisant d'approuver sa propre PR.
 ```bash
 go test ./...                                   # tests unitaires et corpus
 go test ./tests/manifests/...                   # contrôle manifest-lint
+scripts/couverture 80                           # couverture de internal/ (gate test)
+scripts/secrets                                 # gate secrets : gitleaks sur l'historique et le dossier (LL-002)
 TELEMACH_KIND_IMAGE=kindest/node:v1.37.0@sha256:… \
   go test -tags integration ./tests/integration/...   # cluster kind jetable
 ```

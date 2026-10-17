@@ -71,6 +71,65 @@ dans le registre d'origine ; seule la règle préventive, transposée à kubectl
 
 ## Incidents
 
+### LL-004 — Commande du quickstart jamais exécutée telle qu'écrite
+
+- **Date** : 2026-10-17
+- **Catégorie** : processus
+- **Contexte** : automatisation des scénarios du quickstart restés manuels (T087).
+- **Cause racine** : V10 lançait `kubectl telemach check -f testdata/manifests/plaintext-secret/`.
+  Ce dossier contient aussi `expected.yaml`, les attentes du test, que `check` analyse comme un
+  manifeste : un problème parasite (« apiVersion manque ») précédait le résultat attendu.
+  Aucun test ne rejouait cette commande exacte ; seuls V1, V2, V4, V5, V13, V14 et V15 l'étaient.
+- **Impact** : aucun en production ; la personne qui suivait le guide aurait vu un faux problème.
+- **Correctif** : V10 vise `secret.yaml` ; V3, V6 à V12, V15 et V17 sont automatisés dans
+  `tests/integration/quickstart_test.go`, sur les trois images kind, sous bash et zsh.
+- **Règle préventive** : chaque commande d'un guide de validation (quickstart, README) est
+  rejouée par un test, avec la forme exacte écrite dans le guide ; un dossier de `testdata/` qui
+  mêle manifestes et attentes n'est jamais donné en entier à `check` ou `apply`.
+- **Suivi** : `tests/integration/quickstart_test.go` (gate `integration`).
+
+### LL-003 — Clé sensible non masquée au milieu d'un message d'erreur
+
+- **Date** : 2026-10-17
+- **Catégorie** : sécurité
+- **Contexte** : vérification de SC-006 sur `last.json` (T088), en passant chaque cas du corpus
+  de masquage comme message d'erreur précédé de « Error from server (BadRequest): ».
+- **Cause racine** : deux motifs de `internal/redact` n'étaient reconnus qu'en début de ligne :
+  `NOM_SENSIBLE: valeur` (ancrage voulu pour ne pas masquer « error: You must be logged
+  in… ») et `kind: Secret`. Recopiés par kubectl après le « : » d'un message, ils passaient
+  en clair : `… (BadRequest): Api_Key: fake-1`, ou les `stringData` d'un Secret.
+- **Impact** : aucun en production (détecté avant publication) ; fuite possible d'une valeur
+  sensible dans l'explication et dans `last.json`.
+- **Correctif** : les deux motifs acceptent aussi une position juste après « : » ; « error:
+  invalid token: expired » reste intact. Cas `inline-key` et `inline-secret-kind` ajoutés au
+  corpus ; 75 s de fuzzing (`FuzzRedact`, `FuzzMatch`) sans échec.
+- **Règle préventive** : un motif de masquage ancré en début de ligne est aussi testé avec un
+  préfixe de message kubectl ; chaque cas du corpus de masquage est rejoué de bout en bout,
+  jusqu'à `last.json`.
+- **Suivi** : `TestCorpusLanguageAndSecrets` (`cmd/kubectl-telemach/language_test.go`) rejoue
+  tout `testdata/secrets/` à travers `explain`, `last`, `check` et `diagnose`.
+
+### LL-002 — Gate « secrets » rouge pendant trois commits
+
+- **Date** : 2026-10-17
+- **Catégorie** : CI/gates
+- **Contexte** : PR #1 de la feature 001 ; la gate est passée au rouge au commit eb1988d (US2),
+  et trois commits ont été poussés ensuite sans qu'elle soit relue.
+- **Cause racine** : faux positif de gitleaks (`generic-api-key`) sur la table des noms de
+  schémas OpenAPI de `scripts/gen-schemas/main.go` (`"v1/Secret": "io.k8s.api.core.v1.…"`) ;
+  aucune vérification locale ne rejouait la gate, et l'état des checks n'était pas relu après
+  chaque push.
+- **Impact** : PR non fusionnable ; risque qu'un vrai secret passe inaperçu derrière une gate
+  déjà rouge.
+- **Correctif** : empreinte du commit historique dans `.gitleaksignore` (justifiée) et
+  commentaire `gitleaks:allow` sur la ligne actuelle ; `scripts/secrets` rejoue la gate en
+  local (historique et dossier de travail).
+- **Règle préventive** : après chaque push, relire `gh pr checks` ; ne jamais pousser un
+  nouveau commit par-dessus une gate rouge sans l'avoir d'abord comprise. Toute exception
+  gitleaks est une empreinte précise et commentée, jamais un chemin entier.
+- **Suivi** : `scripts/secrets`, à enchaîner par `&&` avant `git commit` (D-LL-008) ; voir
+  `CONTRIBUTING.md`.
+
 ### LL-001 — Masquage de --token déclenché au milieu d'un mot
 
 - **Date** : 2026-10-16
