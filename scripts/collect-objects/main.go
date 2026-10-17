@@ -102,6 +102,13 @@ var cases = []objectCase{
 		run("set", "image", "deployment/stalled", "app=nginxinc/nginx-unprivileged:0.0.0-inexistant"),
 		pause(50 * time.Second),
 	}, reads: deploymentReads("stalled", "app=stalled")},
+	{id: "rollout-progressing", steps: []step{apply("rollout-progressing.yaml"), pause(15 * time.Second)}, reads: deploymentReads("slow", "app=slow")},
+	{id: "rollout-paused", steps: []step{
+		apply("rollout-paused.yaml"), waitAvailable("paused"),
+		run("rollout", "pause", "deployment/paused"),
+		run("set", "image", "deployment/paused", "app=nginxinc/nginx-unprivileged:0.0.0-inexistant"),
+		pause(5 * time.Second),
+	}, reads: deploymentReads("paused", "app=paused")},
 	{id: "mutable-tag", steps: []step{apply("mutable-tag.yaml"), waitAvailable("latest-app")}, reads: deploymentReads("latest-app", "app=latest-app")},
 	{id: "config-env", steps: []step{apply("config-env.yaml"), waitAvailable("conf")}, reads: append(deploymentReads("conf", "app=conf"),
 		r("configmap-dates.txt", kuberead.ConfigMapDatesArgs("conf-settings")))},

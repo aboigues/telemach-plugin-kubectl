@@ -1,0 +1,32 @@
+# Scénario W5 : rollout en cours (pods pas encore prêts, échéance non atteinte)
+# (feature 002, quickstart). Manifestes seulement : les attentes sont dans
+# testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: slow
+  template:
+    metadata:
+      labels:
+        app: slow
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      containers:
+      - name: app
+        image: nginxinc/nginx-unprivileged:1.30-alpine
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet: {path: /, port: 8080}
+          initialDelaySeconds: 300
+        securityContext: {allowPrivilegeEscalation: false}
+        resources:
+          requests: {cpu: 10m, memory: 16Mi}
+          limits: {cpu: 100m, memory: 64Mi}
