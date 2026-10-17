@@ -19,6 +19,8 @@ suivi de progression, NetworkPolicy, réseau du nœud et CNI.)
 
 ### Session 2026-10-17
 
+- Précisions issues du plan (research.md S2, S9) : FR-018 autorise la lecture de quatre
+  annotations publiques posées par Kubernetes ; FR-022 inclut `kubectl expose`.
 - Q: Comment détecter qu'une ConfigMap ou un Secret a changé après le démarrage des pods, sachant
   que le plugin ne lit jamais d'objet Secret ? → A: Lecture des **seules métadonnées** des
   ConfigMap référencées par les pods (date de dernière modification), jamais de leurs valeurs ;
@@ -173,8 +175,8 @@ classe n'existe pas et un PVC `WaitForFirstConsumer` sans pod ; vérifier chaque
 ### User Story 4 - Être prévenu d'un piège juste après l'avoir créé (Priority: P4)
 
 L'intégration shell vérifie déjà, environ 10 secondes après un `apply`, `create` ou `run` réussi,
-l'état des pods créés (feature 001). Elle signale désormais aussi, à l'invite suivante et en une
-seule ligne, les pièges détectables à ce moment-là pour les objets que l'apprenant vient de
+l'état des pods créés (feature 001). Elle le fait désormais aussi après `expose`, la façon la
+plus courante de créer un Service, et signale, à l'invite suivante et en une seule ligne, les pièges détectables à ce moment-là pour les objets que l'apprenant vient de
 créer ou de modifier : Service qui ne désigne aucun pod, `targetPort` nommé introuvable, Ingress
 sans classe pris en charge, PVC dont la classe n'existe pas, image au tag mutable.
 
@@ -361,7 +363,10 @@ relever le message réel et vérifier l'explication.
 - **FR-018**: Le plugin MUST NOT lire d'objet Secret ni décoder une valeur de ConfigMap (`data`,
   `binaryData`), une valeur de variable d'environnement ou une annotation (garantie de la
   feature 001 étendue aux nouveaux objets) ; d'une ConfigMap, seuls le nom, le namespace et les
-  dates de modification sont conservés.
+  dates de modification sont conservés. Seule exception : quatre annotations publiques posées
+  par Kubernetes, sans donnée de l'apprenant, sont lues parce qu'elles portent seules
+  l'information nécessaire (classe d'Ingress et classe de stockage par défaut, ancienne classe
+  d'un Ingress, révision d'un ReplicaSet) ; toute autre annotation est ignorée dès la lecture.
 - **FR-019**: Le plugin MUST NOT exécuter de commande dans un conteneur, ouvrir de
   `port-forward`, ni modifier ou supprimer une ressource : les commandes de test et de
   correction sont affichées, jamais exécutées.
@@ -374,7 +379,7 @@ relever le message réel et vérifier l'explication.
 
 #### Vérification différée (US4)
 
-- **FR-022**: Après un `apply`, `create` ou `run` réussi, la vérification différée MUST, en plus
+- **FR-022**: Après un `apply`, `create`, `run` ou `expose` réussi, la vérification différée MUST, en plus
   des pods (feature 001), signaler en une ligne par objet, pour les seuls objets créés ou
   modifiés par la commande : un Service dont le selector ne désigne aucun pod, un `targetPort`
   nommé introuvable, un Ingress sans classe prise en charge, un PVC dont la classe n'existe
