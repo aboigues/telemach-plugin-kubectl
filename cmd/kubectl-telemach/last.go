@@ -12,6 +12,7 @@ import (
 	"github.com/aboigues/telemach-plugin-kubectl/internal/catalog"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/diagnose"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/manifest"
+	"github.com/aboigues/telemach-plugin-kubectl/internal/pitfall"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/render"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/state"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/workload"
@@ -73,6 +74,14 @@ func (a *app) renderLast(w io.Writer, last state.LastDiagnosis, theme render.The
 			return render.RenderPod(w, snap, d, opts)
 		}
 	}
+	if last.Source == state.SourceObject && len(last.Object) > 0 {
+		// Diagnostic d'objet réaffiché sans relire le cluster (feature 002).
+		var snap pitfall.ObjectSnapshot
+		if err := json.Unmarshal(last.Object, &snap); err == nil {
+			cat, _ := catalog.Default()
+			return render.RenderObject(w, snap, cat, opts)
+		}
+	}
 	if last.Source != state.SourceCheck {
 		if err := render.RenderExplanation(w, d, last.Stderr, opts); err != nil {
 			return err
@@ -83,6 +92,14 @@ func (a *app) renderLast(w io.Writer, last state.LastDiagnosis, theme render.The
 	}
 	// Manifestes réanalysés dans leur état actuel (contracts/cli.md § last).
 	r := manifest.Analyze(last.Files, false, last.KubectlVersion)
+	if last.Source == state.SourceObject && len(last.Object) > 0 {
+		// Diagnostic d'objet réaffiché sans relire le cluster (feature 002).
+		var snap pitfall.ObjectSnapshot
+		if err := json.Unmarshal(last.Object, &snap); err == nil {
+			cat, _ := catalog.Default()
+			return render.RenderObject(w, snap, cat, opts)
+		}
+	}
 	if last.Source != state.SourceCheck {
 		r.AddLocations(manifest.Locate(last.Stderr, r.Files), firstLine(last.Stderr))
 		fmt.Fprintln(w)

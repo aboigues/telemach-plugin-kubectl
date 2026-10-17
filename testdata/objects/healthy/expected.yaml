@@ -1,0 +1,5 @@
+# Attendu du diagnostic (feature 002, T023), rédigé à la main d'après le relevé réel.
+kind: service
+name: hello
+primary: service.healthy
+links: {type: ok, selector: ok, readiness: ok, endpoints: ok, ports: ok}

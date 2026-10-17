@@ -39,6 +39,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends zsh
       - name: Tests unitaires et de régression
         run: go test -race -cover ./...
+      - name: Objectifs de latence (sans le détecteur de courses, qui fausse les mesures)
+        run: go test -count=1 -run 'Latency' -v ./internal/diagnose/
       - name: Couverture des paquets internal/ (80 % minimum)
         run: scripts/couverture 80
 

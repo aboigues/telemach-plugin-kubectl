@@ -70,10 +70,11 @@ type Link struct {
 // Severity distingue un avertissement d'une information non bloquante.
 type Severity string
 
-// Gravités d'un piège.
+// Gravités d'un piège ; OK confirme un objet sain (sa leçon donne les commandes de test).
 const (
 	Warning Severity = "warning"
 	Info    Severity = "info"
+	OK      Severity = "ok"
 )
 
 // Pitfall est un piège trouvé (data-model.md § Pitfall) ; ID désigne sa leçon du catalogue.
@@ -117,6 +118,9 @@ type ObjectSnapshot struct {
 	Rollout     *RolloutState
 	DeniedReads []string
 	Others      []ObjectSummary
+	// Captures sont les valeurs communes à toutes les leçons de l'objet (kubectl, scope,
+	// nom…), déjà masquées ; celles d'un piège les complètent.
+	Captures map[string]string
 }
 
 // AddLink ajoute un maillon.
@@ -129,6 +133,19 @@ func (s *ObjectSnapshot) Observe(step Step, label, value string) {
 	if l := s.link(step); l != nil {
 		l.Observed = append(l.Observed, Observation{label, value})
 	}
+}
+
+// LessonCaptures renvoie les valeurs d'une leçon : celles de l'objet complétées par celles du
+// piège.
+func (s *ObjectSnapshot) LessonCaptures(p Pitfall) map[string]string {
+	out := map[string]string{}
+	for k, v := range s.Captures {
+		out[k] = v
+	}
+	for k, v := range p.Captures {
+		out[k] = v
+	}
+	return out
 }
 
 // Add ajoute un piège et casse son maillon s'il s'agit d'un avertissement. Il refuse un piège
@@ -164,9 +181,10 @@ func (s *ObjectSnapshot) Deny(err error) {
 func (s *ObjectSnapshot) Partial() bool { return len(s.DeniedReads) > 0 }
 
 // Primary renvoie le piège qui porte la leçon : le premier avertissement dans l'ordre des
-// maillons, sinon la première information ; nil si rien n'a été trouvé.
+// maillons, sinon la première information, sinon la confirmation d'un objet sain ; nil si rien
+// n'a été trouvé.
 func (s *ObjectSnapshot) Primary() *Pitfall {
-	for _, sev := range []Severity{Warning, Info} {
+	for _, sev := range []Severity{Warning, Info, OK} {
 		for _, l := range s.Links {
 			for i := range s.Pitfalls {
 				if p := &s.Pitfalls[i]; p.Step == l.Step && p.Severity == sev {

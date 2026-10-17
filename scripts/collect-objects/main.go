@@ -89,11 +89,12 @@ var cases = []objectCase{
 	{id: "selector-typo", steps: []step{apply("selector-typo.yaml"), waitAvailable("frontend")}, reads: service("web", "app=web")},
 	{id: "not-ready", steps: []step{apply("not-ready.yaml"), pause(30 * time.Second)}, reads: service("api", "app=api")},
 	{id: "targetport-name", steps: []step{apply("targetport-name.yaml"), waitAvailable("shop")}, reads: service("shop", "app=shop")},
+	{id: "targetport-number", steps: []step{apply("targetport-number.yaml"), waitAvailable("cart")}, reads: service("cart", "app=cart")},
 	{id: "targetport-undeclared", steps: []step{apply("targetport-undeclared.yaml"), waitAvailable("blog")}, reads: service("blog", "app=blog")},
 	{id: "no-selector", steps: []step{apply("no-selector.yaml")}, reads: []read{
 		r("service.json", kuberead.ServiceArgs("external")),
 		r("endpointslices.json", kuberead.ServiceEndpointSlicesArgs("external")),
-		r("service-externalname.json", kuberead.ServiceArgs("docs")),
+		r("service-docs.json", kuberead.ServiceArgs("docs")),
 	}},
 	{id: "healthy", steps: []step{apply("healthy.yaml"), waitAvailable("hello")}, reads: append(service("hello", "app=hello"), deploymentReads("hello", "app=hello")[:2]...)},
 	{id: "rollout-stalled", steps: []step{

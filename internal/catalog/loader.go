@@ -168,7 +168,7 @@ func validate(e *Entry) []error {
 		if _, err := template.New("").Parse(tpl); err != nil {
 			fail("gabarit invalide %q : %v", tpl, err)
 		}
-		if deprecatedEndpoints.MatchString(tpl) {
+		if strings.Contains(tpl, "get e") && deprecatedEndpoints.MatchString(tpl) {
 			fail("« get endpoints » utilise l'API Endpoints, dépréciée depuis Kubernetes 1.33 : proposer get endpointslices -l kubernetes.io/service-name=<nom> (EndpointSlice, FR-032)")
 		}
 	}

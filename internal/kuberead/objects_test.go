@@ -111,18 +111,18 @@ func TestCorpusObjectsDecode(t *testing.T) {
 		t.Fatal("corpus testdata/objects/ vide (D-LL-009)")
 	}
 	targets := map[string]func() any{
-		"service":              func() any { return &Service{} },
-		"endpointslices":       func() any { return &EndpointSliceList{} },
-		"pods":                 func() any { return &PodList{} },
-		"selected-pods":        func() any { return &PodList{} },
-		"deployment":           func() any { return &Deployment{} },
-		"replicasets":          func() any { return &ReplicaSetList{} },
-		"ingress":              func() any { return &Ingress{} },
-		"ingressclasses":       func() any { return &IngressClassList{} },
-		"pvc":                  func() any { return &PVC{} },
-		"storageclasses":       func() any { return &StorageClassList{} },
-		"service-hello":        func() any { return &Service{} },
-		"service-externalname": func() any { return &Service{} },
+		"service":        func() any { return &Service{} },
+		"endpointslices": func() any { return &EndpointSliceList{} },
+		"pods":           func() any { return &PodList{} },
+		"selected-pods":  func() any { return &PodList{} },
+		"deployment":     func() any { return &Deployment{} },
+		"replicasets":    func() any { return &ReplicaSetList{} },
+		"ingress":        func() any { return &Ingress{} },
+		"ingressclasses": func() any { return &IngressClassList{} },
+		"pvc":            func() any { return &PVC{} },
+		"storageclasses": func() any { return &StorageClassList{} },
+		"service-hello":  func() any { return &Service{} },
+		"service-docs":   func() any { return &Service{} },
 	}
 	decoded := 0
 	for _, f := range files {

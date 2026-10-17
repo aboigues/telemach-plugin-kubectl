@@ -71,6 +71,26 @@ dans le registre d'origine ; seule la règle préventive, transposée à kubectl
 
 ## Incidents
 
+### LL-006 — Objectif de latence mesuré sous le détecteur de courses
+
+- **Date** : 2026-10-17
+- **Catégorie** : CI/gates
+- **Contexte** : feature 002, ajout de contrôles au chargement du catalogue (FR-032).
+- **Cause racine** : `TestExplainLatency` (objectif interne de SC-003 : 200 ms au p95) tournait
+  dans la gate `test`, compilée avec `-race`, qui ralentit l'exécution d'un facteur 5 à 10.
+  La marge était déjà presque épuisée ; quelques entrées et contrôles de plus ont suffi à
+  dépasser le seuil (225 ms en CI), alors que le binaire réel reste à 7,5 ms.
+- **Impact** : gate `test` rouge sur la PR #3 ; risque de « corriger » par une hausse du
+  seuil, ou d'optimiser à l'aveugle un code qui n'est pas lent.
+- **Correctif** : mesure ignorée sous `-race` (étiquette de build `race`) et lancée dans une
+  étape dédiée de la gate `test`, sans `-race` ; pré-filtre `strings.Contains` avant
+  l'expression régulière du contrôle FR-032.
+- **Règle préventive** : un objectif de performance se mesure sur le binaire tel qu'il est
+  livré, jamais sous un outil d'instrumentation ; avant d'ajuster un seuil ou d'optimiser,
+  comparer avant et après avec un benchmark et un profil.
+- **Suivi** : `internal/diagnose/race_on_test.go` et étape « Objectifs de latence » de
+  `.github/workflows/ci.yml`.
+
 ### LL-005 — Dossier de scénarios appliqué en entier avec son fichier d'attentes
 
 - **Date** : 2026-10-17
