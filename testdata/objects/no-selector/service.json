@@ -1,0 +1,37 @@
+{
+  "apiVersion": "v1",
+  "kind": "Service",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "••••••"
+    },
+    "creationTimestamp": "2026-10-17T19:02:17Z",
+    "name": "external",
+    "namespace": "demo",
+    "resourceVersion": "669",
+    "uid": "93f3d898-de5b-468c-b10a-2e9930e607c0"
+  },
+  "spec": {
+    "clusterIP": "10.96.184.91",
+    "clusterIPs": [
+      "10.96.184.91"
+    ],
+    "internalTrafficPolicy": "Cluster",
+    "ipFamilies": [
+      "IPv4"
+    ],
+    "ipFamilyPolicy": "SingleStack",
+    "ports": [
+      {
+        "port": 80,
+        "protocol": "TCP",
+        "targetPort": 8080
+      }
+    ],
+    "sessionAffinity": "None",
+    "type": "ClusterIP"
+  },
+  "status": {
+    "loadBalancer": {}
+  }
+}

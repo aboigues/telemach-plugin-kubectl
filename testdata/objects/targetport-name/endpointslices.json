@@ -1,0 +1,60 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "addressType": "IPv4",
+      "apiVersion": "discovery.k8s.io/v1",
+      "endpoints": [
+        {
+          "addresses": [
+            "10.244.0.7"
+          ],
+          "conditions": {
+            "ready": true,
+            "serving": true,
+            "terminating": false
+          },
+          "nodeName": "telemach-c006d8-control-plane",
+          "targetRef": {
+            "kind": "Pod",
+            "name": "shop-7544694c56-bpb4d",
+            "namespace": "demo",
+            "uid": "78adeeec-328e-42af-a14b-bf7800a01eab"
+          }
+        }
+      ],
+      "kind": "EndpointSlice",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-10-17T19:02:16Z"
+        },
+        "creationTimestamp": "2026-10-17T19:02:15Z",
+        "generateName": "shop-",
+        "generation": 2,
+        "labels": {
+          "endpointslice.kubernetes.io/managed-by": "endpointslice-controller.k8s.io",
+          "kubernetes.io/service-name": "shop"
+        },
+        "name": "shop-66c2z",
+        "namespace": "demo",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "Service",
+            "name": "shop",
+            "uid": "93df5f16-bf39-450f-bfe5-57faec7e7303"
+          }
+        ],
+        "resourceVersion": "637",
+        "uid": "306e1b83-0fb5-405f-b963-7a30b1a9d421"
+      },
+      "ports": null
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

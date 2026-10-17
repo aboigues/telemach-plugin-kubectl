@@ -1,0 +1,66 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "addressType": "IPv4",
+      "apiVersion": "discovery.k8s.io/v1",
+      "endpoints": [
+        {
+          "addresses": [
+            "10.244.0.6"
+          ],
+          "conditions": {
+            "ready": false,
+            "serving": false,
+            "terminating": false
+          },
+          "nodeName": "telemach-c006d8-control-plane",
+          "targetRef": {
+            "kind": "Pod",
+            "name": "api-6b957d4f76-vmnt6",
+            "namespace": "demo",
+            "uid": "f1cd24c9-a0de-4de3-8912-86a478c652fa"
+          }
+        }
+      ],
+      "kind": "EndpointSlice",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-10-17T19:01:44Z"
+        },
+        "creationTimestamp": "2026-10-17T19:01:44Z",
+        "generateName": "api-",
+        "generation": 2,
+        "labels": {
+          "endpointslice.kubernetes.io/managed-by": "endpointslice-controller.k8s.io",
+          "kubernetes.io/service-name": "api"
+        },
+        "name": "api-9nc7s",
+        "namespace": "demo",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "Service",
+            "name": "api",
+            "uid": "cae0ffb4-4363-4955-9357-01c8d7f72853"
+          }
+        ],
+        "resourceVersion": "555",
+        "uid": "ccfa5b61-ae91-40b2-9d92-8237c1a33d00"
+      },
+      "ports": [
+        {
+          "name": "",
+          "port": 8080,
+          "protocol": "TCP"
+        }
+      ]
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

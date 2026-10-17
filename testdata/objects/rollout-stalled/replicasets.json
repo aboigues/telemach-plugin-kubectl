@@ -1,0 +1,195 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "apps/v1",
+      "kind": "ReplicaSet",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/desired-replicas": "1",
+          "deployment.kubernetes.io/max-replicas": "2",
+          "deployment.kubernetes.io/revision": "2"
+        },
+        "creationTimestamp": "2026-10-17T19:02:21Z",
+        "generation": 1,
+        "labels": {
+          "app": "stalled",
+          "pod-template-hash": "54db4dc9bb"
+        },
+        "name": "stalled-54db4dc9bb",
+        "namespace": "demo",
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "Deployment",
+            "name": "stalled",
+            "uid": "11755cfa-c2bb-4cc3-9602-f20787905929"
+          }
+        ],
+        "resourceVersion": "759",
+        "uid": "04a00394-24b5-4416-abbd-855aa9ef9c84"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "stalled",
+            "pod-template-hash": "54db4dc9bb"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "stalled",
+              "pod-template-hash": "54db4dc9bb"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "image": "nginxinc/nginx-unprivileged:0.0.0-inexistant",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "app",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "100m",
+                    "memory": "64Mi"
+                  },
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "16Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "runAsUser": 65534
+            },
+            "terminationGracePeriodSeconds": 30
+          }
+        }
+      },
+      "status": {
+        "fullyLabeledReplicas": 1,
+        "observedGeneration": 1,
+        "replicas": 1,
+        "terminatingReplicas": 0
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "ReplicaSet",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/desired-replicas": "1",
+          "deployment.kubernetes.io/max-replicas": "2",
+          "deployment.kubernetes.io/revision": "1"
+        },
+        "creationTimestamp": "2026-10-17T19:02:20Z",
+        "generation": 1,
+        "labels": {
+          "app": "stalled",
+          "pod-template-hash": "ddf59cb86"
+        },
+        "name": "stalled-ddf59cb86",
+        "namespace": "demo",
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "Deployment",
+            "name": "stalled",
+            "uid": "11755cfa-c2bb-4cc3-9602-f20787905929"
+          }
+        ],
+        "resourceVersion": "747",
+        "uid": "8622c73f-9e71-4288-8e8b-45782a252e03"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "stalled",
+            "pod-template-hash": "ddf59cb86"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "stalled",
+              "pod-template-hash": "ddf59cb86"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "image": "nginxinc/nginx-unprivileged:1.30-alpine",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "app",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "100m",
+                    "memory": "64Mi"
+                  },
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "16Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "runAsUser": 65534
+            },
+            "terminationGracePeriodSeconds": 30
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 1,
+        "fullyLabeledReplicas": 1,
+        "observedGeneration": 1,
+        "readyReplicas": 1,
+        "replicas": 1,
+        "terminatingReplicas": 0
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "apiVersion": "v1",
+  "kind": "Service",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "••••••"
+    },
+    "creationTimestamp": "2026-10-17T19:01:41Z",
+    "name": "web",
+    "namespace": "demo",
+    "resourceVersion": "473",
+    "uid": "7d33f161-bcb9-49a3-ab84-a54e35f38a8c"
+  },
+  "spec": {
+    "clusterIP": "10.96.236.116",
+    "clusterIPs": [
+      "10.96.236.116"
+    ],
+    "internalTrafficPolicy": "Cluster",
+    "ipFamilies": [
+      "IPv4"
+    ],
+    "ipFamilyPolicy": "SingleStack",
+    "ports": [
+      {
+        "port": 80,
+        "protocol": "TCP",
+        "targetPort": 8080
+      }
+    ],
+    "selector": {
+      "app": "web"
+    },
+    "sessionAffinity": "None",
+    "type": "ClusterIP"
+  },
+  "status": {
+    "loadBalancer": {}
+  }
+}

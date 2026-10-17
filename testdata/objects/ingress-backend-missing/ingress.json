@@ -1,0 +1,41 @@
+{
+  "apiVersion": "networking.k8s.io/v1",
+  "kind": "Ingress",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "••••••"
+    },
+    "creationTimestamp": "2026-10-17T19:03:28Z",
+    "generation": 1,
+    "name": "shop",
+    "namespace": "demo",
+    "resourceVersion": "937",
+    "uid": "7734d82d-e43b-452f-bb7d-d243828b7096"
+  },
+  "spec": {
+    "ingressClassName": "demo",
+    "rules": [
+      {
+        "http": {
+          "paths": [
+            {
+              "backend": {
+                "service": {
+                  "name": "absent",
+                  "port": {
+                    "number": 80
+                  }
+                }
+              },
+              "path": "/",
+              "pathType": "Prefix"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "status": {
+    "loadBalancer": {}
+  }
+}

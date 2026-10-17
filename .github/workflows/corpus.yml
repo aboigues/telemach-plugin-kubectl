@@ -3,7 +3,8 @@
 # Kubernetes prise en charge. Déclenchement manuel, ou sur une pull request qui modifie les
 # outils ou les scénarios du relevé (un workflow_dispatch n'est lançable qu'une fois présent
 # sur main) ; ce n'est pas une gate de fusion. Le résultat, déjà masqué, est publié en
-# artefact : le mainteneur le relit avant de le versionner. Actions épinglées par SHA de commit complet (vérifiées le 2026-10-17).
+# artefact : le mainteneur le relit avant de le versionner. Actions épinglées par SHA de
+# commit complet (vérifiées le 2026-10-17).
 name: corpus
 
 on:

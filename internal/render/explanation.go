@@ -53,38 +53,44 @@ func RenderExplanation(w io.Writer, d diagnose.Diagnosis, original string, o Opt
 	}
 	b.WriteString("\n")
 
+	writeLesson(&b, e, d.Captures, o, width)
+	writeOriginal(&b, original, d.Captures, o, width)
+	b.WriteString("\n" + t.Hint(LabelDeepen+" : "+telemach(d.Captures)+" deepen") + "\n")
+	_, err := io.WriteString(w, b.String())
+	return err
+}
+
+// writeLesson écrit le cœur d'une leçon : concept, cause, corrections et anti-pattern
+// éventuel. Il sert aux explications d'erreurs et aux diagnostics d'objets (feature 002).
+func writeLesson(b *strings.Builder, e *catalog.Entry, captures map[string]string, o Options, width int) {
+	t := o.Theme
 	b.WriteString(t.Concept(LabelConcept+" — "+e.Concept.Name) + "\n")
 	b.WriteString(wrap(e.Concept.Definition, width, indent) + "\n\n")
 
 	b.WriteString(t.Cause(LabelCause) + "\n")
-	b.WriteString(wrap(catalog.Render(e.Cause, d.Captures), width, indent) + "\n\n")
+	b.WriteString(wrap(catalog.Render(e.Cause, captures), width, indent) + "\n\n")
 
 	b.WriteString(t.Fix(LabelFixes) + "\n")
 	for i, f := range e.Fixes {
 		prefix := fmt.Sprintf("%s%d. ", indent, i+1)
-		desc := catalog.Render(f.Description, d.Captures)
+		desc := catalog.Render(f.Description, captures)
 		if !f.Safe {
 			desc = t.Anti("(déconseillé)") + " " + desc
 		}
 		b.WriteString(prefix + wrapRest(desc, width, strings.Repeat(" ", utf8.RuneCountInString(prefix))) + "\n")
 		pad := strings.Repeat(" ", utf8.RuneCountInString(prefix))
 		if f.Command != "" {
-			b.WriteString(pad + t.Highlight(catalog.Render(f.Command, d.Captures), "bash") + "\n")
+			b.WriteString(pad + t.Highlight(catalog.Render(f.Command, captures), "bash") + "\n")
 		}
 		if f.Manifest != "" {
-			code := t.Highlight(strings.TrimRight(catalog.Render(f.Manifest, d.Captures), "\n"), "yaml")
+			code := t.Highlight(strings.TrimRight(catalog.Render(f.Manifest, captures), "\n"), "yaml")
 			b.WriteString(pad + strings.ReplaceAll(code, "\n", "\n"+pad) + "\n")
 		}
 	}
 	if e.AntiPattern != nil {
 		b.WriteString("\n" + t.Anti(LabelAnti) + "\n")
-		b.WriteString(wrap(catalog.Render(e.AntiPattern.Description, d.Captures), width, indent) + "\n")
+		b.WriteString(wrap(catalog.Render(e.AntiPattern.Description, captures), width, indent) + "\n")
 	}
-
-	writeOriginal(&b, original, d.Captures, o, width)
-	b.WriteString("\n" + t.Hint(LabelDeepen+" : "+telemach(d.Captures)+" deepen") + "\n")
-	_, err := io.WriteString(w, b.String())
-	return err
 }
 
 // renderUnknown affiche une erreur non reconnue sans jamais avancer de cause (FR-008).

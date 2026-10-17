@@ -104,16 +104,21 @@ var cases = []objectCase{
 	{id: "mutable-tag", steps: []step{apply("mutable-tag.yaml"), waitAvailable("latest-app")}, reads: deploymentReads("latest-app", "app=latest-app")},
 	{id: "config-env", steps: []step{apply("config-env.yaml"), waitAvailable("conf")}, reads: append(deploymentReads("conf", "app=conf"),
 		r("configmap-dates.txt", kuberead.ConfigMapDatesArgs("conf-settings")))},
+	// Même Deployment après une nouvelle valeur de la ConfigMap : les pods gardent l'ancienne.
+	{id: "config-env-stale", steps: []step{pause(2 * time.Second), apply("config-env-update.yaml"), pause(2 * time.Second)}, reads: append(deploymentReads("conf", "app=conf"),
+		r("configmap-dates.txt", kuberead.ConfigMapDatesArgs("conf-settings")))},
 	{id: "ingress-no-class", steps: []step{apply("ingress-no-class.yaml"), pause(5 * time.Second)}, reads: []read{
 		r("ingress.json", kuberead.IngressArgs("web")),
 		r("ingressclasses.json", kuberead.IngressClassesArgs()),
 		r("service-hello.json", kuberead.ServiceArgs("hello")),
 	}},
-	{id: "ingress-unknown-class", steps: []step{apply("ingress-unknown-class.yaml"), pause(5 * time.Second)}, reads: []read{
+	// La classe « demo » existe (non marquée par défaut) : « nginx-tpyo » est alors une classe
+	// inconnue, et non l'absence de tout contrôleur.
+	{id: "ingress-unknown-class", steps: []step{apply("ingressclass-not-default.yaml"), apply("ingress-unknown-class.yaml"), pause(5 * time.Second)}, reads: []read{
 		r("ingress.json", kuberead.IngressArgs("typo")),
 		r("ingressclasses.json", kuberead.IngressClassesArgs()),
 	}},
-	{id: "ingress-backend-missing", steps: []step{apply("ingressclass-not-default.yaml"), apply("ingress-backend-missing.yaml"), pause(5 * time.Second)}, reads: []read{
+	{id: "ingress-backend-missing", steps: []step{apply("ingress-backend-missing.yaml"), pause(5 * time.Second)}, reads: []read{
 		r("ingress.json", kuberead.IngressArgs("shop")),
 		r("ingressclasses.json", kuberead.IngressClassesArgs()),
 		r("service-absent.json", kuberead.ServiceArgs("absent")),
@@ -217,17 +222,17 @@ func capture(c *kindcluster.Cluster, rd read) (string, string) {
 	if res.ExitCode != 0 {
 		return rd.file + ".err", redact.Redact(res.Stderr)
 	}
-	return rd.file, normalizeJSON(redact.Redact(res.Stdout))
+	return rd.file, redactJSON(res.Stdout)
 }
 
 // podFiles relève un pod au format de testdata/pods/<nom>/ (lectures de la feature 001).
 func podFiles(c *kindcluster.Cluster, pod, capturedAt string) map[string]string {
 	files := map[string]string{"captured-at.txt": capturedAt}
 	if res := c.Kubectl("get", "pod", pod, "-o", "json", "-n", ns); res.ExitCode == 0 {
-		files["pod.json"] = normalizeJSON(redact.Redact(res.Stdout))
+		files["pod.json"] = redactJSON(res.Stdout)
 	}
 	if res := c.Kubectl(append(kuberead.PodEventsArgs(pod), "-n", ns)...); res.ExitCode == 0 {
-		files["events.json"] = normalizeJSON(redact.Redact(res.Stdout))
+		files["events.json"] = redactJSON(res.Stdout)
 	}
 	if res := c.Kubectl("logs", pod, fmt.Sprintf("--tail=%d", kuberead.LogLines), "-n", ns); res.ExitCode == 0 {
 		files["logs.txt"] = redact.Redact(res.Stdout)
@@ -295,12 +300,46 @@ func latest(dates string) string {
 	return max
 }
 
-func normalizeJSON(s string) string {
-	var buf bytes.Buffer
-	if err := json.Indent(&buf, []byte(s), "", "  "); err != nil {
-		return s
+// redactJSON masque un document JSON en gardant sa structure : l'annotation
+// last-applied-configuration (qui recopie le manifeste) devient une chaîne masquée, puis
+// chaque valeur texte passe par redact. Un masquage textuel du document entier produirait un
+// JSON invalide (valeur masquée sans guillemets).
+func redactJSON(s string) string {
+	var v any
+	if err := json.Unmarshal([]byte(s), &v); err != nil {
+		return redact.Redact(s)
 	}
-	return buf.String() + "\n"
+	var walk func(v any) any
+	walk = func(v any) any {
+		switch t := v.(type) {
+		case map[string]any:
+			for k, c := range t {
+				if k == "kubectl.kubernetes.io/last-applied-configuration" {
+					t[k] = redact.Mask
+					continue
+				}
+				t[k] = walk(c)
+			}
+			return t
+		case []any:
+			for i, c := range t {
+				t[i] = walk(c)
+			}
+			return t
+		case string:
+			return redact.Redact(t)
+		default:
+			return t
+		}
+	}
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(walk(v)); err != nil {
+		return redact.Redact(s)
+	}
+	return buf.String()
 }
 
 // save range les fichiers d'un cas sans écraser expected.yaml ; avec variant, un cas dont un

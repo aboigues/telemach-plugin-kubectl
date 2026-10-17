@@ -105,7 +105,7 @@ ne la réaffiche pas dans les 24 h ; `diagnose` donne l'information non bloquant
 ```bash
 kubectl apply -n demo -f testdata/objects/scenarios/config-env.yaml
 kubectl wait -n demo --for=condition=Available deployment/conf --timeout=90s
-kubectl create configmap conf-settings -n demo --from-literal=MODE=prod --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply -n demo -f testdata/objects/scenarios/config-env-update.yaml
 kubectl telemach diagnose deployment/conf -n demo
 ```
 

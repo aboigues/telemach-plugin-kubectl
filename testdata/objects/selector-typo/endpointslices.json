@@ -1,0 +1,42 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "addressType": "IPv4",
+      "apiVersion": "discovery.k8s.io/v1",
+      "endpoints": null,
+      "kind": "EndpointSlice",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-10-17T19:01:41Z"
+        },
+        "creationTimestamp": "2026-10-17T19:01:41Z",
+        "generateName": "web-",
+        "generation": 1,
+        "labels": {
+          "endpointslice.kubernetes.io/managed-by": "endpointslice-controller.k8s.io",
+          "kubernetes.io/service-name": "web"
+        },
+        "name": "web-8mw4h",
+        "namespace": "demo",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "Service",
+            "name": "web",
+            "uid": "7d33f161-bcb9-49a3-ab84-a54e35f38a8c"
+          }
+        ],
+        "resourceVersion": "479",
+        "uid": "af5b39fb-606e-4207-8087-a4bfdb94e2f2"
+      },
+      "ports": null
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

@@ -71,6 +71,27 @@ dans le registre d'origine ; seule la règle préventive, transposée à kubectl
 
 ## Incidents
 
+### LL-005 — Dossier de scénarios appliqué en entier avec son fichier d'attentes
+
+- **Date** : 2026-10-17
+- **Catégorie** : processus
+- **Contexte** : préparation des scénarios de la feature 002 (T002), en relisant ceux de la
+  feature 001 à la lumière de LL-004.
+- **Cause racine** : `testdata/pods/scenarios/` contenait `expected.yaml` (défauts tolérés par
+  manifest-lint). Le scénario V13 du quickstart 001 lance
+  `kubectl apply -f testdata/pods/scenarios/` : kubectl lit aussi ce fichier, sans `apiVersion`
+  ni `kind`, et sort en code 1 alors que les pods sont créés. Le test d'intégration appliquait
+  les fichiers un par un : la commande du guide n'était donc pas celle du test (même cause que
+  LL-004, détectée pendant sa correction mais pas cherchée ailleurs).
+- **Impact** : aucun en production ; un apprenant qui suit le guide voit une erreur parasite.
+- **Correctif** : fichier déplacé en `testdata/pods/scenarios.expected.yaml` (hors du dossier),
+  contrôle `manifest-lint` adapté ; même règle pour `testdata/objects/scenarios/`.
+- **Règle préventive** : un dossier de scénarios ne contient que des objets Kubernetes ; quand
+  une leçon révèle un défaut, chercher le même défaut dans tout le dépôt avant de clore
+  l'incident.
+- **Suivi** : `TestScenarioDirsOnlyManifests` (`tests/manifests/lint_test.go`) échoue si un
+  fichier d'un dossier de scénarios n'a pas d'`apiVersion` et de `kind`.
+
 ### LL-004 — Commande du quickstart jamais exécutée telle qu'écrite
 
 - **Date** : 2026-10-17

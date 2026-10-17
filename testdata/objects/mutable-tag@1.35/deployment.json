@@ -1,0 +1,104 @@
+{
+  "apiVersion": "apps/v1",
+  "kind": "Deployment",
+  "metadata": {
+    "annotations": {
+      "deployment.kubernetes.io/revision": "1",
+      "kubectl.kubernetes.io/last-applied-configuration": "••••••"
+    },
+    "creationTimestamp": "2026-10-17T19:03:14Z",
+    "generation": 1,
+    "name": "latest-app",
+    "namespace": "demo",
+    "resourceVersion": "831",
+    "uid": "76e4efbb-c94c-49a3-a1b5-1f7780f2e02d"
+  },
+  "spec": {
+    "progressDeadlineSeconds": 600,
+    "replicas": 1,
+    "revisionHistoryLimit": 10,
+    "selector": {
+      "matchLabels": {
+        "app": "latest-app"
+      }
+    },
+    "strategy": {
+      "rollingUpdate": {
+        "maxSurge": "25%",
+        "maxUnavailable": "25%"
+      },
+      "type": "RollingUpdate"
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "app": "latest-app"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "image": "nginxinc/nginx-unprivileged",
+            "imagePullPolicy": "Always",
+            "name": "app",
+            "ports": [
+              {
+                "containerPort": 8080,
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "100m",
+                "memory": "64Mi"
+              },
+              "requests": {
+                "cpu": "10m",
+                "memory": "16Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File"
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "restartPolicy": "Always",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "runAsNonRoot": true,
+          "runAsUser": 65534
+        },
+        "terminationGracePeriodSeconds": 30
+      }
+    }
+  },
+  "status": {
+    "availableReplicas": 1,
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-10-17T19:03:17Z",
+        "lastUpdateTime": "2026-10-17T19:03:17Z",
+        "message": "Deployment has minimum availability.",
+        "reason": "MinimumReplicasAvailable",
+        "status": "True",
+        "type": "Available"
+      },
+      {
+        "lastTransitionTime": "2026-10-17T19:03:14Z",
+        "lastUpdateTime": "2026-10-17T19:03:17Z",
+        "message": "ReplicaSet \"latest-app-86764f5c5f\" has successfully progressed.",
+        "reason": "NewReplicaSetAvailable",
+        "status": "True",
+        "type": "Progressing"
+      }
+    ],
+    "observedGeneration": 1,
+    "readyReplicas": 1,
+    "replicas": 1,
+    "terminatingReplicas": 0,
+    "updatedReplicas": 1
+  }
+}

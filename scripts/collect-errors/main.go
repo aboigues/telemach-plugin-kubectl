@@ -195,13 +195,24 @@ func collect(out, variant, only string) error {
 // pendant le transfert, relevé après un Ctrl-C).
 func collectPortForward(out, variant, only string, c *kindcluster.Cluster, ns string) error {
 	if only == "" || only == "portforward-local-port-in-use" {
-		l, err := net.Listen("tcp", "127.0.0.1:"+busyPort)
+		// kubectl écoute en IPv4 et en IPv6 : il n'échoue que si les deux sont occupés (sinon il
+		// se rabat sur l'autre adresse et le transfert démarre).
+		var listeners []net.Listener
+		for _, addr := range []string{"127.0.0.1:" + busyPort, "[::1]:" + busyPort} {
+			if l, err := net.Listen("tcp", addr); err == nil {
+				listeners = append(listeners, l)
+			}
+		}
+		args := words("port-forward deploy/web " + busyPort + ":8080 -n " + ns)
+		b, err := c.KubectlBackground(args...)
 		if err != nil {
 			return err
 		}
-		args := words("port-forward deploy/web " + busyPort + ":8080 -n " + ns)
-		r := c.Kubectl(args...)
-		_ = l.Close()
+		time.Sleep(5 * time.Second)
+		r := b.Stop()
+		for _, l := range listeners {
+			_ = l.Close()
+		}
 		if err := saveFailure(out, variant, "portforward-local-port-in-use", c, args, r); err != nil {
 			return err
 		}
@@ -364,11 +375,21 @@ func normalize(s string, c *kindcluster.Cluster) string {
 		s = strings.ReplaceAll(s, strings.TrimPrefix(u, "https://"), "127.0.0.1:6443")
 	}
 	s = execID.ReplaceAllString(s, `exec "<id>"`)
+	s = sandboxID.ReplaceAllString(s, "<id>")
+	s = netnsID.ReplaceAllString(s, "cni-<id>")
+	s = klogHeader.ReplaceAllString(s, "${1}0000 00:00:00.000000       0 ")
 	return redact.Redact(s)
 }
 
-// execID est l'identifiant aléatoire d'une exécution dans un conteneur.
-var execID = regexp.MustCompile(`exec "[0-9a-f]{64}"`)
+var (
+	// execID est l'identifiant aléatoire d'une exécution dans un conteneur.
+	execID = regexp.MustCompile(`exec "[0-9a-f]{64}"`)
+	// sandboxID et netnsID identifient le bac à sable réseau d'un pod (port-forward).
+	sandboxID = regexp.MustCompile(`\b[0-9a-f]{64}\b`)
+	netnsID   = regexp.MustCompile(`cni-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`)
+	// klogHeader est l'en-tête daté d'une ligne de journal de kubectl (E1017 19:01:08.416287 14354).
+	klogHeader = regexp.MustCompile(`(?m)^([EWI])\d{4} \d{2}:\d{2}:\d{2}\.\d{6}\s+\d+ `)
+)
 
 func save(out, variant, id string, c *kindcluster.Cluster, args []string, r kindcluster.Result) error {
 	stderr := normalize(r.Stderr, c)

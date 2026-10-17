@@ -130,6 +130,102 @@ func (r *Reader) Logs(pod, container string, previous bool) ([]string, error) {
 	return lines, nil
 }
 
+// Lectures de la feature 002 (research.md S1), arguments définis dans commands.go.
+
+// GetService lit un Service.
+func (r *Reader) GetService(name string) (Service, error) {
+	var v Service
+	err := r.getJSON("le Service "+name, &v, ServiceArgs(name)...)
+	return v, err
+}
+
+// ListServices lit les Services du namespace.
+func (r *Reader) ListServices() (ServiceList, error) {
+	var v ServiceList
+	err := r.getJSON("les Services", &v, ServicesArgs()...)
+	return v, err
+}
+
+// ServiceEndpointSlices lit les EndpointSlices d'un Service.
+func (r *Reader) ServiceEndpointSlices(service string) (EndpointSliceList, error) {
+	var v EndpointSliceList
+	err := r.getJSON("les endpoints de "+service, &v, ServiceEndpointSlicesArgs(service)...)
+	return v, err
+}
+
+// ListEndpointSlices lit les EndpointSlices du namespace.
+func (r *Reader) ListEndpointSlices() (EndpointSliceList, error) {
+	var v EndpointSliceList
+	err := r.getJSON("les endpoints", &v, EndpointSlicesArgs()...)
+	return v, err
+}
+
+// ListDeployments lit les Deployments du namespace.
+func (r *Reader) ListDeployments() (DeploymentList, error) {
+	var v DeploymentList
+	err := r.getJSON("les deployments", &v, DeploymentsArgs()...)
+	return v, err
+}
+
+// ReplicaSetsBySelector lit les ReplicaSets qui portent les labels donnés.
+func (r *Reader) ReplicaSetsBySelector(selector string) (ReplicaSetList, error) {
+	var v ReplicaSetList
+	err := r.getJSON("les ReplicaSets "+selector, &v, ReplicaSetsArgs(selector)...)
+	return v, err
+}
+
+// GetIngress lit un Ingress.
+func (r *Reader) GetIngress(name string) (Ingress, error) {
+	var v Ingress
+	err := r.getJSON("l'Ingress "+name, &v, IngressArgs(name)...)
+	return v, err
+}
+
+// ListIngresses lit les Ingress du namespace.
+func (r *Reader) ListIngresses() (IngressList, error) {
+	var v IngressList
+	err := r.getJSON("les Ingress", &v, IngressesArgs()...)
+	return v, err
+}
+
+// ListIngressClasses lit les classes d'Ingress du cluster.
+func (r *Reader) ListIngressClasses() (IngressClassList, error) {
+	var v IngressClassList
+	err := r.getJSON("les classes d'Ingress", &v, IngressClassesArgs()...)
+	return v, err
+}
+
+// GetPVC lit un PersistentVolumeClaim.
+func (r *Reader) GetPVC(name string) (PVC, error) {
+	var v PVC
+	err := r.getJSON("le PVC "+name, &v, PVCArgs(name)...)
+	return v, err
+}
+
+// ListPVCs lit les PersistentVolumeClaims du namespace.
+func (r *Reader) ListPVCs() (PVCList, error) {
+	var v PVCList
+	err := r.getJSON("les PVC", &v, PVCsArgs()...)
+	return v, err
+}
+
+// ListStorageClasses lit les classes de stockage du cluster.
+func (r *Reader) ListStorageClasses() (StorageClassList, error) {
+	var v StorageClassList
+	err := r.getJSON("les classes de stockage", &v, StorageClassesArgs()...)
+	return v, err
+}
+
+// ConfigMapDates lit les seules dates de modification d'une ConfigMap (research.md S3) :
+// kubectl n'écrit que des dates, aucune valeur n'entre dans le plugin.
+func (r *Reader) ConfigMapDates(name string) (ConfigMapDates, error) {
+	out, err := r.run("les dates de la ConfigMap "+name, ConfigMapDatesArgs(name)...)
+	if err != nil {
+		return ConfigMapDates{Name: name}, err
+	}
+	return ParseConfigMapDates(name, out), nil
+}
+
 // getJSON exécute une lecture et décode sa sortie JSON dans v.
 func (r *Reader) getJSON(what string, v any, args ...string) error {
 	out, err := r.run(what, args...)
