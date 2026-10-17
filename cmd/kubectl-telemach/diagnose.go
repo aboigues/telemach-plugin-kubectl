@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -93,7 +92,7 @@ func (a *app) diagnose(w io.Writer, r *kuberead.Reader, cat *catalog.Catalog, ta
 		kind = resolved
 	}
 	switch kind {
-	case "service", "ingress", "pvc":
+	case "service", "deployment", "ingress", "pvc":
 		return a.diagnoseObject(w, r, cat, pitfall.Kind(kind), name, opts)
 	}
 	var candidates []workload.Candidate
@@ -118,21 +117,6 @@ func (a *app) diagnose(w io.Writer, r *kuberead.Reader, cat *catalog.Catalog, ta
 		}
 		snap, d := workload.Diagnose(r, pod, r.Scope, cat, a.now())
 		return a.showPod(w, snap, d, opts)
-	case kind == "deployment":
-		dep, err := r.GetDeployment(name)
-		if kuberead.IsNotFound(err) {
-			fmt.Fprintln(w, opts.Theme.Title(render.SymbolError+" Le deployment « "+name+" » est introuvable dans le namespace "+nsLabel(r.Scope)+"."))
-			return exitError{code: 2}
-		}
-		if err != nil {
-			return a.readFailure(w, err, []string{"get", "deployment", name}, r.Scope, cat, opts)
-		}
-		pods, err := r.PodsBySelector(selector(dep.Spec.Selector.MatchLabels))
-		if err != nil {
-			return a.readFailure(w, err, []string{"get", "pods"}, r.Scope, cat, opts)
-		}
-		candidates = workload.SelectFailing(pods.Items, a.now())
-		label = "pour deployment/" + name
 	}
 	// Le plus récent est expliqué ; un pod qui s'avère simplement en démarrage (aucune sonde en
 	// échec dans ses événements) est écarté au profit du suivant.
@@ -333,18 +317,4 @@ func scopeArgs(s kuberead.Scope) []string {
 		return strings.Fields(f)
 	}
 	return nil
-}
-
-// selector écrit les labels d'un selector sous la forme « clé=valeur,… ».
-func selector(labels map[string]string) string {
-	keys := make([]string, 0, len(labels))
-	for k := range labels {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	parts := make([]string, len(keys))
-	for i, k := range keys {
-		parts[i] = k + "=" + labels[k]
-	}
-	return strings.Join(parts, ",")
 }

@@ -1,0 +1,5 @@
+# Attendu du diagnostic (feature 002, T040-T041), rédigé à la main d'après le relevé réel.
+kind: pvc
+name: fast-data
+primary: pvc.unknown-class
+links: {storageclass: broken, binding: skipped, consumer: ok}

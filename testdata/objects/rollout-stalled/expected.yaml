@@ -1,0 +1,6 @@
+# Attendu du diagnostic (feature 002, T031-T033), rédigé à la main d'après le relevé réel.
+kind: deployment
+name: stalled
+primary: rollout.stalled
+phase: stalled
+links: {rollout: broken, image: ok, config: ok}

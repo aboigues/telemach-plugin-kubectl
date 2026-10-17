@@ -95,7 +95,13 @@ type RolloutState struct {
 	NewDesired int
 	OldReady   int
 	Deadline   time.Duration
-	FailingPod *workload.PodSnapshot
+	// FailingPod est le pod en difficulté le plus récent de la nouvelle version, diagnostiqué
+	// comme dans la feature 001 ; FailingEntry, FailingOrigin et FailingCaptures permettent de
+	// réafficher sa leçon sans relire le cluster (last).
+	FailingPod      *workload.PodSnapshot
+	FailingEntry    string
+	FailingOrigin   string
+	FailingCaptures map[string]string
 }
 
 // ObjectSummary est un objet en difficulté de la liste courte de diagnose sans argument.

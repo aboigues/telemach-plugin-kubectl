@@ -41,10 +41,11 @@ type read struct {
 
 // step prépare l'état d'un cas : kubectl (args), attente fixe (sleep) ou fichier à appliquer.
 type step struct {
-	apply string        // manifeste de testdata/objects/scenarios/ à appliquer
-	args  []string      // commande kubectl à exécuter
-	sleep time.Duration // attente
-	soft  bool          // échec toléré (attente qui peut expirer)
+	apply   string        // manifeste de testdata/objects/scenarios/ à appliquer
+	args    []string      // commande kubectl à exécuter
+	sleep   time.Duration // attente
+	soft    bool          // échec toléré (attente qui peut expirer)
+	cluster bool          // objet du cluster : la commande ne reçoit pas -n
 }
 
 // objectCase est un piège à relever. L'ordre de la liste compte : certains cas réutilisent
@@ -53,6 +54,7 @@ type objectCase struct {
 	id    string
 	steps []step
 	reads []read
+	after []step // remise en état après le relevé
 	pod   string // pod à ranger au format de testdata/pods/ (cas DNS)
 }
 
@@ -125,11 +127,29 @@ var cases = []objectCase{
 	{id: "ingress-unknown-class", steps: []step{apply("ingressclass-not-default.yaml"), apply("ingress-unknown-class.yaml"), pause(5 * time.Second)}, reads: []read{
 		r("ingress.json", kuberead.IngressArgs("typo")),
 		r("ingressclasses.json", kuberead.IngressClassesArgs()),
+		r("service-hello.json", kuberead.ServiceArgs("hello")),
 	}},
 	{id: "ingress-backend-missing", steps: []step{apply("ingress-backend-missing.yaml"), pause(5 * time.Second)}, reads: []read{
 		r("ingress.json", kuberead.IngressArgs("shop")),
 		r("ingressclasses.json", kuberead.IngressClassesArgs()),
 		r("service-absent.json", kuberead.ServiceArgs("absent")),
+	}},
+	// Ingress « web » (sans classe) relu maintenant que la classe « demo » existe, non marquée par
+	// défaut : aucun contrôleur ne le prend en charge.
+	{id: "ingress-no-default-class", steps: []step{pause(time.Second)}, reads: []read{
+		r("ingress.json", kuberead.IngressArgs("web")),
+		r("ingressclasses.json", kuberead.IngressClassesArgs()),
+		r("service-hello.json", kuberead.ServiceArgs("hello")),
+	}},
+	{id: "ingress-no-address", steps: []step{apply("ingress-no-address.yaml"), pause(5 * time.Second)}, reads: []read{
+		r("ingress.json", kuberead.IngressArgs("hello-web")),
+		r("ingressclasses.json", kuberead.IngressClassesArgs()),
+		r("service-hello.json", kuberead.ServiceArgs("hello")),
+	}},
+	{id: "ingress-backend-port", steps: []step{apply("ingress-backend-port.yaml"), pause(5 * time.Second)}, reads: []read{
+		r("ingress.json", kuberead.IngressArgs("wrong-port")),
+		r("ingressclasses.json", kuberead.IngressClassesArgs()),
+		r("service-hello.json", kuberead.ServiceArgs("hello")),
 	}},
 	{id: "pvc-unknown-class", steps: []step{apply("pvc-unknown-class.yaml"), pause(5 * time.Second)}, reads: []read{
 		r("pvc.json", kuberead.PVCArgs("fast-data")),
@@ -144,6 +164,17 @@ var cases = []objectCase{
 	{id: "pvc-empty-class", steps: []step{apply("pvc-empty-class.yaml"), pause(5 * time.Second)}, reads: []read{
 		r("pvc.json", kuberead.PVCArgs("static-data")),
 		r("storageclasses.json", kuberead.StorageClassesArgs()),
+	}},
+	// Sans classe par défaut (annotation retirée de « standard », dans ce cluster jetable
+	// seulement, puis remise) : un PVC sans classe n'en reçoit aucune.
+	{id: "pvc-no-default-class", steps: []step{
+		{args: []string{"annotate", "storageclass", "standard", "storageclass.kubernetes.io/is-default-class=false", "--overwrite"}, cluster: true},
+		apply("pvc-no-default.yaml"), pause(5 * time.Second),
+	}, reads: []read{
+		r("pvc.json", kuberead.PVCArgs("nodefault-data")),
+		r("storageclasses.json", kuberead.StorageClassesArgs()),
+	}, after: []step{
+		{args: []string{"annotate", "storageclass", "standard", "storageclass.kubernetes.io/is-default-class=true", "--overwrite"}, cluster: true},
 	}},
 	{
 		id: "dns-short-name",
@@ -201,6 +232,9 @@ func collect(out, podsDir, scenarios, variant string) error {
 		if err := save(dir, variant, files); err != nil {
 			return err
 		}
+		if err := prepare(c, scenarios, oc.after); err != nil {
+			return fmt.Errorf("%s : remise en état : %w", oc.id, err)
+		}
 	}
 	return checkConfigMapDates(c, out, scenarios)
 }
@@ -215,7 +249,11 @@ func prepare(c *kindcluster.Cluster, scenarios string, steps []step) error {
 		case s.sleep > 0:
 			time.Sleep(s.sleep)
 		default:
-			if r := c.Kubectl(append(s.args, "-n", ns)...); r.ExitCode != 0 && !s.soft {
+			args := s.args
+			if !s.cluster {
+				args = append(append([]string(nil), s.args...), "-n", ns)
+			}
+			if r := c.Kubectl(args...); r.ExitCode != 0 && !s.soft {
 				return fmt.Errorf("kubectl %s : %s", strings.Join(s.args, " "), r.Stderr)
 			}
 		}

@@ -88,21 +88,23 @@ Attendu : `external` présenté comme cas particulier ; `hello` confirmé sain, 
 ### W5 — Rollout bloqué (US2-1, US2-2)
 
 ```bash
-kubectl apply -n demo -f testdata/objects/scenarios/healthy.yaml
-kubectl set image -n demo deployment/hello hello=nginxinc/nginx-unprivileged:0.0.0-inexistant
-kubectl telemach diagnose deployment/hello -n demo
+kubectl apply -n demo -f testdata/objects/scenarios/rollout-stalled.yaml
+kubectl wait -n demo --for=condition=Available deployment/stalled --timeout=90s
+kubectl set image -n demo deployment/stalled app=nginxinc/nginx-unprivileged:0.0.0-inexistant
+kubectl wait -n demo --for=condition=Progressing=False deployment/stalled --timeout=120s
+kubectl telemach diagnose deployment/stalled -n demo
 ```
 
-Attendu : ancienne version encore servie, nouveaux pods en `ImagePullBackOff` expliqués,
-`kubectl rollout undo deployment/hello -n demo` proposé comme choix de l'apprenant. L'échéance
-dépassée est vérifiée par le corpus (`testdata/objects/rollout-stalled/`, relevé avec
-`progressDeadlineSeconds: 30`) et par W12.
+Attendu : rollout bloqué (échéance de 30 s dépassée), ancienne version encore servie, nouveau
+pod en `ImagePullBackOff` expliqué avec les causes de la feature 001,
+`kubectl rollout undo deployment/stalled -n demo` proposé comme choix de l'apprenant.
 
 ### W6 — Tag mutable (US2-3, US4-2)
 
 ```bash
 kubectl apply -n demo -f testdata/objects/scenarios/mutable-tag.yaml
 # appuyer sur Entrée après ~10 s
+kubectl wait -n demo --for=condition=Available deployment/latest-app --timeout=90s
 kubectl telemach diagnose deployment/latest-app -n demo
 ```
 
@@ -114,6 +116,7 @@ ne la réaffiche pas dans les 24 h ; `diagnose` donne l'information non bloquant
 ```bash
 kubectl apply -n demo -f testdata/objects/scenarios/config-env.yaml
 kubectl wait -n demo --for=condition=Available deployment/conf --timeout=90s
+sleep 2   # les dates de Kubernetes sont à la seconde : la modification doit suivre le démarrage
 kubectl apply -n demo -f testdata/objects/scenarios/config-env-update.yaml
 kubectl telemach diagnose deployment/conf -n demo
 ```

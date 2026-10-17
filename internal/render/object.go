@@ -7,6 +7,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/aboigues/telemach-plugin-kubectl/internal/catalog"
+	"github.com/aboigues/telemach-plugin-kubectl/internal/diagnose"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/pitfall"
 )
 
@@ -15,6 +16,7 @@ const (
 	LabelOtherIssues  = "Autres points relevés"
 	LabelOtherObjects = "Autres objets en difficulté"
 	LabelTest         = "▶ Pour tester"
+	LabelNewPod       = "── Pod en difficulté de la nouvelle version ──"
 )
 
 // stepLabels nomme chaque maillon dans la liste affichée ; les termes Kubernetes restent tels
@@ -77,7 +79,7 @@ func RenderObject(w io.Writer, snap pitfall.ObjectSnapshot, cat *catalog.Catalog
 	if len(snap.Links) > 0 {
 		b.WriteString("\n")
 		for _, l := range snap.Links {
-			b.WriteString(linkLine(l, t) + "\n")
+			b.WriteString(linkLine(l, t, width) + "\n")
 		}
 	}
 
@@ -88,6 +90,24 @@ func RenderObject(w io.Writer, snap pitfall.ObjectSnapshot, cat *catalog.Catalog
 		} else {
 			writeLesson(&b, entry, captures, o, width)
 		}
+	}
+
+	if r := snap.Rollout; r != nil && r.FailingPod != nil {
+		b.WriteString("\n" + t.Label(LabelNewPod) + "\n")
+		d := diagnose.Diagnosis{Origin: diagnose.Origin(r.FailingOrigin), Captures: r.FailingCaptures}
+		if cat != nil && r.FailingEntry != "" {
+			d.Entry, _ = cat.Get(r.FailingEntry)
+		}
+		var pod strings.Builder
+		if err := RenderPod(&pod, *r.FailingPod, d, o); err != nil {
+			return err
+		}
+		// L'invitation à approfondir du pod est remplacée par celle de l'objet, en fin de rendu.
+		text := strings.TrimRight(pod.String(), "\n")
+		if i := strings.LastIndex(text, "\n"); i >= 0 && strings.Contains(text[i:], "telemach deepen") {
+			text = strings.TrimRight(text[:i], "\n")
+		}
+		b.WriteString(text + "\n")
 	}
 
 	if others := snap.Secondary(); len(others) > 0 && cat != nil {
@@ -173,8 +193,9 @@ func objectIdentity(s pitfall.ObjectSnapshot) string {
 	return strings.Join(parts, " · ")
 }
 
-// linkLine écrit un maillon : symbole d'état, nom aligné, observations.
-func linkLine(l pitfall.Link, t Theme) string {
+// linkLine écrit un maillon : symbole d'état, nom aligné, observations. Les observations qui
+// ne tiennent pas sur la ligne passent chacune sur une ligne alignée.
+func linkLine(l pitfall.Link, t Theme, width int) string {
 	symbol, detail := "·", "non vérifié"
 	switch l.State {
 	case pitfall.StateOK:
@@ -192,23 +213,34 @@ func linkLine(l pitfall.Link, t Theme) string {
 			obs = append(obs, o.Label+" : "+o.Value)
 		}
 	}
-	if len(obs) > 0 {
-		detail = strings.Join(obs, " · ")
-	}
 	label := stepLabels[l.Step]
 	if label == "" {
 		label = string(l.Step)
 	}
-	line := indent + symbol + " " + label + strings.Repeat(" ", max(1, 19-utf8.RuneCountInString(label))) + detail
-	switch l.State {
-	case pitfall.StateBroken:
-		return t.Title(line)
-	case pitfall.StateOK:
-		return line
-	default:
-		return t.Dim(line)
+	head := indent + symbol + " " + label + strings.Repeat(" ", max(1, linkColumn-utf8.RuneCountInString(label)))
+	pad := strings.Repeat(" ", utf8.RuneCountInString(head))
+	if len(obs) > 0 {
+		detail = strings.Join(obs, " · ")
+		if utf8.RuneCountInString(head+detail) > width {
+			detail = strings.Join(obs, "\n"+pad)
+		}
 	}
+	var lines []string
+	for _, line := range strings.Split(head+detail, "\n") {
+		switch l.State {
+		case pitfall.StateBroken:
+			line = t.Title(line)
+		case pitfall.StateOK:
+		default:
+			line = t.Dim(line)
+		}
+		lines = append(lines, line)
+	}
+	return strings.Join(lines, "\n")
 }
+
+// linkColumn est la largeur de la colonne des noms de maillons.
+const linkColumn = 19
 
 // writeOthers écrit la liste des autres objets en difficulté.
 func writeOthers(b *strings.Builder, snap pitfall.ObjectSnapshot, cat *catalog.Catalog, captures map[string]string, t Theme) {

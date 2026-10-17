@@ -48,7 +48,26 @@ func Summaries(ctx Context, pods []kuberead.Pod, limit int) ([]ObjectSummary, []
 }
 
 func init() {
-	summarizers = append(summarizers, serviceSummaries)
+	summarizers = append(summarizers, serviceSummaries, deploymentSummaries)
+}
+
+// deploymentSummaries repère les Deployments dont le rollout est bloqué.
+func deploymentSummaries(ctx Context, _ []kuberead.Pod) ([]ObjectSummary, error) {
+	deps, err := ctx.Reader.ListDeployments()
+	if err != nil {
+		return nil, err
+	}
+	var out []ObjectSummary
+	for _, d := range deps.Items {
+		desired := 1
+		if d.Spec.Replicas != nil {
+			desired = *d.Spec.Replicas
+		}
+		if rolloutPhase(d, desired) == PhaseStalled {
+			out = append(out, ObjectSummary{Kind: KindDeployment, Name: d.Metadata.Name, Pitfall: RolloutStalled})
+		}
+	}
+	return out, nil
 }
 
 // serviceSummaries repère les Services à selector dont aucun endpoint n'est prêt : aucun pod

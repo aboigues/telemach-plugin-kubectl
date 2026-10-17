@@ -30,6 +30,11 @@ var objectGoldens = []objectGolden{
 	{"no-selector", pitfall.KindService, "external"},
 	{"no-selector", pitfall.KindService, "docs"},
 	{"healthy", pitfall.KindService, "hello"},
+	{"rollout-stalled", pitfall.KindDeployment, "stalled"},
+	{"mutable-tag", pitfall.KindDeployment, "latest-app"},
+	{"config-env", pitfall.KindDeployment, "conf"},
+	{"config-env-stale", pitfall.KindDeployment, "conf"},
+	{"healthy", pitfall.KindDeployment, "hello"},
 }
 
 // TestObjectGolden fige le rendu de diagnose <type>/<nom> (FR-021), en couleur et sans
@@ -58,6 +63,9 @@ func TestObjectGolden(t *testing.T) {
 				t.Fatal(err)
 			}
 			name := string(g.kind) + "-" + g.name + "." + suffix + ".txt"
+			if g.corpus == "config-env-stale" {
+				name = string(g.kind) + "-" + g.name + "-stale." + suffix + ".txt"
+			}
 			checkGolden(t, filepath.Join("f002", name), b.String())
 			if !color && strings.Contains(b.String(), "\x1b") {
 				t.Error("aucune séquence ESC attendue sans couleur")

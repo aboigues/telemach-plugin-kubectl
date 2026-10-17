@@ -1,6 +1,7 @@
 package pitfall
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -57,7 +58,11 @@ func loadObjectCases(t *testing.T, kind Kind) []objectCase {
 		if i := strings.Index(base, "@"); i >= 0 {
 			expDir = filepath.Join(objectsCorpus, base[:i])
 		}
-		data, err := os.ReadFile(filepath.Join(expDir, "expected.yaml")) //nolint:gosec // corpus du dépôt
+		// expected-<type>.yaml quand un même relevé sert à plusieurs types d'objets.
+		data, err := os.ReadFile(filepath.Join(expDir, "expected-"+string(kind)+".yaml")) //nolint:gosec // corpus du dépôt
+		if err != nil {
+			data, err = os.ReadFile(filepath.Join(expDir, "expected.yaml")) //nolint:gosec // corpus du dépôt
+		}
 		if err != nil {
 			continue // cas d'une autre histoire, pas encore attendu
 		}
@@ -105,3 +110,5 @@ func timeOf(t *testing.T, dir string) time.Time {
 	}
 	return when
 }
+
+func goDump(v any) string { return fmt.Sprintf("%#v", v) }

@@ -113,7 +113,7 @@ selector, Service sain.
 - [X] T027 [P] [US1] Rédiger `internal/catalog/data/service.yaml` : entrées `service.no-matching-pods`, `service.pods-not-ready`, `service.targetport-name`, `service.targetport-number`, `service.ports-undeclared`, `service.no-selector`, `service.external-name`, `service.healthy` ; concepts *label selector*, *endpoints* (EndpointSlice), *Service ports* (`port`, `targetPort`, `containerPort`, `nodePort`), *DNS d'un Service* ; corrections prêtes à copier qui conservent contexte et namespace ; liens vers la documentation officielle
 - [X] T028 [US1] Implémenter `internal/pitfall/service.go` : maillons `type` → `selector` → `readiness` → `endpoints` → `ports` dans cet ordre (research.md S4), labels proches par `internal/textdist`, renvoi `diagnose pod/<nom>` pour les pods non Ready. Faire passer T023 (dépend de T016, T017, T027)
 - [X] T029 [US1] Brancher `service`/`svc` et la résolution des noms sans type (pod, Service, Deployment) dans `cmd/kubectl-telemach/diagnose.go` ; ajouter à `diagnose` sans argument, après les pods, la liste des Services sans pod prêt (au plus 10 objets au total, lectures parallèles, research.md S8). Faire passer T024, T025 (dépend de T020, T021, T028)
-- [ ] T030 [US1] Valider W1 à W4 sur kind via la CI (`integration`) et faire passer T026 (dépend de T029)
+- [X] T030 [US1] Valider W1 à W4 sur kind via la CI (`integration`) et faire passer T026 (dépend de T029)
 
 **Checkpoint**: MVP — un Service qui ne répond pas est expliqué maillon par maillon.
 
@@ -129,17 +129,17 @@ configuration figée, puis diagnostique le pod en échec de la nouvelle version.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T031 [P] [US2] Écrire `internal/pitfall/rollout_test.go` sur `testdata/objects/{rollout-stalled,healthy,mutable-tag}/` et un rollout en pause : phases `complete`, `progressing`, `stalled`, `paused` (research.md S5), nouveau et ancien ReplicaSet par l'annotation de révision, pod en échec le plus récent du nouveau ReplicaSet diagnostiqué par `workload.Diagnose`, `kubectl rollout undo` proposé comme choix de l'apprenant (FR-008)
-- [ ] T032 [P] [US2] Écrire `internal/pitfall/image_test.go` : référence sans tag, `:latest`, avec registre et port (`registre:5000/app`), avec digest `@sha256:` (jamais signalée), tag explicite (non signalé)
-- [ ] T033 [P] [US2] Écrire `internal/pitfall/config_test.go` sur `testdata/objects/config-env/` : ConfigMap modifiée après le démarrage du plus ancien pod → `config.env-stale` ; montage de volume sans `subPath` → non signalé ; montage `subPath` → signalé ; Secret en `env`/`envFrom` → `config.secret-env` (`info`) sans lecture de Secret ; ni `prod` ni aucune valeur du corpus de secrets dans l'instantané, le rendu ou `last.json` (SC-006)
-- [ ] T034 [P] [US2] Écrire les scénarios W5 à W7 dans `tests/integration/pitfalls_test.go`
+- [X] T031 [P] [US2] Écrire `internal/pitfall/rollout_test.go` sur `testdata/objects/{rollout-stalled,healthy,mutable-tag}/` et un rollout en pause : phases `complete`, `progressing`, `stalled`, `paused` (research.md S5), nouveau et ancien ReplicaSet par l'annotation de révision, pod en échec le plus récent du nouveau ReplicaSet diagnostiqué par `workload.Diagnose`, `kubectl rollout undo` proposé comme choix de l'apprenant (FR-008)
+- [X] T032 [P] [US2] Écrire `internal/pitfall/image_test.go` : référence sans tag, `:latest`, avec registre et port (`registre:5000/app`), avec digest `@sha256:` (jamais signalée), tag explicite (non signalé)
+- [X] T033 [P] [US2] Écrire `internal/pitfall/config_test.go` sur `testdata/objects/config-env/` : ConfigMap modifiée après le démarrage du plus ancien pod → `config.env-stale` ; montage de volume sans `subPath` → non signalé ; montage `subPath` → signalé ; Secret en `env`/`envFrom` → `config.secret-env` (`info`) sans lecture de Secret ; ni `prod` ni aucune valeur du corpus de secrets dans l'instantané, le rendu ou `last.json` (SC-006)
+- [X] T034 [P] [US2] Écrire les scénarios W5 à W7 dans `tests/integration/pitfalls_test.go`
 
 ### Implementation for User Story 2
 
-- [ ] T035 [P] [US2] Rédiger `internal/catalog/data/rollout.yaml` : `rollout.stalled`, `rollout.progressing`, `rollout.paused`, `image.mutable-tag`, `config.env-stale`, `config.secret-env` ; concepts *rollout* (ReplicaSet, version), *progress deadline*, *image tag*, *configuration figée au démarrage* ; correction `kubectl rollout restart deployment/<nom>`
-- [ ] T036 [P] [US2] Implémenter `internal/pitfall/image.go` (analyse d'une référence d'image OCI : registre, chemin, tag, digest). Faire passer T032
-- [ ] T037 [US2] Implémenter `internal/pitfall/rollout.go` (research.md S5) et `internal/pitfall/config.go` (research.md S3 : dates de ConfigMap comparées à `status.startTime`, Secrets jamais lus). Faire passer T031, T033 (dépend de T016, T017, T035, T036)
-- [ ] T038 [US2] Brancher `deployment`/`deploy` dans `cmd/kubectl-telemach/diagnose.go` (le diagnostic des pods d'un Deployment de la feature 001 devient la dernière étape du rollout) et ajouter les rollouts bloqués à la liste de `diagnose` sans argument (dépend de T029, T037)
+- [X] T035 [P] [US2] Rédiger `internal/catalog/data/rollout.yaml` : `rollout.stalled`, `rollout.progressing`, `rollout.paused`, `image.mutable-tag`, `config.env-stale`, `config.secret-env` ; concepts *rollout* (ReplicaSet, version), *progress deadline*, *image tag*, *configuration figée au démarrage* ; correction `kubectl rollout restart deployment/<nom>`
+- [X] T036 [P] [US2] Implémenter `internal/pitfall/image.go` (analyse d'une référence d'image OCI : registre, chemin, tag, digest). Faire passer T032
+- [X] T037 [US2] Implémenter `internal/pitfall/rollout.go` (research.md S5) et `internal/pitfall/config.go` (research.md S3 : dates de ConfigMap comparées à `status.startTime`, Secrets jamais lus). Faire passer T031, T033 (dépend de T016, T017, T035, T036)
+- [X] T038 [US2] Brancher `deployment`/`deploy` dans `cmd/kubectl-telemach/diagnose.go` (le diagnostic des pods d'un Deployment de la feature 001 devient la dernière étape du rollout) et ajouter les rollouts bloqués à la liste de `diagnose` sans argument (dépend de T029, T037)
 - [ ] T039 [US2] Valider W5 à W7 sur kind via la CI et faire passer T034 (dépend de T038)
 
 **Checkpoint**: un rollout bloqué, un tag mutable et une configuration figée sont expliqués.

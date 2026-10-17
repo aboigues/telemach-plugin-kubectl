@@ -95,3 +95,26 @@ func TestPitfallsService(t *testing.T) {
 		})
 	}
 }
+
+// W5 à W7 : rollout bloqué, tag mutable, configuration figée (US2).
+func TestPitfallsDeployment(t *testing.T) {
+	for _, shell := range shells {
+		t.Run(shell+"/W5", func(t *testing.T) {
+			_, stderr, ns := runScenario(t, shell, "W5")
+			expect(t, "W5", stderr, "est bloqué", "1.30-alpine", "ImagePullBackOff", "kubectl rollout undo deployment/stalled -n "+ns)
+		})
+		t.Run(shell+"/W6", func(t *testing.T) {
+			_, stderr, _ := runScenario(t, shell, "W6")
+			expect(t, "W6", stderr, "ℹ L'image « nginxinc/nginx-unprivileged » n'a pas de tag explicite")
+		})
+		t.Run(shell+"/W7", func(t *testing.T) {
+			_, stderr, ns := runScenario(t, shell, "W7")
+			expect(t, "W7", stderr, "La ConfigMap « conf-settings » a changé", "kubectl rollout restart deployment/conf -n "+ns, "Secret « conf-secret »")
+			for _, leak := range []string{"MODE=prod", ": prod", "fake-token-value"} {
+				if strings.Contains(stderr, leak) {
+					t.Errorf("W7 : valeur de ConfigMap ou de Secret affichée (%q)", leak)
+				}
+			}
+		})
+	}
+}
