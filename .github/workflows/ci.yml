@@ -93,7 +93,8 @@ jobs:
       - name: Scénarios du quickstart sur un cluster kind jetable
         env:
           TELEMACH_KIND_IMAGE: ${{ matrix.image }}
-        run: go test -tags integration -count=1 -timeout 30m ./tests/integration/...
+        # -v : chaque scénario apparaît par son nom dans le journal, PASS ou SKIP (D-LL-009).
+        run: go test -tags integration -count=1 -v -timeout 30m ./tests/integration/...
 
   integration:
     # Check obligatoire unique : les checks d'une matrice portent un suffixe
