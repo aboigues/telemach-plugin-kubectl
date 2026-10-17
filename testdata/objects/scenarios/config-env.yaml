@@ -1,0 +1,53 @@
+# Scénario W7 : ConfigMap et Secret en variables d'environnement et montage subPath (feature 002, quickstart). Manifestes seulement : les attentes sont
+# dans testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: conf-settings
+data:
+  MODE: dev
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: conf-secret
+type: Opaque
+stringData:
+  API_TOKEN: fake-token-value
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: conf
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: conf
+  template:
+    metadata:
+      labels:
+        app: conf
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      containers:
+      - name: conf
+        image: busybox:1.38
+        command: ["sh", "-c", "echo MODE=$MODE; sleep 3600"]
+        env:
+        - name: MODE
+          valueFrom:
+            configMapKeyRef: {name: conf-settings, key: MODE}
+        envFrom:
+        - secretRef: {name: conf-secret}
+        volumeMounts:
+        - {name: settings, mountPath: /etc/conf/mode, subPath: MODE}
+        securityContext: {allowPrivilegeEscalation: false}
+        resources:
+          requests: {cpu: 10m, memory: 16Mi}
+          limits: {cpu: 100m, memory: 64Mi}
+      volumes:
+      - name: settings
+        configMap: {name: conf-settings}

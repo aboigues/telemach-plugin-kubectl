@@ -255,7 +255,9 @@ de blogs d'éditeurs et de formations, pas d'enquêtes chiffrées : chaque pièg
     réels (Service, EndpointSlices, pods, Deployment, ReplicaSets, Ingress, classes, PVC, dates
     de ConfigMap), masqués, dans `testdata/objects/<cas>/` avec un `expected.yaml` rédigé à la
     main (même principe que `testdata/pods/`) ;
-  - un workflow **manuel** `corpus.yml` (`workflow_dispatch`, matrice des trois images kind,
+  - un workflow `corpus.yml` (`workflow_dispatch`, et `pull_request` limité aux outils et
+    scénarios du relevé, car un `workflow_dispatch` n'est lançable qu'une fois sur `main` ;
+    matrice des trois images kind,
     `permissions: contents: read`, actions épinglées par SHA) lance les deux outils et publie
     le résultat comme artefact. Le mainteneur relit l'artefact (déjà masqué) avant de le
     versionner. Ce workflow ne s'exécute que sur un cluster kind créé par lui-même (D-LL-015)
@@ -293,7 +295,7 @@ de blogs d'éditeurs et de formations, pas d'enquêtes chiffrées : chaque pièg
 ## Versions
 
 Aucune nouvelle dépendance Go. Outils et images inchangés par rapport à la feature 001
-(Go 1.27.2, kind v0.33.0, `kindest/node` 1.35.8, 1.36.4 et 1.37.0 épinglées par digest,
+(revérifiées le 2026-10-17, T001 : Go 1.27.2, kind v0.33.0, `kindest/node` 1.35.8, 1.36.4 et 1.37.0 épinglées par digest,
 kubectl 1.35.9, 1.36.5 et 1.37.1) ; à revérifier au moment de l'implémentation, conformément
 aux instructions globales du mainteneur (dernière version stable réelle, correctifs de sécurité
 compris).

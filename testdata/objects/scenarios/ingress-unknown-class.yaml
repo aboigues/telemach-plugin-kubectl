@@ -1,0 +1,17 @@
+# Scénario W8 : classe d'Ingress inexistante (feature 002, quickstart). Manifestes seulement : les attentes sont
+# dans testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: typo
+spec:
+  ingressClassName: nginx-tpyo
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: hello
+            port: {number: 80}

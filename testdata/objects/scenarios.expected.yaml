@@ -1,0 +1,6 @@
+# Défauts volontaires des scénarios de testdata/objects/scenarios/ (contrôle manifest-lint,
+# feature 002, T003). Rangé hors du dossier : « kubectl apply -f » ne lit que des manifestes
+# (LL-005). L'image sans tag de mutable-tag.yaml n'est qu'un avertissement non bloquant
+# (principe III) et n'a pas à être déclarée.
+allowed_defects:
+  config-env.yaml: [plaintext-secret]

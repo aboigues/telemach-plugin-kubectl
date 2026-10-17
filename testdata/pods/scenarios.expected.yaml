@@ -1,0 +1,6 @@
+# Défauts volontaires de chaque scénario de testdata/pods/scenarios/ (contrôle manifest-lint,
+# T020). Rangé hors du dossier pour que « kubectl apply -f testdata/pods/scenarios/ » ne lise
+# que des manifestes (LL-005).
+allowed_defects:
+  crash.yaml: [plaintext-secret]
+  invalid-image-name.yaml: []

@@ -156,6 +156,45 @@ func (c *Cluster) run(extra []string, args ...string) Result {
 	return Result{Stdout: out.String(), Stderr: errb.String(), ExitCode: code}
 }
 
+// Background est une commande kubectl longue (port-forward) lancée sur le cluster de test.
+type Background struct {
+	cmd       *exec.Cmd
+	out, errb bytes.Buffer
+}
+
+// KubectlBackground lance kubectl sans attendre sa fin, avec --context imposé comme Kubectl.
+func (c *Cluster) KubectlBackground(args ...string) (*Background, error) {
+	if !strings.HasPrefix(c.Context, "kind-"+Prefix) {
+		panic("contexte hors cluster de test : " + c.Context)
+	}
+	b := &Background{}
+	b.cmd = exec.Command(c.KubectlBin, append(append([]string(nil), args...), "--context", c.Context)...) //nolint:gosec // binaire de test
+	b.cmd.Env = c.Env()
+	b.cmd.Stdout, b.cmd.Stderr = &b.out, &b.errb
+	return b, b.cmd.Start()
+}
+
+// Stop interrompt la commande comme un Ctrl-C (SIGINT) et renvoie son résultat ; elle est
+// tuée si elle ne s'arrête pas dans les 5 s.
+func (b *Background) Stop() Result {
+	_ = b.cmd.Process.Signal(os.Interrupt)
+	done := make(chan error, 1)
+	go func() { done <- b.cmd.Wait() }()
+	var err error
+	select {
+	case err = <-done:
+	case <-time.After(5 * time.Second):
+		_ = b.cmd.Process.Kill()
+		err = <-done
+	}
+	code := 0
+	var ee *exec.ExitError
+	if errors.As(err, &ee) {
+		code = ee.ExitCode()
+	}
+	return Result{Stdout: b.out.String(), Stderr: b.errb.String(), ExitCode: code}
+}
+
 // Must exécute kubectl et renvoie une erreur si la commande échoue.
 func (c *Cluster) Must(args ...string) error {
 	if r := c.Kubectl(args...); r.ExitCode != 0 {

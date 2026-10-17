@@ -1,4 +1,0 @@
-# Défauts volontaires de chaque scénario (contrôle manifest-lint, T020).
-allowed_defects:
-  crash.yaml: [plaintext-secret]
-  invalid-image-name.yaml: []

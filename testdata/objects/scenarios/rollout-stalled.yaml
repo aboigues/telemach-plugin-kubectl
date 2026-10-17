@@ -1,0 +1,29 @@
+# Scénario W5, W12 : Deployment dont la mise à jour sera bloquée (échéance de 30 s) (feature 002, quickstart). Manifestes seulement : les attentes sont
+# dans testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stalled
+spec:
+  replicas: 1
+  progressDeadlineSeconds: 30
+  selector:
+    matchLabels:
+      app: stalled
+  template:
+    metadata:
+      labels:
+        app: stalled
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      containers:
+      - name: app
+        image: nginxinc/nginx-unprivileged:1.30-alpine
+        ports:
+        - containerPort: 8080
+        securityContext: {allowPrivilegeEscalation: false}
+        resources:
+          requests: {cpu: 10m, memory: 16Mi}
+          limits: {cpu: 100m, memory: 64Mi}

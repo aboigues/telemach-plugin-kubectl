@@ -75,7 +75,7 @@ func IsNotFound(err error) bool {
 // ListPods lit les pods du namespace (diagnose sans argument).
 func (r *Reader) ListPods() (PodList, error) {
 	var l PodList
-	err := r.getJSON("pods", &l, "get", "pods", "-o", "json")
+	err := r.getJSON("pods", &l, PodsArgs()...)
 	return l, err
 }
 
@@ -89,22 +89,21 @@ func (r *Reader) GetPod(name string) (Pod, error) {
 // GetDeployment lit un deployment (pour son selector).
 func (r *Reader) GetDeployment(name string) (Deployment, error) {
 	var d Deployment
-	err := r.getJSON("le deployment "+name, &d, "get", "deployment", name, "-o", "json")
+	err := r.getJSON("le deployment "+name, &d, DeploymentArgs(name)...)
 	return d, err
 }
 
 // PodsBySelector lit les pods qui portent les labels donnés.
 func (r *Reader) PodsBySelector(selector string) (PodList, error) {
 	var l PodList
-	err := r.getJSON("les pods "+selector, &l, "get", "pods", "-l", selector, "-o", "json")
+	err := r.getJSON("les pods "+selector, &l, PodsBySelectorArgs(selector)...)
 	return l, err
 }
 
 // PodEvents lit les événements d'un pod.
 func (r *Reader) PodEvents(pod string) (EventList, error) {
 	var l EventList
-	err := r.getJSON("les événements de "+pod, &l, "get", "events",
-		"--field-selector", "involvedObject.kind=Pod,involvedObject.name="+pod, "-o", "json")
+	err := r.getJSON("les événements de "+pod, &l, PodEventsArgs(pod)...)
 	return l, err
 }
 

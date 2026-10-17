@@ -1,0 +1,11 @@
+# Scénario W9 : PVC avec storageClassName vide (provisionnement dynamique désactivé) (feature 002, quickstart). Manifestes seulement : les attentes sont
+# dans testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: static-data
+spec:
+  storageClassName: ""
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: {storage: 16Mi}

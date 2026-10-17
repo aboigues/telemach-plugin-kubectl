@@ -11,7 +11,8 @@ l'implémentation : voir [contracts/cli.md](contracts/cli.md) et [data-model.md]
 - chaque scénario est rejoué tel quel par `tests/integration/pitfalls_test.go` sur les trois
   images kind, sous bash et zsh (LL-004, FR-030) ;
 - `testdata/objects/scenarios/` ne contient **que** des manifestes : les attentes des tests
-  sont dans `testdata/objects/<cas>/expected.yaml` (LL-004).
+  sont dans `testdata/objects/<cas>/expected.yaml`, et les défauts volontaires des scénarios
+  dans `testdata/objects/scenarios.expected.yaml`, hors du dossier (LL-004, LL-005).
 
 ## Prérequis et installation
 
@@ -86,7 +87,7 @@ kubectl telemach diagnose deployment/hello -n demo
 Attendu : ancienne version encore servie, nouveaux pods en `ImagePullBackOff` expliqués,
 `kubectl rollout undo deployment/hello -n demo` proposé comme choix de l'apprenant. L'échéance
 dépassée est vérifiée par le corpus (`testdata/objects/rollout-stalled/`, relevé avec
-`progressDeadlineSeconds: 30`).
+`progressDeadlineSeconds: 30`) et par W12.
 
 ### W6 — Tag mutable (US2-3, US4-2)
 
@@ -167,7 +168,10 @@ introuvable), rien pour `watch-together` (pods pas encore créés : transitoire)
 kubectl exec -it -n demo deploy/hello -c helo -- sh; echo "code: $?"
 kubectl logs -n demo pod/two-containers; echo "code: $?"
 kubectl port-forward -n demo service/hello 8080:80 & sleep 2; kubectl port-forward -n demo service/hello 8080:80; kill %1
-kubectl rollout status -n demo deployment/stalled --timeout=5s; echo "code: $?"
+kubectl apply -n demo -f testdata/objects/scenarios/rollout-stalled.yaml
+kubectl rollout status -n demo deployment/stalled --timeout=90s
+kubectl set image -n demo deployment/stalled app=nginxinc/nginx-unprivileged:0.0.0-inexistant
+kubectl rollout status -n demo deployment/stalled --timeout=120s; echo "code: $?"   # échéance de 30 s dépassée
 kubectl apply -n demo -f testdata/objects/scenarios/immutable-selector.yaml; echo "code: $?"
 ```
 
@@ -181,11 +185,13 @@ pseudo-terminal, S10).
 
 ```bash
 kubectl apply -n demo -f testdata/objects/scenarios/dns-short-name.yaml
+kubectl wait -n demo --for=jsonpath='{.status.phase}'=Failed pod/dns-client --timeout=60s
 kubectl telemach diagnose pod/dns-client -n demo
 ```
 
-Attendu : nom court d'un Service d'un autre namespace expliqué, `hello.demo` et le nom complet
-proposés. L'anti-pattern de suppression forcée est vérifié par les golden files et par un test
+Attendu : le pod appelle le Service `kubernetes` (namespace `default`) par son nom court
+depuis `demo` ; la portée d'un nom court est expliquée et `kubernetes.default` ainsi que
+`kubernetes.default.svc.cluster.local` sont proposés. L'anti-pattern de suppression forcée est vérifié par les golden files et par un test
 du catalogue : toute leçon dont une correction mène à `--force --grace-period=0` ou à la
 suppression des finalizers porte le bloc ⚠ Anti-pattern.
 

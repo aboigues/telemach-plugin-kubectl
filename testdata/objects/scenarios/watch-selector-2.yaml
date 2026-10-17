@@ -1,0 +1,12 @@
+# Scénario W11 : même piège, vérification désactivée (TELEMACH_WATCH=0) (feature 002, quickstart). Manifestes seulement : les attentes sont
+# dans testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: v1
+kind: Service
+metadata:
+  name: orphan-2
+spec:
+  selector:
+    app: orphan-2
+  ports:
+  - port: 80
+    targetPort: 8080

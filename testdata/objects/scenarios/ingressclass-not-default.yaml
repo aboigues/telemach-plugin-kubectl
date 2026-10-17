@@ -1,0 +1,8 @@
+# Scénario W8 : classe d'Ingress existante, non marquée par défaut, sans contrôleur installé (feature 002, quickstart). Manifestes seulement : les attentes sont
+# dans testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: demo
+spec:
+  controller: example.com/telemach-demo

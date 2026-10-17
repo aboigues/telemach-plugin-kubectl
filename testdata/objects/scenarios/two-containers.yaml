@@ -1,0 +1,25 @@
+# Scénario W12 : pod à deux conteneurs (kubectl logs sans -c) (feature 002, quickstart). Manifestes seulement : les attentes sont
+# dans testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: two-containers
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+  containers:
+  - name: app
+    image: busybox:1.38
+    command: ["sh", "-c", "echo app; sleep 3600"]
+    securityContext: {allowPrivilegeEscalation: false}
+    resources:
+      requests: {cpu: 10m, memory: 16Mi}
+      limits: {cpu: 100m, memory: 64Mi}
+  - name: sidecar
+    image: busybox:1.38
+    command: ["sh", "-c", "echo sidecar; sleep 3600"]
+    securityContext: {allowPrivilegeEscalation: false}
+    resources:
+      requests: {cpu: 10m, memory: 16Mi}
+      limits: {cpu: 100m, memory: 64Mi}
