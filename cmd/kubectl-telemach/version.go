@@ -10,6 +10,13 @@ import (
 	"github.com/aboigues/telemach-plugin-kubectl/internal/schema"
 )
 
+const (
+	// websiteURL est le site du projet, affiché par --version et « version ».
+	websiteURL = "https://www.telemach-learning.fr"
+	// licenseID est l'identifiant SPDX de la licence du projet (fichier LICENSE).
+	licenseID = "Apache-2.0"
+)
+
 // resolveVersion renvoie la version injectée à la compilation ; à défaut, celle que Go
 // inscrit dans le binaire (tag git ou pseudo-version lors d'un « go build » depuis un clone).
 func resolveVersion(injected string, readBuildInfo func() (*debug.BuildInfo, bool)) string {
@@ -25,7 +32,9 @@ func resolveVersion(injected string, readBuildInfo func() (*debug.BuildInfo, boo
 }
 
 // versionTemplate est le texte affiché par « kubectl telemach --version ».
-const versionTemplate = "TELEMACH PLUGIN KUBECTL {{.Version}}\n"
+const versionTemplate = `TELEMACH PLUGIN KUBECTL {{.Version}}
+Licence ` + licenseID + ` — ` + websiteURL + `
+`
 
 // versionCommand affiche la version du plugin et les versions de règles Kubernetes
 // embarquées (contracts/cli.md § version).
@@ -36,6 +45,7 @@ func (a *app) versionCommand() *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(*cobra.Command, []string) error {
 			fmt.Fprintf(a.stdout, "TELEMACH PLUGIN KUBECTL %s\n", a.version)
+			fmt.Fprintf(a.stdout, "Licence %s — %s\n", licenseID, websiteURL)
 			fmt.Fprintf(a.stdout, "Règles Kubernetes embarquées : %s\n", strings.Join(schema.Supported, ", "))
 			return nil
 		},

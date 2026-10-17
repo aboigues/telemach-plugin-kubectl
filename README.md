@@ -227,7 +227,7 @@ Vérifie :
 
 ```bash
 kubectl plugin list         # doit lister …/kubectl-telemach
-kubectl telemach version    # version du plugin et règles Kubernetes embarquées
+kubectl telemach version    # version, licence et règles Kubernetes embarquées
 ```
 
 ### 2. Activer l'explication automatique
@@ -313,7 +313,7 @@ la fonction `kubectl` de l'ancienne version. `kubectl telemach last` te le signa
 | `kubectl telemach diagnose [pod/<nom> \| deployment/<nom> \| <nom>] [-n <ns>] [--context <ctx>] [--kubeconfig <chemin>] [--as <identité>]` | Diagnostique, en lecture seule, les pods qui ne démarrent pas (code 0 : diagnostic ou rien à signaler, 1 : cluster injoignable, 2 : usage invalide ou ressource introuvable, avec les noms proches) |
 | `kubectl telemach last` | Réaffiche l'explication complète de la dernière erreur ou du dernier diagnostic, sans relire le cluster |
 | `kubectl telemach deepen [--exercise]` | Approfondit le concept du dernier diagnostic ; `--exercise` ajoute un exercice à faire dans un namespace que tu crées toi-même |
-| `kubectl telemach version` | Version du plugin et versions de règles Kubernetes embarquées |
+| `kubectl telemach version` | Version du plugin, licence et versions de règles Kubernetes embarquées |
 | `kubectl-telemach shell-init bash\|zsh` | Affiche le code d'intégration à évaluer dans ton shell |
 | `kubectl-telemach explain …`, `kubectl-telemach watch …` | Utilisées par l'intégration shell (tu n'as pas à les appeler) |
 
@@ -370,3 +370,10 @@ l'humain et anglais pour le code, sécurité élevée, gates GitHub Actions obli
 des incidents ([`LESSON-LEARNED.md`](LESSON-LEARNED.md)). Voir
 [`CONTRIBUTING.md`](CONTRIBUTING.md) et, pour enrichir le catalogue d'erreurs,
 [`internal/catalog/data/README.md`](internal/catalog/data/README.md).
+
+## Licence
+
+TELEMACH PLUGIN KUBECTL est un logiciel libre distribué sous la
+[licence Apache 2.0](LICENSE) — © 2026 [TELEMACH Learning](https://www.telemach-learning.fr).
+Tu peux l'utiliser, le modifier et le redistribuer, y compris pour tes formations, en
+conservant les mentions des fichiers [`LICENSE`](LICENSE) et [`NOTICE`](NOTICE).

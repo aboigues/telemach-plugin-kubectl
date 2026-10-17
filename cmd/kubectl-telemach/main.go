@@ -127,7 +127,7 @@ Options globales :
 {{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}
 `)
 	root.PersistentFlags().BoolP("help", "h", false, "affiche l'aide")
-	root.Flags().BoolP("version", "v", false, "affiche la version du plugin")
+	root.Flags().BoolP("version", "v", false, "affiche la version, la licence et le site du projet")
 }
 
 // output prépare le thème et l'écrivain coloré pour w.

@@ -213,7 +213,8 @@ Shell non pris en charge → message en français, code `2`.
 kubectl telemach version
 ```
 
-Version du plugin et versions de règles Kubernetes embarquées (`1.35, 1.36, 1.37`). Code `0`.
+Version du plugin, licence (Apache-2.0) et site du projet, puis versions de règles Kubernetes
+embarquées (`1.35, 1.36, 1.37`). Code `0`.
 
 ---
 

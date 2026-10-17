@@ -145,7 +145,7 @@ func TestShellInitAndVersion(t *testing.T) {
 		t.Errorf("shell-init fish : code %d, %s", code, errb)
 	}
 	a, out, _ = newTestApp(t, nil)
-	if code := run(a, []string{"version"}); code != 0 || !strings.Contains(out.String(), "TELEMACH PLUGIN KUBECTL 9.9.9") || !strings.Contains(out.String(), "1.35, 1.36, 1.37") {
+	if code := run(a, []string{"version"}); code != 0 || !strings.Contains(out.String(), "TELEMACH PLUGIN KUBECTL 9.9.9") || !strings.Contains(out.String(), "1.35, 1.36, 1.37") || !strings.Contains(out.String(), "Licence Apache-2.0 — https://www.telemach-learning.fr") {
 		t.Errorf("version : code %d\n%s", code, out)
 	}
 }
