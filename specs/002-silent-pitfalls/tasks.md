@@ -214,7 +214,7 @@ interactif bash et zsh.
 - [X] T060 [P] [US5] Rédiger les entrées `notfound.container-exec` (`internal/catalog/data/notfound.yaml`), `cmdline.container-required` (`internal/catalog/data/cmdline.yaml`, une correction par conteneur cité), `internal/catalog/data/portforward.yaml` (`portforward.local-port-in-use`, `portforward.pod-not-running`, `portforward.connection-refused`, transfert vers `service/<nom>` recommandé), `rollout.progress-deadline` (`internal/catalog/data/rollout.yaml`, renvoi à `diagnose deployment/<nom>`), `conflict.field-immutable` (`internal/catalog/data/conflict.yaml`, deux voies, suppression jamais exécutée), à partir des seuls messages relevés par T008 (relevés mis de côté jusqu'à l'US5 pour ne pas laisser le test de corpus au rouge : les réintégrer dans `testdata/errors/` avec leurs `expected.yaml` ; « a container name must be specified » n'existe plus en 1.35 à 1.37, kubectl choisit un conteneur par défaut : entrée abandonnée ; le vrai message de exec et logs est « container … is not valid for pod … »)
 - [X] T061 [P] [US5] Ajouter le motif de journal `runtime.dns-short-name` à `internal/catalog/data/runtime.yaml` (« could not resolve host », « no such host », « Name or service not known » sur un nom sans point ; corrections `service.namespace` et `service.namespace.svc.cluster.local`). Faire passer T057
 - [X] T062 [US5] Ajouter la note `anti_pattern` de suppression forcée (données corrompues, garanties d'un StatefulSet, ressources orphelines ; démarche : finalizers, nœud injoignable, volume attaché) aux entrées concernées (`notfound.yaml`, `workload.yaml`, `conflict.yaml`) et faire passer T056 (dépend de T060)
-- [ ] T063 [US5] Valider W12 et W13 sur kind via la CI et faire passer T058 (dépend de T059, T060, T061, T062)
+- [X] T063 [US5] Valider W12 et W13 sur kind via la CI et faire passer T058 (dépend de T059, T060, T061, T062)
 
 **Checkpoint**: les erreurs courantes de `exec`, `logs`, `port-forward`, `rollout status` et
 des champs immuables sont expliquées.
@@ -227,9 +227,9 @@ des champs immuables sont expliquées.
 - [X] T065 [P] Étendre `cmd/kubectl-telemach/language_test.go` (`TestCorpusLanguageAndSecrets`) au corpus `testdata/objects/` : chaque cas passé par `diagnose <type>/<nom>` puis `last`, aucune valeur sensible dans la sortie, `last.json` et `hints.json`, textes en français (SC-006, LL-003)
 - [X] T066 [P] Ajouter W14 à `tests/integration/pitfalls_test.go` : état du namespace (`get all,configmaps,pvc,ingress,endpointslices -o json`, hors champs volatils) identique avant et après chaque `diagnose` et `watch` (SC-005) ; lecture refusée via `--as=system:serviceaccount:<ns>:default` → diagnostic partiel
 - [X] T067 [P] Ajouter une cible de fuzzing `FuzzImageRef` (`internal/pitfall/image_test.go`) au job hebdomadaire `.github/workflows/fuzz.yml` (60 s) et vérifier que toute nouvelle règle de masquage éventuelle a son cas de fuzzing (LL-001)
-- [ ] T068 Lancer `scripts/couverture 80` (≥ 80 % sur `internal/`, `internal/pitfall` compris), golangci-lint compilé avec Go 1.27.2 (D-LL-001), `go test -race ./...`, `scripts/secrets` ; corriger tout écart
-- [ ] T069 Vérifier dans le journal détaillé du job `integration` que W1 à W14 passent sous bash et zsh sur les trois versions, sans aucun test ignoré (D-LL-009), et consigner tout écart dans `LESSON-LEARNED.md`
-- [ ] T070 Relire `LESSON-LEARNED.md`, transformer les leçons automatisables en tests ou gates (principe V), ouvrir la PR de la feature (description, gates vertes, SC-008 non mesurable en CI signalé) et relire `gh pr checks` après chaque push (LL-002)
+- [X] T068 Lancer `scripts/couverture 80` (≥ 80 % sur `internal/`, `internal/pitfall` compris), golangci-lint compilé avec Go 1.27.2 (D-LL-001), `go test -race ./...`, `scripts/secrets` ; corriger tout écart
+- [X] T069 Vérifier dans le journal détaillé du job `integration` que W1 à W14 passent sous bash et zsh sur les trois versions, sans aucun test ignoré (D-LL-009), et consigner tout écart dans `LESSON-LEARNED.md`
+- [X] T070 Relire `LESSON-LEARNED.md`, transformer les leçons automatisables en tests ou gates (principe V), ouvrir la PR de la feature (description, gates vertes, SC-008 non mesurable en CI signalé) et relire `gh pr checks` après chaque push (LL-002)
 
 ---
 
