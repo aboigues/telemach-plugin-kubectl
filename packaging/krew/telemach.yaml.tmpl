@@ -1,0 +1,42 @@
+# Manifeste Krew du plugin telemach, généré par scripts/krew-manifest à partir du
+# checksums.txt d'une Release publiée (contracts/krew-manifest.md). Ne pas modifier à la main
+# dans l'index : il est réécrit à chaque version stable.
+apiVersion: krew.googlecontainertools.github.com/v1alpha2
+kind: Plugin
+metadata:
+  name: telemach
+spec:
+  version: v{{ .Version }}
+  homepage: https://github.com/aboigues/telemach-plugin-kubectl
+  shortDescription: Explique en français les erreurs kubectl et ce qui ne marche pas
+  description: |
+    TELEMACH transforme chaque erreur kubectl en leçon, en français : ce qui s'est passé,
+    le concept Kubernetes en jeu, la cause probable et la commande corrigée.
+    « kubectl telemach check » vérifie des manifestes sans contacter le cluster ;
+    « kubectl telemach diagnose » explique en lecture seule un pod qui ne démarre pas, un
+    Service sans pod, un rollout bloqué, un Ingress ou un PVC qui ne marche pas.
+    Logiciel libre sous licence Apache 2.0.
+  caveats: |
+    Étape suivante : active l'explication automatique des erreurs en ajoutant à la fin de
+    ton ~/.zshrc (ou ~/.bashrc) la ligne :
+
+      eval "$(kubectl-telemach shell-init zsh)"     # ou : shell-init bash
+
+    puis ouvre un nouveau terminal. Guide : https://github.com/aboigues/telemach-plugin-kubectl
+  platforms:
+{{- range .Platforms }}
+  - selector:
+      matchLabels:
+        os: {{ .OS }}
+        arch: {{ .Arch }}
+    uri: {{ .URI }}
+    sha256: {{ .Sha256 }}
+    bin: kubectl-telemach
+    files:
+    - from: kubectl-telemach
+      to: .
+    - from: LICENSE
+      to: .
+    - from: NOTICE
+      to: .
+{{- end }}

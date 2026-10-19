@@ -104,6 +104,10 @@ bibliothèque standard et `internal/render` ; `validate-krew-manifest` n'est ins
   ~9,8 Mo pour l'image amd64. Docker ne répondant pas sur la machine de développement, le
   contenu de l'image (binaires darwin présents, utilisateur, taille réelle) est vérifié par
   le job `image-scan` de la CI.
+- **Résultats CI (2026-10-19, PR #5, run 39244703626)** : images snapshot `amd64` **9,8 Mo** et
+  `arm64` **9,0 Mo** compressés (SC-007 tenu) ; utilisateur `65532:65532` ; binaires linux et
+  darwin embarqués aux sommes exactes de `dist/checksums.txt` (FR-013) ; Grype : aucune
+  vulnérabilité.
 
 ## R6 — Essai `check` dans l'image (FR-016)
 
@@ -184,6 +188,15 @@ bibliothèque standard et `internal/render` ; `validate-krew-manifest` n'est ins
   d'outils du projet, sans kubectl ni réseau) et vérifie la présence de `LICENSE` installé.
   L'index de répétition (T026), qui doit vraiment télécharger, sert `dist/` par un serveur
   HTTP local (`http://127.0.0.1:<port>/`).
+- **Résultats (2026-10-19, snapshot)** : manifeste généré depuis le `checksums.txt` du
+  snapshot, validation structurelle réussie, installation par `krew install --archive` sur les
+  quatre plateformes (`kubectl-telemach`, `LICENSE`, `NOTICE` installés). Répétition T026 sur
+  un index local (dépôt git temporaire, archives servies par `python3 -m http.server` sur
+  127.0.0.1, `KREW_ROOT` temporaire) : `krew index add`, `krew install repetition/telemach`
+  (archive téléchargée et vérifiée), message `caveats` en français affiché,
+  `kubectl-telemach version` → `TELEMACH PLUGIN KUBECTL 0.0.0-SNAPSHOT-8908209`, puis
+  désinstallation et retrait de l'index. Krew installe `kubectl-telemach` comme **lien
+  symbolique** vers son magasin : c'est bien le cas que `install` de l'image refuse (R7).
 - **Alternatives** :
   - **Même dépôt** (dossier `plugins/` sur `main`) : `main` est protégée et ne reçoit que des PR
     à gates vertes ; la publication devrait ouvrir et fusionner sa propre PR, ou contourner la

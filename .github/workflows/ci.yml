@@ -108,6 +108,10 @@ jobs:
         with:
           version: v2.18.3
           args: release --snapshot --clean --skip=sign,docker
+      - name: Vérifier les artefacts contre le contrat (noms, archives, sommes, SBOM, version, reproductibilité)
+        env:
+          DIST_DIR: dist
+        run: go test -tags dist -count=1 -v ./tests/release/...
 
   image-scan:
     # Image construite à partir d'un snapshot, contrôlée (taille, utilisateur, binaires) puis
@@ -173,6 +177,48 @@ jobs:
           severity-cutoff: high
           only-fixed: false
           output-format: table
+
+  krew-manifest:
+    # Le manifeste Krew généré depuis un snapshot est valide et s'installe sur les quatre
+    # plateformes depuis les archives (research R9, FR-011) ; sans réseau ni kubectl.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Construire un snapshot (archives seulement)
+        uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
+        with:
+          version: v2.18.3
+          args: release --snapshot --clean --skip=sign,docker,sbom
+      - name: Installer krew et validate-krew-manifest v0.5.0 (chaîne d'outils du projet, D-LL-001)
+        run: |
+          go install sigs.k8s.io/krew/cmd/krew@v0.5.0
+          go install sigs.k8s.io/krew/cmd/validate-krew-manifest@v0.5.0
+      - name: Générer et valider le manifeste, installer chaque plateforme
+        run: |
+          version="$(jq -r .version dist/metadata.json)"
+          go run ./scripts/krew-manifest -allow-prerelease -checksums dist/checksums.txt \
+            -version "$version" -base-url "https://example.invalid" -out "$RUNNER_TEMP/telemach.yaml"
+          validate-krew-manifest -skip-install -manifest "$RUNNER_TEMP/telemach.yaml"
+          for platform in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
+            os="${platform%/*}"; arch="${platform#*/}"
+            root="$(mktemp -d)"
+            KREW_ROOT="$root" KREW_OS="$os" KREW_ARCH="$arch" krew install \
+              --manifest="$RUNNER_TEMP/telemach.yaml" \
+              --archive="dist/kubectl-telemach_${version}_${os}_${arch}.tar.gz"
+            for f in kubectl-telemach LICENSE NOTICE; do
+              if ! ls "$root"/store/telemach/*/"$f" > /dev/null; then
+                echo "::error::$platform : $f absent après l'installation par Krew"
+                exit 1
+              fi
+            done
+            echo "$platform : installé par Krew"
+          done
 
   dockerfile-lint:
     runs-on: ubuntu-latest

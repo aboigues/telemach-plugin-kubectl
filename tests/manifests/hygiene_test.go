@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"go.yaml.in/yaml/v3"
 )
 
 // LL-007 : aucun exécutable compilé n'est versionné (un « go build » à la racine suivi de
@@ -36,6 +39,78 @@ func TestNoBinaryCommitted(t *testing.T) {
 		for _, m := range magics {
 			if n >= len(m) && bytes.Equal(head[:len(m)], m) {
 				t.Errorf("%s : exécutable compilé versionné", f)
+			}
+		}
+	}
+}
+
+// workflow est la partie d'un workflow GitHub Actions utile aux contrôles ci-dessous.
+type workflow struct {
+	Permissions any `yaml:"permissions"`
+	Jobs        map[string]struct {
+		Permissions any `yaml:"permissions"`
+		Steps       []struct {
+			Name string `yaml:"name"`
+			Run  string `yaml:"run"`
+		} `yaml:"steps"`
+	} `yaml:"jobs"`
+}
+
+func readWorkflows(t *testing.T) map[string]workflow {
+	t.Helper()
+	files, _ := filepath.Glob("../../.github/workflows/*.yml")
+	if len(files) < 3 {
+		t.Fatalf("workflows introuvables (D-LL-009) : %v", files)
+	}
+	out := map[string]workflow{}
+	for _, f := range files {
+		data, err := os.ReadFile(f) //nolint:gosec // fichiers du dépôt
+		if err != nil {
+			t.Fatal(err)
+		}
+		var w workflow
+		if err := yaml.Unmarshal(data, &w); err != nil {
+			t.Fatalf("%s : %v", f, err)
+		}
+		out[filepath.Base(f)] = w
+	}
+	return out
+}
+
+// Principe IV (T028) : aucune expression ${{ … }} dans un script « run: » (injection de
+// commande par un nom de branche, de tag ou une entrée) ; les valeurs passent par « env: ».
+func TestWorkflowsNoExpressionInRun(t *testing.T) {
+	scripts := 0
+	for name, w := range readWorkflows(t) {
+		for job, j := range w.Jobs {
+			for _, s := range j.Steps {
+				if s.Run != "" {
+					scripts++
+				}
+				if strings.Contains(s.Run, "${{") {
+					t.Errorf("%s, job %s, étape « %s » : expression ${{ … }} dans run (passer par env:)", name, job, s.Name)
+				}
+			}
+		}
+	}
+	if scripts < 20 {
+		t.Fatalf("seulement %d scripts run: lus : analyse des workflows suspecte (D-LL-009)", scripts)
+	}
+}
+
+// Principe IV (T028) : permissions déclarées au niveau du workflow, et écriture réservée au
+// job « release » de release.yml.
+func TestWorkflowsLeastPrivilege(t *testing.T) {
+	for name, w := range readWorkflows(t) {
+		if w.Permissions == nil {
+			t.Errorf("%s : permissions absentes au niveau du workflow", name)
+		}
+		for job, j := range w.Jobs {
+			perms, _ := j.Permissions.(map[string]any)
+			for scope, level := range perms {
+				if level == "write" && (name != "release.yml" || job != "release") {
+					t.Errorf("%s, job %s : %s: write hors du job release", name, job, scope)
+				}
 			}
 		}
 	}

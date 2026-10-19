@@ -1,0 +1,134 @@
+# Publication d'une version (feature 003) : Release GitHub, image Docker Hub et index Krew.
+# Déclenchée par le push d'un tag vX.Y.Z, ou relancée à la main SUR le tag :
+#   gh workflow run release.yml --ref vX.Y.Z
+# (jamais depuis une branche : l'identité des signatures keyless serait celle de la branche).
+# Toutes les actions tierces sont épinglées par SHA de commit complet (vérifiés le 2026-10-19).
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    # Contrôles préalables, en lecture seule, sans aucun secret.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Vérifier que la référence est un tag de version
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          if [[ ! "$REF" =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::« $REF » n'est pas un tag de version vX.Y.Z : lance la publication sur un tag (gh workflow run release.yml --ref vX.Y.Z)."
+            exit 1
+          fi
+          echo "Tag de version : ${REF#refs/tags/}"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Vérifier que le tag pointe sur un commit de main
+        run: |
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Le tag doit pointer sur un commit de main : on ne publie que du code relu et fusionné."
+            exit 1
+          fi
+      - name: Vérifier que la Release n'existe pas déjà (même en brouillon)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::La Release $TAG existe déjà. Une Release publiée ne se modifie pas : publie une nouvelle version. S'il s'agit d'un brouillon d'une tentative échouée, supprime-le (gh release delete $TAG) puis relance."
+            exit 1
+          fi
+
+      - name: Vérifier que l'image n'est pas déjà publiée
+        # API publique de Docker Hub, sans secret : un tag X.Y.Z n'est jamais réécrit.
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          status="$(curl -sS -o /dev/null -w '%{http_code}' "https://hub.docker.com/v2/repositories/telemachlearning/telemach-kubectl/tags/${version}/")"
+          case "$status" in
+            404) echo "Image telemachlearning/telemach-kubectl:${version} absente : publication possible." ;;
+            200) echo "::error::L'image telemachlearning/telemach-kubectl:${version} est déjà publiée : publie une nouvelle version."; exit 1 ;;
+            *)   echo "::error::Docker Hub a répondu ${status} : impossible de vérifier l'image ${version}."; exit 1 ;;
+          esac
+
+  gates:
+    # Les mêmes gates que pour une pull request, sur le commit du tag.
+    needs: verify
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: [verify, gates]
+    runs-on: ubuntu-latest
+    # Seul job qui écrit, et seul à pouvoir lire les secrets de publication (environnement
+    # protégé, réservé aux tags v*).
+    environment: release
+    permissions:
+      contents: write      # brouillon de Release, puis publication
+      id-token: write      # signatures keyless (Sigstore)
+      attestations: write  # provenance SLSA
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Installer cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v3.1.3
+      - name: Installer Syft (SBOM)
+        id: syft
+        uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          syft-version: v1.54.1
+      - name: Rendre Syft accessible à GoReleaser
+        env:
+          SYFT: ${{ steps.syft.outputs.cmd }}
+        run: dirname "$SYFT" >> "$GITHUB_PATH"
+      - name: Construire, signer et créer le brouillon de Release
+        uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
+        with:
+          version: v2.18.3
+          args: release --clean --skip=docker
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Attester la provenance des fichiers publiés (SLSA)
+        # Sujets = chaque ligne de checksums.txt (nom publié + somme) : binaires, archives et
+        # SBOM ; sur le disque, les binaires portent le nom de compilation « kubectl-telemach ».
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: dist/checksums.txt
+          create-storage-record: false
+      - name: Publier la Release (immuable une fois publiée)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: gh release edit "$TAG" --draft=false --repo "$GITHUB_REPOSITORY"
+
+  krew-index:
+    # Après la publication seulement : les adresses d'un brouillon ne sont pas téléchargeables.
+    # Le job appelé déclare lui-même l'environnement « release » et lit la clé de déploiement ;
+    # aucun secret du dépôt n'est transmis.
+    needs: release
+    permissions:
+      contents: read
+    uses: ./.github/workflows/krew-index.yml

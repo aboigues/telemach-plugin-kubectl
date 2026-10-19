@@ -95,6 +95,66 @@ release:
   replace_existing_draft: false
   prerelease: auto
   name_template: "TELEMACH {{ .Version }}"
+  header: |
+    ## Installer TELEMACH {{ .Version }}
+
+    **Linux et WSL2**
+
+    ```bash
+    VERSION={{ .Version }}
+    ARCH=$(uname -m); case "$ARCH" in x86_64) ARCH=amd64 ;; aarch64|arm64) ARCH=arm64 ;; esac
+    FICHIER=kubectl-telemach_${VERSION}_linux_${ARCH}
+    curl -fsSLO "https://github.com/aboigues/telemach-plugin-kubectl/releases/download/v${VERSION}/${FICHIER}"
+    curl -fsSLO "https://github.com/aboigues/telemach-plugin-kubectl/releases/download/v${VERSION}/checksums.txt"
+    sha256sum --check --ignore-missing checksums.txt
+    mkdir -p ~/.local/bin
+    install -m 0755 "$FICHIER" ~/.local/bin/kubectl-telemach
+    kubectl telemach version
+    ```
+
+    **macOS**
+
+    ```bash
+    VERSION={{ .Version }}
+    ARCH=$(uname -m); case "$ARCH" in x86_64) ARCH=amd64 ;; aarch64|arm64) ARCH=arm64 ;; esac
+    FICHIER=kubectl-telemach_${VERSION}_darwin_${ARCH}
+    curl -fsSLO "https://github.com/aboigues/telemach-plugin-kubectl/releases/download/v${VERSION}/${FICHIER}"
+    curl -fsSLO "https://github.com/aboigues/telemach-plugin-kubectl/releases/download/v${VERSION}/checksums.txt"
+    shasum -a 256 --check --ignore-missing checksums.txt
+    mkdir -p ~/.local/bin
+    install -m 0755 "$FICHIER" ~/.local/bin/kubectl-telemach
+    kubectl telemach version
+    ```
+
+    **Avec Krew** (versions stables) :
+
+    ```bash
+    kubectl krew index add telemach https://github.com/aboigues/telemach-krew-index.git
+    kubectl krew install telemach/telemach
+    kubectl telemach version
+    ```
+
+    kubectl trouve le plugin par son nom dans les dossiers du `PATH` : si `kubectl plugin list`
+    ne le cite pas, ajoute `~/.local/bin` à ton `PATH`. Active ensuite l'explication
+    automatique des erreurs : `eval "$(kubectl-telemach shell-init zsh)"` (ou `bash`) dans ton
+    fichier de configuration du shell. Guide complet : [README](https://github.com/aboigues/telemach-plugin-kubectl#installation).
+  footer: |
+    ## Vérifier l'authenticité
+
+    Signature du fichier de sommes (cosign v3) :
+
+    ```bash
+    curl -fsSLO "https://github.com/aboigues/telemach-plugin-kubectl/releases/download/v{{ .Version }}/checksums.txt.sigstore.json"
+    cosign verify-blob \
+      --bundle checksums.txt.sigstore.json \
+      --certificate-identity-regexp '^https://github\.com/aboigues/telemach-plugin-kubectl/\.github/workflows/release\.yml@refs/tags/v' \
+      --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+      checksums.txt
+    ```
+
+    Provenance (SLSA) d'un binaire ou d'une archive : `gh attestation verify <fichier> --repo aboigues/telemach-plugin-kubectl`
+
+    TELEMACH est un logiciel libre sous licence Apache 2.0 — https://www.telemach-learning.fr
 
 changelog:
   use: git
