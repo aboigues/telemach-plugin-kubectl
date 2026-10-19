@@ -30,7 +30,7 @@ doit faire partie de ton `PATH` : kubectl y trouve le plugin par son nom (`kubec
 Depuis le dossier de tes manifestes (aucun cluster n'est contacté, rien n'est écrit) :
 
 ```bash
-docker run --rm -t -v "$PWD":/manifestes:ro telemachlearning/telemach-kubectl:0.1.0 check
+docker run --rm -it -v "$PWD":/manifestes:ro telemachlearning/telemach-kubectl:0.1.0 check
 ```
 
 ### Tags

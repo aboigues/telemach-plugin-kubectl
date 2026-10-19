@@ -74,7 +74,7 @@ func readTemplate(t *testing.T) string {
 
 // T019 : manifeste conforme à contracts/krew-manifest.md, sommes lues dans checksums.txt.
 func TestGenerate(t *testing.T) {
-	out, err := generate(strings.NewReader(sampleChecksums("1.2.3", "")), "1.2.3", defaultBaseURL, readTemplate(t))
+	out, err := generate(strings.NewReader(sampleChecksums("1.2.3", "")), "1.2.3", defaultBaseURL, readTemplate(t), false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,12 +133,23 @@ func TestGenerate(t *testing.T) {
 
 // Une adresse de base locale (job krew-manifest de la CI) remplace celle de la Release.
 func TestGenerateBaseURL(t *testing.T) {
-	out, err := generate(strings.NewReader(sampleChecksums("1.2.3", "")), "1.2.3", "http://127.0.0.1:8080", readTemplate(t))
+	out, err := generate(strings.NewReader(sampleChecksums("1.2.3", "")), "1.2.3", "http://127.0.0.1:8080", readTemplate(t), false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(out), "uri: http://127.0.0.1:8080/kubectl-telemach_1.2.3_linux_amd64.tar.gz") {
 		t.Errorf("adresse de base non appliquée :\n%s", out)
+	}
+}
+
+// La validation d'un snapshot en CI (-allow-prerelease) accepte une pré-version.
+func TestGenerateSnapshotPrerelease(t *testing.T) {
+	out, err := generate(strings.NewReader(sampleChecksums("1.2.3-rc.1", "")), "1.2.3-rc.1", defaultBaseURL, readTemplate(t), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(out), "version: v1.2.3-rc.1") {
+		t.Errorf("version de la pré-version absente :\n%s", out)
 	}
 }
 
@@ -154,7 +165,7 @@ func TestGenerateRefusals(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			out, err := generate(strings.NewReader(c.checksums), c.version, defaultBaseURL, readTemplate(t))
+			out, err := generate(strings.NewReader(c.checksums), c.version, defaultBaseURL, readTemplate(t), false)
 			if err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Errorf("erreur %v, attendu une erreur mentionnant %q", err, c.want)
 			}

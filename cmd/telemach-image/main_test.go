@@ -50,7 +50,7 @@ func TestHelp(t *testing.T) {
 				t.Errorf("le plugin ne doit pas être exécuté pour l'aide")
 			}
 			for _, want := range []string{
-				`docker run --rm -t -v "$PWD":/manifestes:ro telemachlearning/telemach-kubectl:1.2.3 check`,
+				`docker run --rm -it -v "$PWD":/manifestes:ro telemachlearning/telemach-kubectl:1.2.3 check`,
 				"mkdir -p ~/.local/bin",
 				`docker run --rm --user "$(id -u):$(id -g)" -v ~/.local/bin:/sortie telemachlearning/telemach-kubectl:1.2.3 install`,
 				`docker run --rm --user "$(id -u):$(id -g)" -e HOST_OS=darwin -v ~/.local/bin:/sortie telemachlearning/telemach-kubectl:1.2.3 install`,
@@ -130,6 +130,10 @@ func TestCheck(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(withManifest, "sous-dossier", "web.yml"), []byte("kind: Pod\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
+	jsonOnly := t.TempDir()
+	if err := os.WriteFile(filepath.Join(jsonOnly, "web.json"), []byte(`{"kind":"Pod"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	empty := t.TempDir()
 	if err := os.WriteFile(filepath.Join(empty, "LISEZMOI.txt"), []byte("rien\n"), 0o600); err != nil {
 		t.Fatal(err)
@@ -146,6 +150,12 @@ func TestCheck(t *testing.T) {
 		{"sans -f, avec options", withManifest, []string{"check", "--color", "never"}, []string{"check", "--color", "never", "-f", "MANIFESTES", "-R"}, 0},
 		{"-f explicite", empty, []string{"check", "-f", "x.yaml"}, []string{"check", "-f", "x.yaml"}, 0},
 		{"--filename= explicite", empty, []string{"check", "--filename=x.yaml"}, []string{"check", "--filename=x.yaml"}, 0},
+		{"-f collé", empty, []string{"check", "-fx.yaml"}, []string{"check", "-fx.yaml"}, 0},
+		{"-f groupé avec -R", empty, []string{"check", "-Rf", "x"}, []string{"check", "-Rf", "x"}, 0},
+		{"-R seul n'est pas -f", withManifest, []string{"check", "-R"}, []string{"check", "-R", "-f", "MANIFESTES", "-R"}, 0},
+		{"aide sans montage", empty, []string{"check", "--help"}, []string{"check", "--help"}, 0},
+		{"aide courte sans montage", empty, []string{"check", "-h"}, []string{"check", "-h"}, 0},
+		{"manifeste .json seul", jsonOnly, []string{"check"}, []string{"check", "-f", "MANIFESTES", "-R"}, 0},
 		{"dossier sans manifeste", empty, []string{"check"}, nil, 2},
 		{"dossier absent", filepath.Join(empty, "absent"), []string{"check"}, nil, 2},
 	}
@@ -160,7 +170,7 @@ func TestCheck(t *testing.T) {
 				if call.path != "" {
 					t.Errorf("le plugin ne doit pas être exécuté : %q", call.argv)
 				}
-				for _, want := range []string{"Aucun manifeste", "montage", `docker run --rm -t -v "$PWD":/manifestes:ro telemachlearning/telemach-kubectl:1.2.3 check`} {
+				for _, want := range []string{"Aucun manifeste", "montage", `docker run --rm -it -v "$PWD":/manifestes:ro telemachlearning/telemach-kubectl:1.2.3 check`} {
 					if !strings.Contains(errb.String(), want) {
 						t.Errorf("message de l'image sans %q :\n%s", want, errb.String())
 					}

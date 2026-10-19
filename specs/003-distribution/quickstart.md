@@ -125,7 +125,7 @@ n'est écrit ([image-cli](contracts/image-cli.md)).
 
 ```bash
 cd testdata/manifests/<cas fautif>
-docker run --rm -t -v "$PWD":/manifestes:ro telemachlearning/telemach-kubectl:X.Y.Z check
+docker run --rm -it -v "$PWD":/manifestes:ro telemachlearning/telemach-kubectl:X.Y.Z check
 ```
 
 Attendu : même résultat que `kubectl telemach check -f . -R` installé, première ligne sur les

@@ -43,16 +43,6 @@ jobs:
             echo "::error::Le tag doit pointer sur un commit de main : on ne publie que du code relu et fusionné."
             exit 1
           fi
-      - name: Vérifier que la Release n'existe pas déjà (même en brouillon)
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
-        run: |
-          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "::error::La Release $TAG existe déjà. Une Release publiée ne se modifie pas : publie une nouvelle version. S'il s'agit d'un brouillon d'une tentative échouée, supprime-le (gh release delete $TAG) puis relance."
-            exit 1
-          fi
-
       - name: Vérifier que l'image n'est pas déjà publiée
         # API publique de Docker Hub, sans secret : un tag X.Y.Z n'est jamais réécrit.
         env:
@@ -84,6 +74,16 @@ jobs:
       id-token: write      # signatures keyless (Sigstore)
       attestations: write  # provenance SLSA
     steps:
+      - name: Vérifier que la Release n'existe pas déjà (même en brouillon)
+        # Ici et non dans verify : GitHub ne montre les brouillons qu'à un jeton qui peut écrire.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::La Release $TAG existe déjà. Une Release publiée ne se modifie pas : publie une nouvelle version. S'il s'agit d'un brouillon d'une tentative échouée, supprime-le (gh release delete $TAG) puis relance."
+            exit 1
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0

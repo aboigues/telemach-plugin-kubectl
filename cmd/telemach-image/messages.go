@@ -12,7 +12,7 @@ func imageRef(tag string) string { return "telemachlearning/telemach-kubectl:" +
 
 // Commandes canoniques (contracts/image-cli.md), à copier telles quelles.
 func tryCommand(tag string) string {
-	return `docker run --rm -t -v "$PWD":/manifestes:ro ` + imageRef(tag) + " check"
+	return `docker run --rm -it -v "$PWD":/manifestes:ro ` + imageRef(tag) + " check"
 }
 
 func installCommand(tag, hostOS string) string {
@@ -116,6 +116,11 @@ func refusalText(t render.Theme, kind refusalKind, tag, hostOS, detail string) s
 		concept = "identité du processus (--user)"
 		explain = "Le conteneur s'exécute sans privilèges, avec un utilisateur qui n'est pas toi.\nL'option --user \"$(id -u):$(id -g)\" lui donne ton identité : il peut alors écrire\ndans ton dossier, et le fichier installé t'appartient."
 		fix = []string{install}
+	case refuseReadOnly:
+		title = "Le dossier de destination est monté en lecture seule : TELEMACH ne peut pas y écrire."
+		concept = "montage en lecture seule (:ro)"
+		explain = "Le suffixe :ro de l'option -v interdit au conteneur toute écriture dans le dossier\nmonté. Il protège tes manifestes pendant un essai (check), mais install doit copier\nle plugin : monte ~/.local/bin sans :ro."
+		fix = []string{install}
 	case refuseSymlink:
 		title = "~/.local/bin/kubectl-telemach existe déjà sous forme de lien symbolique."
 		concept = "une seule installation à la fois"
@@ -170,7 +175,7 @@ func installHelpText(t render.Theme, tag string) string {
 
 func noManifestText(t render.Theme, tag, dir string) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "%s\n\n", t.Anti(render.SymbolError+" Aucun manifeste (.yaml ou .yml) trouvé dans "+dir+"."))
+	fmt.Fprintf(&b, "%s\n\n", t.Anti(render.SymbolError+" Aucun manifeste (.yaml, .yml ou .json) trouvé dans "+dir+"."))
 	fmt.Fprintf(&b, "%s\n", t.Concept(render.LabelConcept+" — montage (bind mount)"))
 	fmt.Fprintf(&b, "%s\n\n", indent("Le conteneur ne voit que les dossiers montés avec -v. Lance la commande depuis le\ndossier de tes manifestes : -v \"$PWD\":/manifestes:ro le rend visible dans le\nconteneur, en lecture seule. Aucun cluster n'est contacté.", 3))
 	fmt.Fprintf(&b, "%s\n", t.Fix("💡 Correction"))

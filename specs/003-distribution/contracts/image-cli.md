@@ -19,7 +19,7 @@ Aucun kubeconfig ni `KUBECONFIG` dans l'image : aucun cluster ne peut être cont
 Essai sans installation, depuis le dossier des manifestes :
 
 ```bash
-docker run --rm -t -v "$PWD":/manifestes:ro telemachlearning/telemach-kubectl:<version> check
+docker run --rm -it -v "$PWD":/manifestes:ro telemachlearning/telemach-kubectl:<version> check
 ```
 
 Installation, Linux et WSL2 :
@@ -76,7 +76,7 @@ Le chemin affiché côté hôte est générique (`~/.local/bin`) : le conteneur 
 `/sortie`.
 
 Refus obligatoires (FR-018), chacun avec concept et correction : dossier non monté ; dossier
-appartenant à root ; dossier non accessible en écriture ; fichier existant qui n'est pas un
+appartenant à root ; dossier non accessible en écriture ; dossier monté en lecture seule (`:ro`) ; fichier existant qui n'est pas un
 binaire TELEMACH ; **lien symbolique** (jamais remplacé ; le message propose `ls -l` et
 `kubectl plugin list` pour repérer les installations) ; `HOST_OS` non pris en charge
 (`windows` → WSL2). Le message de succès rappelle qu'une seconde installation (Krew, dans

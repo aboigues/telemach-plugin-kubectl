@@ -1,0 +1,9 @@
+✖ Le dossier de destination est monté en lecture seule : TELEMACH ne peut pas y écrire.
+
+📘 Concept — montage en lecture seule (:ro)
+   Le suffixe :ro de l'option -v interdit au conteneur toute écriture dans le dossier
+   monté. Il protège tes manifestes pendant un essai (check), mais install doit copier
+   le plugin : monte ~/.local/bin sans :ro.
+
+💡 Correction
+   docker run --rm --user "$(id -u):$(id -g)" -v ~/.local/bin:/sortie telemachlearning/telemach-kubectl:0.2.0 install

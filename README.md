@@ -371,12 +371,14 @@ Pour voir ce que TELEMACH dit de tes manifestes sans rien installer ni contacter
 lance l'image depuis le dossier de tes manifestes :
 
 ```bash
-docker run --rm -t -v "$PWD":/manifestes:ro telemachlearning/telemach-kubectl:0.1.0 check
+docker run --rm -it -v "$PWD":/manifestes:ro telemachlearning/telemach-kubectl:0.1.0 check
 ```
 
 - `:ro` monte le dossier en lecture seule : l'image ne peut rien y modifier.
-- `-t` active les couleurs (le conteneur sait alors qu'il écrit dans un terminal).
-- Tous les fichiers `.yaml` et `.yml` du dossier et de ses sous-dossiers sont vérifiés, comme
+- `-it` active les couleurs : le conteneur sait qu'il écrit dans un terminal et peut lui
+  demander sa couleur de fond (avec `-t` seul, la réponse du terminal n'arrive jamais au
+  conteneur : l'affichage attend deux secondes et la réponse s'imprime ensuite dans ton shell).
+- Tous les fichiers `.yaml`, `.yml` et `.json` du dossier et de ses sous-dossiers sont vérifiés, comme
   avec `kubectl telemach check -f . -R`. L'image ne contient ni kubectl ni configuration de
   cluster : elle applique les règles de la version la plus récente prise en charge et le dit
   en première ligne.

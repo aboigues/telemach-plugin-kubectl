@@ -32,10 +32,6 @@ var (
 	sha256Hex     = regexp.MustCompile(`^[0-9a-f]{64}$`)
 )
 
-// allowPrerelease n'est vrai que pour valider le manifeste d'un snapshot (job krew-manifest de
-// la CI) ; la publication de l'index ne le positionne jamais.
-var allowPrerelease bool
-
 // platform est une entrée du manifeste.
 type platform struct {
 	OS, Arch, URI, Sha256 string
@@ -49,14 +45,13 @@ func main() {
 	out := flag.String("out", "", "fichier écrit (sortie standard si vide)")
 	snapshot := flag.Bool("allow-prerelease", false, "accepte une pré-version : validation d'un snapshot en CI uniquement, jamais pour l'index")
 	flag.Parse()
-	allowPrerelease = *snapshot
-	if err := runCLI(*checksums, *version, *base, *tmplPath, *out); err != nil {
+	if err := runCLI(*checksums, *version, *base, *tmplPath, *out, *snapshot); err != nil {
 		fmt.Fprintln(os.Stderr, "krew-manifest :", err)
 		os.Exit(1)
 	}
 }
 
-func runCLI(checksums, version, base, tmplPath, out string) error {
+func runCLI(checksums, version, base, tmplPath, out string, allowPrerelease bool) error {
 	sums, err := os.Open(checksums) //nolint:gosec // fichier désigné par le mainteneur ou la CI
 	if err != nil {
 		return err
@@ -66,7 +61,7 @@ func runCLI(checksums, version, base, tmplPath, out string) error {
 	if err != nil {
 		return err
 	}
-	manifest, err := generate(sums, version, base, string(tmpl))
+	manifest, err := generate(sums, version, base, string(tmpl), allowPrerelease)
 	if err != nil {
 		return err
 	}
@@ -78,8 +73,9 @@ func runCLI(checksums, version, base, tmplPath, out string) error {
 }
 
 // generate rend le manifeste d'une version stable ; les sommes sont celles des archives dans
-// checksums.txt.
-func generate(checksums io.Reader, version, base, tmpl string) ([]byte, error) {
+// checksums.txt. allowPrerelease n'est vrai que pour valider le manifeste d'un snapshot (job
+// krew-manifest de la CI) ; la publication de l'index ne le demande jamais.
+func generate(checksums io.Reader, version, base, tmpl string, allowPrerelease bool) ([]byte, error) {
 	switch {
 	case anyVersion.MatchString(version) && !allowPrerelease:
 		return nil, fmt.Errorf("%s est une pré-version : l'index Krew ne reçoit que les versions stables", version)

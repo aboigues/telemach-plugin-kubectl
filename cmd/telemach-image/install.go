@@ -30,6 +30,7 @@ const (
 	refuseNotMounted refusalKind = iota
 	refuseRootOwned
 	refuseNotWritable
+	refuseReadOnly
 	refuseSymlink
 	refuseNotRegular
 	refuseForeign
@@ -80,15 +81,30 @@ func (a *app) install(args []string) int {
 	src := filepath.Join(a.root, hostOS, pluginName)
 	upToDate := previous != "" && sameContent(src, target)
 	if err := a.copyAtomic(src, target); err != nil {
-		if errors.Is(err, fs.ErrPermission) {
-			return a.refuse(refuseNotWritable, hostOS, "")
+		kind := copyRefusal(err)
+		detail := ""
+		if kind == refuseCopyFailed {
+			detail = err.Error()
 		}
-		return a.refuse(refuseCopyFailed, hostOS, err.Error())
+		return a.refuse(kind, hostOS, detail)
 	}
 
 	theme, w := a.output(a.stdout)
 	fmt.Fprint(w, successText(theme, a.version, previous, upToDate, hostOS, a.goarch))
 	return exitOK
+}
+
+// copyRefusal classe l'échec de la copie : droits du dossier, montage en lecture seule
+// (« :ro », qui n'est pas une erreur de droits), ou autre cause.
+func copyRefusal(err error) refusalKind {
+	switch {
+	case errors.Is(err, fs.ErrPermission):
+		return refuseNotWritable
+	case errors.Is(err, syscall.EROFS):
+		return refuseReadOnly
+	default:
+		return refuseCopyFailed
+	}
 }
 
 // sameContent indique si deux fichiers ont un contenu identique (même binaire).

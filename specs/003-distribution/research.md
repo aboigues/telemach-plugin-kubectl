@@ -76,7 +76,8 @@ bibliothèque standard et `internal/render` ; `validate-krew-manifest` n'est ins
 
 - **Décision** : reprise de Docker R4 : réglage « releases immuables » du dépôt, Release
   créée en brouillon par GoReleaser, attestations, puis publication ; le job `verify` refuse un
-  tag dont la Release (même brouillon) ou le tag d'image existe déjà.
+  tag dont le tag d'image existe déjà, et le job `release`, en premier, un tag dont la Release
+  existe, même en brouillon (GitHub ne montre les brouillons qu'à un jeton qui peut écrire).
 - **Action mainteneur** : activer le réglage (Settings › General › Releases).
 
 ## R5 — Image : base, contenu, point d'entrée

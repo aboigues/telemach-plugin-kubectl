@@ -2,20 +2,23 @@ package main
 
 import (
 	"fmt"
-	"io/fs"
-	"path/filepath"
 	"strings"
+
+	"github.com/aboigues/telemach-plugin-kubectl/internal/manifest"
 )
 
-// checkPreflight prépare « check » avant de lancer le plugin (research R6). Avec -f, les
-// arguments sont transmis tels quels. Sans -f, le dossier monté est vérifié, sous-dossiers
-// compris (-f <dossier> -R) ; s'il ne contient aucun manifeste, l'image l'explique elle-même
-// (montage du dossier) au lieu du plugin, qui ne sait pas qu'il tourne dans un conteneur.
-// handled vaut vrai quand la commande a été traitée ici.
+// checkPreflight prépare « check » avant de lancer le plugin (research R6). Avec -f, ou pour
+// une demande d'aide, les arguments sont transmis tels quels. Sans -f, le dossier monté est
+// vérifié, sous-dossiers compris (-f <dossier> -R) ; s'il ne contient aucun manifeste, l'image
+// l'explique elle-même (montage du dossier) au lieu du plugin, qui ne sait pas qu'il tourne
+// dans un conteneur. handled vaut vrai quand la commande a été traitée ici.
 func (a *app) checkPreflight(args []string) (rewritten []string, code int, handled bool) {
 	for _, arg := range args {
-		if arg == "-f" || arg == "--filename" || strings.HasPrefix(arg, "-f=") || strings.HasPrefix(arg, "--filename=") {
-			return args, 0, false // fichiers explicites : le plugin les vérifie lui-même
+		if arg == "--" {
+			break
+		}
+		if usesFilename(arg) || arg == "--help" || hasShortFlag(arg, 'h') {
+			return args, 0, false // le plugin traite lui-même les fichiers explicites et l'aide
 		}
 	}
 	if !hasManifest(a.manifest) {
@@ -26,21 +29,33 @@ func (a *app) checkPreflight(args []string) (rewritten []string, code int, handl
 	return append(append([]string(nil), args...), "-f", a.manifest, "-R"), 0, false
 }
 
-// hasManifest indique si dir contient, à un niveau quelconque, un fichier .yaml ou .yml.
+// usesFilename indique si arg donne l'option -f / --filename, sous toutes les formes
+// acceptées par cobra : « -f x », « -f=x », « -fx », « -Rf x », « --filename[=x] ».
+func usesFilename(arg string) bool {
+	return arg == "--filename" || strings.HasPrefix(arg, "--filename=") || hasShortFlag(arg, 'f')
+}
+
+// hasShortFlag indique si arg, groupe d'options courtes (« -Rf »), contient l'option name.
+// Seules -R et -h, sans valeur, peuvent précéder une autre option dans un groupe de check.
+func hasShortFlag(arg string, name byte) bool {
+	if len(arg) < 2 || arg[0] != '-' || arg[1] == '-' {
+		return false
+	}
+	for i := 1; i < len(arg); i++ {
+		switch arg[i] {
+		case name:
+			return true
+		case 'R', 'h':
+		default:
+			return false
+		}
+	}
+	return false
+}
+
+// hasManifest indique si dir contient, à un niveau quelconque, un fichier que le plugin
+// vérifierait (mêmes extensions que kubectl : .yaml, .yml, .json).
 func hasManifest(dir string) bool {
-	found := false
-	// #nosec G703 -- simple parcours, dans le conteneur, du dossier que l'apprenant a lui-même
-	// monté (en lecture seule).
-	_ = filepath.WalkDir(dir, func(_ string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return nil //nolint:nilerr // dossier illisible : ignoré, comme par le plugin
-		}
-		ext := strings.ToLower(filepath.Ext(d.Name()))
-		if !d.IsDir() && (ext == ".yaml" || ext == ".yml") {
-			found = true
-			return fs.SkipAll
-		}
-		return nil
-	})
-	return found
+	files, _ := manifest.Expand([]string{dir}, true)
+	return len(files) > 0
 }

@@ -5,11 +5,15 @@ import (
 	"debug/buildinfo"
 	"errors"
 	"flag"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime/debug"
 	"strings"
+	"syscall"
 	"testing"
+
+	"github.com/aboigues/telemach-plugin-kubectl/internal/render"
 )
 
 var update = flag.Bool("update", false, "réécrit les fichiers golden")
@@ -232,6 +236,18 @@ func TestInstallRefusals(t *testing.T) {
 			t.Skip("root ignore les droits du dossier")
 		}
 		refusal(t, a, errb, []string{"install"}, 1, "refuse_not_writable")
+	})
+	t.Run("monté en lecture seule", func(t *testing.T) {
+		// Un montage :ro ne se simule pas sans privilèges : le classement de l'erreur et le
+		// message sont vérifiés séparément.
+		err := &fs.PathError{Op: "open", Path: "/sortie/x", Err: syscall.EROFS}
+		if kind := copyRefusal(err); kind != refuseReadOnly {
+			t.Fatalf("EROFS classé %d, attendu refuseReadOnly", kind)
+		}
+		if kind := copyRefusal(&fs.PathError{Op: "open", Path: "/sortie/x", Err: syscall.EACCES}); kind != refuseNotWritable {
+			t.Fatalf("EACCES classé %d, attendu refuseNotWritable", kind)
+		}
+		golden(t, "refuse_read_only", refusalText(render.NewTheme(false, true), refuseReadOnly, "0.2.0", "linux", ""))
 	})
 	t.Run("fichier étranger", func(t *testing.T) {
 		a, _, errb := installApp(t)
