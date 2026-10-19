@@ -84,10 +84,11 @@ func shellRun(t *testing.T, shell, body string, extraEnv ...string) (stdout, std
 }
 
 // snapshot renvoie l'état comparable des objets d'un namespace (champs volatils retirés),
-// pour vérifier que TELEMACH n'a rien modifié (SC-008).
+// pour vérifier que TELEMACH n'a rien modifié (SC-008 ; feature 002 : SC-005, PVC, Ingress et
+// EndpointSlices compris).
 func snapshot(t *testing.T, ns string) string {
 	t.Helper()
-	r := cluster.Kubectl("get", "all,configmaps,serviceaccounts", "-n", ns, "-o", "json")
+	r := cluster.Kubectl("get", "all,configmaps,serviceaccounts,pvc,ingress,endpointslices", "-n", ns, "-o", "json")
 	if r.ExitCode != 0 {
 		t.Fatalf("snapshot : %s", r.Stderr)
 	}
@@ -106,13 +107,18 @@ func snapshot(t *testing.T, ns string) string {
 	}
 	var lines []string
 	for _, it := range list.Items {
-		if it.Kind == "Pod" || it.Kind == "ReplicaSet" || it.Kind == "Deployment" {
-			// Le statut des pods change seul (sondes, redémarrages) : seuls leur présence et
-			// leur génération comptent.
+		switch it.Kind {
+		case "EndpointSlice", "PersistentVolumeClaim":
+			// Réécrits par les contrôleurs (endpoints d'un pod qui devient prêt, liaison d'un
+			// volume), génération comprise : seule leur présence compte.
+			lines = append(lines, it.Kind+"/"+it.Metadata.Name)
+		case "Pod", "ReplicaSet", "Deployment":
+			// Leur statut change seul (sondes, redémarrages) : seuls leur présence et leur
+			// génération comptent.
 			lines = append(lines, it.Kind+"/"+it.Metadata.Name+"#"+itoa(it.Metadata.Generation))
-			continue
+		default:
+			lines = append(lines, it.Kind+"/"+it.Metadata.Name+"@"+it.Metadata.ResourceVersion)
 		}
-		lines = append(lines, it.Kind+"/"+it.Metadata.Name+"@"+it.Metadata.ResourceVersion)
 	}
 	sort.Strings(lines)
 	return strings.Join(lines, "\n")

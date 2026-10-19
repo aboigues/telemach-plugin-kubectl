@@ -112,10 +112,16 @@ __telemach_run() (
 		*) [ -z "$__telemach_verb" ] && __telemach_verb=$__telemach_arg ;;
 		esac
 	done
+	# exec, attach, debug et port-forward gardent leur terminal (stdin et stdout intacts) mais
+	# leur stderr est capté : leurs erreurs (conteneur introuvable, transfert refusé) ne viennent
+	# que de kubectl (research.md S10).
 	__telemach_interactive=0
+	__telemach_capture=0
 	case "$__telemach_verb" in
-	attach | edit | port-forward | proxy) __telemach_interactive=1 ;;
-	exec | run | debug) { [ "$__telemach_i" = 1 ] || [ "$__telemach_t" = 1 ]; } && __telemach_interactive=1 ;;
+	attach | port-forward) __telemach_capture=1 ;;
+	edit | proxy) __telemach_interactive=1 ;;
+	exec | debug) { [ "$__telemach_i" = 1 ] || [ "$__telemach_t" = 1 ]; } && __telemach_capture=1 ;;
+	run) { [ "$__telemach_i" = 1 ] || [ "$__telemach_t" = 1 ]; } && __telemach_interactive=1 ;;
 	logs) [ "$__telemach_follow" = 1 ] && __telemach_interactive=1 ;;
 	get | events) [ "$__telemach_watch" = 1 ] && __telemach_interactive=1 ;;
 	esac
@@ -135,7 +141,7 @@ __telemach_run() (
 	# Pièges installés avant la création du fichier : une interruption (Ctrl-C) à n'importe
 	# quel moment ne laisse aucun fichier temporaire derrière elle (D-LL-003).
 	__telemach_tmp=""
-	trap 'rm -f -- "$__telemach_tmp"' EXIT
+	trap '[ -n "$__telemach_tmp" ] && rm -f -- "$__telemach_tmp" "$__telemach_tmp.rc"' EXIT
 	trap 'exit 130' INT
 	trap 'exit 143' TERM
 	__telemach_tmp="$(umask 077 && mktemp "${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/telemach-kubectl.XXXXXX")" || {
@@ -145,8 +151,23 @@ __telemach_run() (
 
 	# stderr de kubectl passe par tee (copie dans le fichier temporaire) ; stdout reste intact
 	# grâce au descripteur 3.
-	{ "${__telemach_kubectl_cmd[@]}" "$@" 2>&1 1>&3 3>&- | tee -- "$__telemach_tmp" >&2; } 3>&1
-	__telemach_rc=${pipestatus[1]}
+	if [ "$__telemach_capture" = 1 ]; then
+		# Session interactive : Ctrl-C revient à kubectl. Le sous-shell continue pour expliquer une
+		# erreur captée avant l'interruption, et tee, qui ignore Ctrl-C, garde tout ce que kubectl
+		# a écrit. Le code de kubectl est noté par le pipeline lui-même : après un trap, celui
+		# du pipeline n'est plus fiable en zsh.
+		trap ':' INT
+		{ {
+			trap ':' INT
+			"${__telemach_kubectl_cmd[@]}" "$@" 2>&1 1>&3 3>&-
+			echo "$?" >"$__telemach_tmp.rc"
+		} | (trap '' INT && exec tee -- "$__telemach_tmp") >&2; } 3>&1
+		__telemach_rc=$(cat -- "$__telemach_tmp.rc" 2>/dev/null)
+		[ -n "$__telemach_rc" ] || __telemach_rc=130
+	else
+		{ "${__telemach_kubectl_cmd[@]}" "$@" 2>&1 1>&3 3>&- | tee -- "$__telemach_tmp" >&2; } 3>&1
+		__telemach_rc=${pipestatus[1]}
+	fi
 
 	if [ "$__telemach_rc" -ne 0 ]; then
 		command "$__telemach_bin" explain --exit-code "$__telemach_rc" --stderr-file "$__telemach_tmp" \
@@ -158,10 +179,10 @@ __telemach_run() (
 )
 
 # Après une création réussie, la vérification différée est lancée ; c'est « watch » qui écarte
-# les commandes non concernées (--dry-run, -f -, URL, -k).
+# les commandes non concernées (--dry-run, -f -, URL, -k). « expose » crée un Service.
 __telemach_after_success() {
 	case "$__telemach_verb" in
-	apply | create | run) __telemach_watch "$@" ;;
+	apply | create | run | expose) __telemach_watch "$@" ;;
 	esac
 }
 

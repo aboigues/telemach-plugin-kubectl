@@ -1,0 +1,26 @@
+✖ Le programme du pod « dns-client » n'a pas pu résoudre le nom « kubernetes ».
+   pod dns-client · namespace demo · image busybox:1.38 · état Error
+   (l'erreur vient du programme exécuté dans le conteneur, pas de Kubernetes)
+
+📘 Concept — nom DNS d'un Service
+   Chaque Service reçoit un nom DNS. Le nom court (« web ») n'est résolu que
+   depuis un pod du même namespace ; depuis un autre namespace, il faut
+   « web.NAMESPACE » ou le nom complet « web.NAMESPACE.svc.cluster.local ».
+
+🔎 Cause probable
+   « kubernetes » est un nom court : le DNS du cluster le cherche seulement
+   parmi les Services du namespace du pod (demo). Le Service visé est sans doute
+   dans un autre namespace (le Service « kubernetes » est dans « default »), ou
+   son nom est mal écrit.
+
+💡 Corrections
+   1. Trouver dans quel namespace se trouve le Service.
+      kubectl get services -A --field-selector metadata.name=kubernetes
+   2. Dans la configuration de l'application, viser « kubernetes.NAMESPACE », ou
+      le nom complet « kubernetes.NAMESPACE.svc.cluster.local », valable depuis
+      n'importe quel namespace, puis recréer le pod.
+
+📜 Fin du journal (conteneur client)
+   wget: bad address 'kubernetes:443'
+
+➜ Pour aller plus loin : kubectl telemach deepen

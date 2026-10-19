@@ -3,6 +3,7 @@ package catalog
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -117,7 +118,7 @@ func checkTestCase(t *testing.T, e *Entry, name string) {
 		if _, err := os.Stat(filepath.Join(root, "manifests", name)); err != nil {
 			t.Errorf("%s : cas %q absent de testdata/manifests/", e.ID, name)
 		}
-	case len(e.PodReasons) > 0:
+	case len(e.PodReasons) > 0 || len(e.LogPatterns) > 0:
 		if _, err := os.Stat(filepath.Join(root, "pods", name)); err != nil {
 			t.Errorf("%s : cas %q absent de testdata/pods/", e.ID, name)
 		}
@@ -205,5 +206,32 @@ func TestPitfallEntries(t *testing.T) {
 	endpoints := strings.Replace(pitfallEntry, "get pods --show-labels'", "get endpoints'", 1)
 	if err := load(t, endpoints); err == nil || !strings.Contains(err.Error(), "EndpointSlice") {
 		t.Errorf("get endpoints : erreur attendue (FR-032), obtenu %v", err)
+	}
+}
+
+// FR-028 : toute entrée dont une correction ou un texte mentionne une suppression forcée
+// (--force --grace-period=0) ou la suppression des finalizers porte un anti_pattern qui le
+// présente comme tel.
+func TestForcedDeletionIsAntiPattern(t *testing.T) {
+	c, err := Default()
+	if err != nil {
+		t.Fatal(err)
+	}
+	forced := regexp.MustCompile(`--grace-period[= ]0|--force\b|finalizers`)
+	for _, e := range c.Entries {
+		texts := []string{e.Summary, e.Cause, e.Deepen.Explanation, e.Deepen.Example, e.Deepen.Exercise}
+		for _, f := range e.Fixes {
+			texts = append(texts, f.Description, f.Command, f.Manifest)
+		}
+		for _, text := range texts {
+			if forced.MatchString(text) && e.AntiPattern == nil {
+				t.Errorf("%s : suppression forcée ou finalizers mentionnés sans anti_pattern : %q", e.ID, text)
+			}
+		}
+		// La démarche : chercher d'abord ce qui bloque (finalizers, nœud, volume).
+		if e.AntiPattern != nil && forced.MatchString(e.AntiPattern.Description) &&
+			(!strings.Contains(e.AntiPattern.Description, "finalizers") || !strings.Contains(e.AntiPattern.Description, "nœud")) {
+			t.Errorf("%s : l'anti_pattern doit proposer d'identifier ce qui bloque (FR-028)", e.ID)
+		}
 	}
 }

@@ -1,0 +1,139 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-17T19:03:50Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "dns-client",
+        "namespace": "demo",
+        "resourceVersion": "982",
+        "uid": "824e7aa3-e593-4839-b1c6-b7b3d3ca399c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-17T19:03:50Z",
+      "message": "Successfully assigned demo/dns-client to telemach-c006d8-control-plane",
+      "metadata": {
+        "creationTimestamp": "2026-10-17T19:03:50Z",
+        "name": "dns-client.18df66752625cbf8",
+        "namespace": "demo",
+        "resourceVersion": "984",
+        "uid": "cc25480b-704f-42b7-a79a-a3e2bb8d41ed"
+      },
+      "reason": "Scheduled",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "",
+      "source": {
+        "component": "default-scheduler"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-17T19:03:50Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{client}",
+        "kind": "Pod",
+        "name": "dns-client",
+        "namespace": "demo",
+        "resourceVersion": "983",
+        "uid": "824e7aa3-e593-4839-b1c6-b7b3d3ca399c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-17T19:03:50Z",
+      "message": "Container image \"busybox:1.38\" already present on machine and can be accessed by the pod",
+      "metadata": {
+        "creationTimestamp": "2026-10-17T19:03:50Z",
+        "name": "dns-client.18df66754c51c57a",
+        "namespace": "demo",
+        "resourceVersion": "986",
+        "uid": "53bc9d98-fe62-4edd-80c1-446f5145193c"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "telemach-c006d8-control-plane",
+      "source": {
+        "component": "kubelet",
+        "host": "telemach-c006d8-control-plane"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-17T19:03:50Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{client}",
+        "kind": "Pod",
+        "name": "dns-client",
+        "namespace": "demo",
+        "resourceVersion": "983",
+        "uid": "824e7aa3-e593-4839-b1c6-b7b3d3ca399c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-17T19:03:50Z",
+      "message": "Container created",
+      "metadata": {
+        "creationTimestamp": "2026-10-17T19:03:50Z",
+        "name": "dns-client.18df66754ce599eb",
+        "namespace": "demo",
+        "resourceVersion": "988",
+        "uid": "05b9e82e-b47f-42e2-8645-58865f58a788"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "telemach-c006d8-control-plane",
+      "source": {
+        "component": "kubelet",
+        "host": "telemach-c006d8-control-plane"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-17T19:03:50Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{client}",
+        "kind": "Pod",
+        "name": "dns-client",
+        "namespace": "demo",
+        "resourceVersion": "983",
+        "uid": "824e7aa3-e593-4839-b1c6-b7b3d3ca399c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-17T19:03:50Z",
+      "message": "Container started",
+      "metadata": {
+        "creationTimestamp": "2026-10-17T19:03:50Z",
+        "name": "dns-client.18df66755dfd3119",
+        "namespace": "demo",
+        "resourceVersion": "990",
+        "uid": "120298a0-35ec-4f71-9443-767f634795a9"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "telemach-c006d8-control-plane",
+      "source": {
+        "component": "kubelet",
+        "host": "telemach-c006d8-control-plane"
+      },
+      "type": "Normal"
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

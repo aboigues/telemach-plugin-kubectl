@@ -93,6 +93,13 @@ func Diagnose(r Reader, p kuberead.Pod, scope kuberead.Scope, cat *catalog.Catal
 		if e, ok := cat.ByPodReason(snap.Reason); ok {
 			d.Entry, d.Confidence = e, diagnose.Recognized
 		}
+		// Un motif reconnu dans le journal (nom DNS court…) est plus précis que l'état du pod.
+		if e, values, ok := cat.ByLogLines(snap.LogTail); ok {
+			d.Entry, d.Confidence = e, diagnose.Recognized
+			for k, v := range values {
+				d.Captures[k] = v
+			}
+		}
 	}
 	if d.Entry != nil && len(snap.DeniedReads) > 0 {
 		d.Confidence = diagnose.Partial

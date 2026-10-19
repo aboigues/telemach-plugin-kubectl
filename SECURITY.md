@@ -33,13 +33,22 @@ Indique si possible :
   si l'apprenant la donne à `diagnose`) :
   - `kubectl version --client -o json`, lu une fois par l'intégration shell (aucun contact
     avec le serveur API) ;
-  - pour `kubectl telemach diagnose` : `get pods`, `get pod <nom>`, `get deployment <nom>`,
-    `get events` (filtrés sur un pod) au format JSON, et `logs --tail=20` d'un conteneur en
-    échec ;
-  - pour la vérification différée après une création réussie : uniquement le statut des pods
-    concernés (`get pods` / `get pod <nom>`).
+  - pour `kubectl telemach diagnose` : `get pods`, `get pod <nom>`, `get deployment(s)`,
+    `get replicasets -l`, `get service(s)`, `get endpointslices`, `get ingress(es)`,
+    `get ingressclasses`, `get pvc`, `get storageclasses` et `get events` (filtrés sur un pod)
+    au format JSON, `logs --tail=20` d'un conteneur en échec, et les seules dates de
+    modification d'une ConfigMap (`managedFields[].time`, jamais ses valeurs) ;
+  - pour la vérification différée après une création réussie (`apply`, `create`, `run`,
+    `expose`) : le statut des pods concernés et les Services, Ingress et PVC créés, au plus
+    12 lectures.
 - Il ne lit jamais d'objet `Secret` et ne conserve jamais la valeur d'une variable
-  d'environnement d'un pod.
+  d'environnement d'un pod ni celle d'une ConfigMap. Des annotations, il ne garde que quatre
+  clés publiques (classes par défaut d'Ingress et de stockage, `kubernetes.io/ingress.class`,
+  révision d'un ReplicaSet).
+- La sortie d'erreur de `exec`, `attach`, `debug` et `port-forward` est copiée comme celle des
+  autres commandes (fichier privé `0600`, supprimé aussitôt), sans toucher à leur entrée ni à
+  leur sortie standard.
+- `hints.json` (`0600`) ne contient que l'empreinte SHA-256 des images déjà signalées.
 - `explain`, `check`, `last` et `deepen` fonctionnent sans aucun accès réseau.
 - Les valeurs sensibles (jetons, mots de passe, certificats, contenu de kubeconfig, données
   d'un `Secret`) sont masquées avant tout affichage ou toute écriture sur disque.

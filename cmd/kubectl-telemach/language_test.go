@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"go.yaml.in/yaml/v3"
+
 	"github.com/aboigues/telemach-plugin-kubectl/internal/testcorpus"
 )
 
@@ -92,4 +94,59 @@ func TestCorpusLanguageAndSecrets(t *testing.T) {
 		}
 		checkOutputs(t, a, "diagnose "+name, errb.String(), secrets)
 	}
+
+	// T065 : chaque objet du corpus relevé sur kind (feature 002) passé par diagnose puis last,
+	// hints.json compris. La valeur du Secret de config-env.yaml s'ajoute aux secrets cherchés.
+	secrets = append(secrets, "fake-token-value")
+	n = 0
+	for _, c := range objectCases(t) {
+		a, _, _ := objectEnv(t, c.dir, c.name)
+		errb := a.stderr.(interface{ String() string })
+		if code := run(a, []string{"diagnose", "--color=never", c.kind + "/" + c.name, "-n", "demo"}); code != 0 {
+			t.Fatalf("diagnose %s/%s (%s) : code %d\n%s", c.kind, c.name, c.dir, code, errb)
+		}
+		n++
+		label := "diagnose " + c.kind + "/" + c.name + " (" + c.dir + ")"
+		checkOutputs(t, a, label, errb.String(), secrets)
+		if data, err := os.ReadFile(filepath.Join(a.store.Dir, "hints.json")); err == nil {
+			if leaks := testcorpus.Leaks(string(data), secrets); len(leaks) > 0 {
+				t.Errorf("%s : secret en clair dans hints.json : %q", label, leaks)
+			}
+		}
+	}
+	if n == 0 {
+		t.Fatal("aucun cas d'objet (D-LL-009)")
+	}
+}
+
+// objectCase est un objet attendu d'un cas de testdata/objects/ (expected*.yaml).
+type objectCase struct{ dir, kind, name string }
+
+// objectCases liste les objets du corpus d'objets, variantes de version comprises.
+func objectCases(t *testing.T) []objectCase {
+	t.Helper()
+	dirs, _ := filepath.Glob(filepath.Join(objectsCorpus, "*"))
+	var out []objectCase
+	for _, dir := range dirs {
+		base := filepath.Base(dir)
+		if info, err := os.Stat(dir); err != nil || !info.IsDir() || base == "scenarios" || base == "configmap-dates" {
+			continue
+		}
+		expDir := dir
+		if i := strings.Index(base, "@"); i >= 0 {
+			expDir = filepath.Join(objectsCorpus, base[:i])
+		}
+		files, _ := filepath.Glob(filepath.Join(expDir, "expected*.yaml"))
+		for _, f := range files {
+			var exp struct {
+				Kind, Name string
+			}
+			data, _ := os.ReadFile(f) //nolint:gosec // corpus du dépôt
+			if err := yaml.Unmarshal(data, &exp); err != nil || exp.Kind == "" {
+				t.Fatalf("%s : %v", f, err)
+			}
+			out = append(out, objectCase{dir: base, kind: exp.Kind, name: exp.Name})
+		}
+	}
+	return out
 }

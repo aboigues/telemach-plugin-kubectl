@@ -242,3 +242,41 @@
       namespace ensuite.
   doc_url: https://kubernetes.io/docs/concepts/configuration/secret/
   tests: [config-env]
+
+- id: rollout.progress-deadline
+  category: rollout
+  patterns:
+    - 'deployment "(?P<deployment>[^"]+)" exceeded its progress deadline'
+  concept:
+    name: échéance de progression
+    definition: >-
+      Un Deployment attend que sa nouvelle version soit prête pendant
+      spec.progressDeadlineSeconds (600 s par défaut). Au-delà, il se déclare bloqué : la
+      condition Progressing passe à False, et kubectl rollout status échoue.
+  summary: Le déploiement de « {{.deployment}} » est bloqué, sa nouvelle version n'est pas prête après l'échéance.
+  cause: >-
+    Les pods de la nouvelle version ne deviennent pas prêts (image introuvable, plantage au
+    démarrage, sonde en échec…). Kubernetes ne revient pas en arrière de lui-même : l'ancienne
+    version, s'il en reste, continue de servir.
+  fixes:
+    - description: Diagnostiquer le Deployment et le pod en difficulté de sa nouvelle version.
+      command: '{{.kubectl}} telemach diagnose deployment/{{.deployment}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Revenir à la version précédente si tu préfères corriger plus tard.
+      command: '{{.kubectl}} rollout undo deployment/{{.deployment}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      kubectl rollout status suit un rollout jusqu'à ce qu'il réussisse ou dépasse son
+      échéance. L'échéance ne déclenche aucun retour arrière : c'est un signal, pour un humain
+      ou un outil de déploiement.
+    example: |-
+      kubectl rollout status deployment/web --timeout=120s
+      kubectl get deployment web -o jsonpath='{.spec.progressDeadlineSeconds}'
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-echeance », crée un
+      Deployment avec progressDeadlineSeconds: 30, donne-lui une image introuvable avec
+      « kubectl set image », puis suis-le avec « kubectl rollout status ». Supprime le namespace
+      ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#failed-deployment
+  tests: [rollout-status-deadline]

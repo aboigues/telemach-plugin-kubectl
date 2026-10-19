@@ -1,0 +1,112 @@
+# Échecs de kubectl port-forward (feature 002, US5) : le port de la machine (avant « : ») et le
+# port du pod (après « : ») sont deux choses distinctes. Messages relevés sur kind 1.35 à 1.37.
+
+- id: portforward.local-port-in-use
+  category: portforward
+  patterns:
+    - '(?i)unable to listen on port (?P<localPort>[0-9]+):.*address already in use'
+  concept:
+    name: port local
+    definition: >-
+      port-forward ouvre un port sur ta machine (le premier nombre de « 8080:80 ») et le relie
+      à un port du pod (le second). Le port local doit être libre sur ta machine.
+  summary: Le port {{.localPort}} de ta machine est déjà utilisé, le transfert ne peut pas l'ouvrir.
+  cause: >-
+    Un autre programme écoute déjà sur le port {{.localPort}} de ta machine : souvent un
+    port-forward précédent encore actif dans un autre terminal ou en arrière-plan. Le pod et le
+    cluster ne sont pas en cause.
+  fixes:
+    - description: Laisser kubectl choisir un port libre de ta machine (il l'affiche au démarrage).
+      command: '{{.kubectl}} {{.fixed_command}}'
+      safe: true
+    - description: Voir quel programme utilise ce port (Linux).
+      command: ss -ltnp 'sport = :{{.localPort}}'
+      safe: true
+  deepen:
+    explanation: >-
+      « kubectl port-forward service/web :80 » laisse le système choisir le port local ;
+      « 8080:80 » l'impose. Un port-forward lancé avec & continue de tourner : « jobs » le
+      liste, « kill %1 » l'arrête.
+    example: |-
+      kubectl port-forward service/web :80
+      jobs
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-port », expose un
+      deployment, lance deux port-forward sur le même port local et observe l'erreur, puis
+      relance le second avec « :80 ». Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/
+  tests: [portforward-local-port-in-use]
+
+- id: portforward.pod-not-running
+  category: portforward
+  patterns:
+    - 'unable to forward port because pod is not running\. Current status=(?P<phase>[A-Za-z]+)'
+  concept:
+    name: phase d'un pod
+    definition: >-
+      Un transfert de port rejoint un conteneur en marche. Un pod en phase Pending (pas encore
+      démarré, image en cours de téléchargement ou introuvable) ou terminé ne peut pas recevoir
+      de connexion.
+  summary: Le pod visé n'est pas en marche (phase {{.phase}}), le transfert de port est impossible.
+  cause: >-
+    Le transfert vise un pod qui n'a pas démarré ou qui s'est arrêté. La cause est dans le pod
+    lui-même : image, ressources, planification, plantage.
+  fixes:
+    - description: Diagnostiquer le pod visé.
+      command: '{{.kubectl}} telemach diagnose {{if .type}}{{.type}}/{{end}}{{.name}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Viser plutôt le Service, qui transfère vers un pod prêt, quel que soit son nom.
+      command: '{{.kubectl}} get services{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Un pod change de nom à chaque déploiement : « kubectl port-forward service/web 8080:80 »
+      choisit un pod prêt derrière le Service, ce qui évite de viser un pod arrêté ou remplacé.
+    example: |-
+      kubectl get pods
+      kubectl port-forward service/web 8080:80
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-phase », lance un pod
+      avec une image introuvable, tente un port-forward vers lui, puis vers un Service qui
+      désigne un pod sain. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase
+  tests: [portforward-pod-not-running]
+
+- id: portforward.connection-refused
+  category: portforward
+  patterns:
+    - '(?is)an error occurred forwarding.*?error forwarding port (?P<remotePort>[0-9]+) to pod.*connection refused'
+  concept:
+    name: port du pod
+    definition: >-
+      Le second nombre de « 8080:80 » est un port à l'intérieur du pod : un programme du
+      conteneur doit y écouter. Le transfert est établi, mais la connexion est refusée dans le
+      pod si rien n'écoute sur ce port.
+  summary: Rien n'écoute sur le port {{.remotePort}} dans le pod, la connexion est refusée.
+  cause: >-
+    Le transfert vers le pod fonctionne, mais aucun programme du conteneur n'écoute sur le port
+    {{.remotePort}} : mauvais numéro de port (celui du Service au lieu de celui du conteneur,
+    par exemple), ou application qui écoute sur un autre port ou pas encore démarrée.
+  fixes:
+    - description: Lire les ports déclarés par les conteneurs.
+      command: '{{.kubectl}} get {{if .type}}{{.type}} {{end}}{{.name}}{{if .scope}} {{.scope}}{{end}} -o jsonpath=''{..containerPort}'''
+      safe: true
+    - description: Préférer un transfert vers le Service, qui fait le lien entre son port et celui du conteneur.
+      command: '{{.kubectl}} get services{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Avec « kubectl port-forward service/web 8080:80 », 80 est le port du Service : kubectl
+      le traduit en targetPort du pod. Vers un pod ou un Deployment, il faut au contraire donner
+      le port du conteneur. La déclaration containerPort est facultative : seule l'application
+      sait sur quel port elle écoute.
+    example: |-
+      kubectl get pod web -o jsonpath='{..containerPort}'
+      kubectl port-forward service/web 8080:80
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-transfert », expose un
+      deployment nginx-unprivileged avec « --port=80 --target-port=8080 », puis compare
+      « port-forward deploy/web 8081:80 » et « port-forward service/web 8081:80 ». Supprime le
+      namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/
+  tests: [portforward-connection-refused]

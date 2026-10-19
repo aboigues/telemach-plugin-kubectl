@@ -156,14 +156,14 @@ configuration figée, puis diagnostique le pod en échec de la nouvelle version.
 
 - [X] T040 [P] [US3] Écrire `internal/pitfall/ingress_test.go` sur `testdata/objects/{ingress-no-class,ingress-unknown-class,ingress-backend-missing,ingressclass-not-default}/` : classe effective (`ingressClassName`, annotation dépréciée signalée, classe par défaut), aucune classe → « aucun contrôleur installé » sans contrôleur nommé (FR-012), adresse vide expliquée, Service ou port visé absent, au plus 10 backends lus, IngressClasses non lisibles → `unknown`
 - [X] T041 [P] [US3] Écrire `internal/pitfall/pvc_test.go` sur `testdata/objects/{pvc-unknown-class,pvc-waiting,pvc-empty-class}/` : classe inexistante, classe par défaut utilisée, `storageClassName: ""` expliqué, `WaitForFirstConsumer` sans pod → `pvc.waiting-first-consumer` (`info`, transitoire, jamais présenté comme une erreur), pod consommateur `Pending` → diagnostic de ce pod
-- [ ] T042 [P] [US3] Écrire les scénarios W8 et W9 dans `tests/integration/pitfalls_test.go` (`ingressclass-not-default.yaml` crée seulement un objet IngressClass, aucun contrôleur installé, research.md S6)
+- [X] T042 [P] [US3] Écrire les scénarios W8 et W9 dans `tests/integration/pitfalls_test.go` (`ingressclass-not-default.yaml` crée seulement un objet IngressClass, aucun contrôleur installé, research.md S6)
 
 ### Implementation for User Story 3
 
 - [X] T043 [P] [US3] Rédiger `internal/catalog/data/ingress.yaml` (`ingress.no-class`, `ingress.unknown-class`, `ingress.no-controller`, `ingress.no-address`, `ingress.backend-missing`, `ingress.backend-port` ; concepts *Ingress* et *IngressClass*, contrôleur ; mention de Gateway API dans l'approfondissement) et `internal/catalog/data/storage.yaml` (`pvc.unknown-class`, `pvc.no-default-class`, `pvc.empty-class`, `pvc.waiting-first-consumer` ; concepts *StorageClass*, provisionnement dynamique, *volumeBindingMode*)
 - [X] T044 [US3] Implémenter `internal/pitfall/ingress.go` (research.md S6) et `internal/pitfall/pvc.go` (research.md S7). Faire passer T040, T041 (dépend de T016, T017, T043)
 - [X] T045 [US3] Brancher `ingress`/`ing` et `pvc`/`persistentvolumeclaim` dans `cmd/kubectl-telemach/diagnose.go`, ajouter Ingress et PVC en attente anormale à `diagnose` sans argument, et mesurer `diagnose` sans argument < 5 s au p95 avec toutes les lectures parallèles (SC-004, D-LL-012) dans `cmd/kubectl-telemach/diagnose_perf_test.go` (dépend de T038, T044)
-- [ ] T046 [US3] Valider W8, W9 et W10 sur kind via la CI et faire passer T042 ; ajouter W10 (sans argument, nom ambigu) à `tests/integration/pitfalls_test.go` (dépend de T045)
+- [X] T046 [US3] Valider W8, W9 et W10 sur kind via la CI et faire passer T042 ; ajouter W10 (sans argument, nom ambigu) à `tests/integration/pitfalls_test.go` (dépend de T045)
 
 **Checkpoint**: les quatre types d'objets sont diagnostiqués, y compris sans argument.
 
@@ -179,17 +179,17 @@ interactif bash et zsh.
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T047 [P] [US4] Étendre `internal/workload/targets_test.go` : cibles `service`, `ingress`, `pvc` des manifestes locaux, `create service clusterip web`, `expose deployment hello --name=hello-typo` (nom de `--name`, sinon de la ressource), images des manifestes ; `CoveredBySameApply` vrai quand la même commande applique un Pod ou Deployment dont les labels satisfont le selector du Service ; aucune cible pour `--dry-run`, `-f -`, URL, `-k`
-- [ ] T048 [P] [US4] Étendre `cmd/kubectl-telemach/watch_test.go` (faux kubectl) : une ligne par piège non transitoire au format de `contracts/cli.md` § watch ; rien pour un piège `Transient` (FR-024) ni pour un objet dont une lecture a échoué ; au plus 12 lectures ; ligne ℹ du tag mutable au plus une fois par image et par 24 h, **sans aucune lecture** (FR-023) ; 0 signal sur `healthy` et `watch-together` (SC-002)
-- [ ] T049 [P] [US4] Étendre `tests/shell/watch_test.go` (pseudo-terminal, bash et zsh) : `expose` déclenche la vérification ; invite retardée < 50 ms au p95 (SC-007) ; `TELEMACH_WATCH=0` et `TELEMACH_DISABLE=1` → aucun appel
-- [ ] T050 [P] [US4] Écrire le scénario W11 dans `tests/integration/pitfalls_test.go`
+- [X] T047 [P] [US4] Étendre `internal/workload/targets_test.go` : cibles `service`, `ingress`, `pvc` des manifestes locaux, `create service clusterip web`, `expose deployment hello --name=hello-typo` (nom de `--name`, sinon de la ressource), images des manifestes ; `CoveredBySameApply` vrai quand la même commande applique un Pod ou Deployment dont les labels satisfont le selector du Service ; aucune cible pour `--dry-run`, `-f -`, URL, `-k`
+- [X] T048 [P] [US4] Étendre `cmd/kubectl-telemach/watch_test.go` (faux kubectl) : une ligne par piège non transitoire au format de `contracts/cli.md` § watch ; rien pour un piège `Transient` (FR-024) ni pour un objet dont une lecture a échoué ; au plus 12 lectures ; ligne ℹ du tag mutable au plus une fois par image et par 24 h, **sans aucune lecture** (FR-023) ; 0 signal sur `healthy` et `watch-together` (SC-002)
+- [X] T049 [P] [US4] Étendre `tests/shell/watch_test.go` (pseudo-terminal, bash et zsh) : `expose` déclenche la vérification ; invite retardée < 50 ms au p95 (SC-007) ; `TELEMACH_WATCH=0` et `TELEMACH_DISABLE=1` → aucun appel
+- [X] T050 [P] [US4] Écrire le scénario W11 dans `tests/integration/pitfalls_test.go`
 
 ### Implementation for User Story 4
 
-- [ ] T051 [US4] Étendre `internal/workload/targets.go` : `ObjectTarget` (data-model.md), cibles d'objets et d'images, `expose` et `create service`, `CoveredBySameApply`. Faire passer T047
-- [ ] T052 [US4] Étendre `cmd/kubectl-telemach/watch.go` : détections non transitoires de research.md S9 par les fonctions de `internal/pitfall`, budget de 12 lectures, ligne ℹ par `internal/state/hints.go`. Faire passer T048 (dépend de T028, T044, T051, T019)
-- [ ] T053 [US4] Ajouter `expose` aux commandes qui lancent la vérification dans `internal/shellinit/scripts/bash.sh` et `internal/shellinit/scripts/zsh.sh` (`__telemach_after_success`). Faire passer T049 (dépend de T052)
-- [ ] T054 [US4] Valider W11 sur kind via la CI et faire passer T050 (dépend de T053)
+- [X] T051 [US4] Étendre `internal/workload/targets.go` : `ObjectTarget` (data-model.md), cibles d'objets et d'images, `expose` et `create service`, `CoveredBySameApply`. Faire passer T047
+- [X] T052 [US4] Étendre `cmd/kubectl-telemach/watch.go` : détections non transitoires de research.md S9 par les fonctions de `internal/pitfall`, budget de 12 lectures, ligne ℹ par `internal/state/hints.go`. Faire passer T048 (dépend de T028, T044, T051, T019)
+- [X] T053 [US4] Ajouter `expose` aux commandes qui lancent la vérification dans `internal/shellinit/scripts/bash.sh` et `internal/shellinit/scripts/zsh.sh` (`__telemach_after_success`). Faire passer T049 (dépend de T052)
+- [X] T054 [US4] Valider W11 sur kind via la CI et faire passer T050 (dépend de T053)
 
 **Checkpoint**: les pièges deviennent visibles sans que l'apprenant ait à les chercher.
 
@@ -203,18 +203,18 @@ interactif bash et zsh.
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T055 [P] [US5] Étendre `tests/shell/shellinit_test.go` (pseudo-terminal, bash et zsh) **avant** toute modification des scripts : avec stderr capté, `exec -it` vers un faux kubectl interactif reste utilisable (saisie, écho unique, D-LL-002), Ctrl-C est transmis, code de sortie préservé ; `port-forward` interrompu par Ctrl-C (code 130) n'appelle `explain` que si une erreur de transfert reconnue a été captée ; `edit`, `proxy`, `logs -f`, `get -w` restent sans capture (research.md S10)
-- [ ] T056 [P] [US5] Vérifier que `internal/diagnose/corpus_test.go` couvre chaque nouveau cas de `testdata/errors/` (SC-003 : 100 % reconnus) et ajouter dans `internal/catalog/catalog_test.go` le contrôle FR-028 : toute entrée dont une correction ou un texte mentionne `--force --grace-period=0` ou la suppression des finalizers porte un `anti_pattern`
-- [ ] T057 [P] [US5] Réintégrer au corpus de pods `testdata/pods/dns-short-name/` (relevé par T008, mis de côté jusqu'à l'US5 ; journal réel : « wget: bad address 'kubernetes:443' ») et au test `internal/workload/diagnose_test.go` le cas DNS (FR-027)
-- [ ] T058 [P] [US5] Écrire les scénarios W12 et W13 dans `tests/integration/pitfalls_test.go` (session `exec -it` d'un nom correct utilisable, codes préservés)
+- [X] T055 [P] [US5] Étendre `tests/shell/shellinit_test.go` (pseudo-terminal, bash et zsh) **avant** toute modification des scripts : avec stderr capté, `exec -it` vers un faux kubectl interactif reste utilisable (saisie, écho unique, D-LL-002), Ctrl-C est transmis, code de sortie préservé ; `port-forward` interrompu par Ctrl-C (code 130) n'appelle `explain` que si une erreur de transfert reconnue a été captée ; `edit`, `proxy`, `logs -f`, `get -w` restent sans capture (research.md S10)
+- [X] T056 [P] [US5] Vérifier que `internal/diagnose/corpus_test.go` couvre chaque nouveau cas de `testdata/errors/` (SC-003 : 100 % reconnus) et ajouter dans `internal/catalog/catalog_test.go` le contrôle FR-028 : toute entrée dont une correction ou un texte mentionne `--force --grace-period=0` ou la suppression des finalizers porte un `anti_pattern`
+- [X] T057 [P] [US5] Réintégrer au corpus de pods `testdata/pods/dns-short-name/` (relevé par T008, mis de côté jusqu'à l'US5 ; journal réel : « wget: bad address 'kubernetes:443' ») et au test `internal/workload/diagnose_test.go` le cas DNS (FR-027)
+- [X] T058 [P] [US5] Écrire les scénarios W12 et W13 dans `tests/integration/pitfalls_test.go` (session `exec -it` d'un nom correct utilisable, codes préservés)
 
 ### Implementation for User Story 5
 
-- [ ] T059 [US5] Étendre la capture de stderr à `exec`, `attach`, `debug` et `port-forward` dans `internal/shellinit/scripts/bash.sh` et `internal/shellinit/scripts/zsh.sh` (research.md S10), avec le cas du code 130 ; si un test de T055 ne peut pas passer, appliquer le repli de S10 pour la commande concernée et le consigner dans `specs/002-silent-pitfalls/research.md`. Faire passer T055
-- [ ] T060 [P] [US5] Rédiger les entrées `notfound.container-exec` (`internal/catalog/data/notfound.yaml`), `cmdline.container-required` (`internal/catalog/data/cmdline.yaml`, une correction par conteneur cité), `internal/catalog/data/portforward.yaml` (`portforward.local-port-in-use`, `portforward.pod-not-running`, `portforward.connection-refused`, transfert vers `service/<nom>` recommandé), `rollout.progress-deadline` (`internal/catalog/data/rollout.yaml`, renvoi à `diagnose deployment/<nom>`), `conflict.field-immutable` (`internal/catalog/data/conflict.yaml`, deux voies, suppression jamais exécutée), à partir des seuls messages relevés par T008 (relevés mis de côté jusqu'à l'US5 pour ne pas laisser le test de corpus au rouge : les réintégrer dans `testdata/errors/` avec leurs `expected.yaml` ; « a container name must be specified » n'existe plus en 1.35 à 1.37, kubectl choisit un conteneur par défaut : entrée abandonnée ; le vrai message de exec et logs est « container … is not valid for pod … »)
-- [ ] T061 [P] [US5] Ajouter le motif de journal `runtime.dns-short-name` à `internal/catalog/data/runtime.yaml` (« could not resolve host », « no such host », « Name or service not known » sur un nom sans point ; corrections `service.namespace` et `service.namespace.svc.cluster.local`). Faire passer T057
-- [ ] T062 [US5] Ajouter la note `anti_pattern` de suppression forcée (données corrompues, garanties d'un StatefulSet, ressources orphelines ; démarche : finalizers, nœud injoignable, volume attaché) aux entrées concernées (`notfound.yaml`, `workload.yaml`, `conflict.yaml`) et faire passer T056 (dépend de T060)
-- [ ] T063 [US5] Valider W12 et W13 sur kind via la CI et faire passer T058 (dépend de T059, T060, T061, T062)
+- [X] T059 [US5] Étendre la capture de stderr à `exec`, `attach`, `debug` et `port-forward` dans `internal/shellinit/scripts/bash.sh` et `internal/shellinit/scripts/zsh.sh` (research.md S10), avec le cas du code 130 ; si un test de T055 ne peut pas passer, appliquer le repli de S10 pour la commande concernée et le consigner dans `specs/002-silent-pitfalls/research.md`. Faire passer T055
+- [X] T060 [P] [US5] Rédiger les entrées `notfound.container-exec` (`internal/catalog/data/notfound.yaml`), `cmdline.container-required` (`internal/catalog/data/cmdline.yaml`, une correction par conteneur cité), `internal/catalog/data/portforward.yaml` (`portforward.local-port-in-use`, `portforward.pod-not-running`, `portforward.connection-refused`, transfert vers `service/<nom>` recommandé), `rollout.progress-deadline` (`internal/catalog/data/rollout.yaml`, renvoi à `diagnose deployment/<nom>`), `conflict.field-immutable` (`internal/catalog/data/conflict.yaml`, deux voies, suppression jamais exécutée), à partir des seuls messages relevés par T008 (relevés mis de côté jusqu'à l'US5 pour ne pas laisser le test de corpus au rouge : les réintégrer dans `testdata/errors/` avec leurs `expected.yaml` ; « a container name must be specified » n'existe plus en 1.35 à 1.37, kubectl choisit un conteneur par défaut : entrée abandonnée ; le vrai message de exec et logs est « container … is not valid for pod … »)
+- [X] T061 [P] [US5] Ajouter le motif de journal `runtime.dns-short-name` à `internal/catalog/data/runtime.yaml` (« could not resolve host », « no such host », « Name or service not known » sur un nom sans point ; corrections `service.namespace` et `service.namespace.svc.cluster.local`). Faire passer T057
+- [X] T062 [US5] Ajouter la note `anti_pattern` de suppression forcée (données corrompues, garanties d'un StatefulSet, ressources orphelines ; démarche : finalizers, nœud injoignable, volume attaché) aux entrées concernées (`notfound.yaml`, `workload.yaml`, `conflict.yaml`) et faire passer T056 (dépend de T060)
+- [X] T063 [US5] Valider W12 et W13 sur kind via la CI et faire passer T058 (dépend de T059, T060, T061, T062)
 
 **Checkpoint**: les erreurs courantes de `exec`, `logs`, `port-forward`, `rollout status` et
 des champs immuables sont expliquées.
@@ -223,13 +223,13 @@ des champs immuables sont expliquées.
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T064 [P] Mettre à jour `SECURITY.md` et `README.md` (liste des lectures du cluster, quatre annotations publiques, dates de ConfigMap sans valeur, nouveaux types de `diagnose`, `expose`, capture de stderr des commandes interactives, `hints.json`) dans la même PR que le code (contracts/cli.md § Sécurité transverse) ; chaque commande du README est rejouée par un test (LL-004)
-- [ ] T065 [P] Étendre `cmd/kubectl-telemach/language_test.go` (`TestCorpusLanguageAndSecrets`) au corpus `testdata/objects/` : chaque cas passé par `diagnose <type>/<nom>` puis `last`, aucune valeur sensible dans la sortie, `last.json` et `hints.json`, textes en français (SC-006, LL-003)
-- [ ] T066 [P] Ajouter W14 à `tests/integration/pitfalls_test.go` : état du namespace (`get all,configmaps,pvc,ingress,endpointslices -o json`, hors champs volatils) identique avant et après chaque `diagnose` et `watch` (SC-005) ; lecture refusée via `--as=system:serviceaccount:<ns>:default` → diagnostic partiel
-- [ ] T067 [P] Ajouter une cible de fuzzing `FuzzImageRef` (`internal/pitfall/image_test.go`) au job hebdomadaire `.github/workflows/fuzz.yml` (60 s) et vérifier que toute nouvelle règle de masquage éventuelle a son cas de fuzzing (LL-001)
-- [ ] T068 Lancer `scripts/couverture 80` (≥ 80 % sur `internal/`, `internal/pitfall` compris), golangci-lint compilé avec Go 1.27.2 (D-LL-001), `go test -race ./...`, `scripts/secrets` ; corriger tout écart
-- [ ] T069 Vérifier dans le journal détaillé du job `integration` que W1 à W14 passent sous bash et zsh sur les trois versions, sans aucun test ignoré (D-LL-009), et consigner tout écart dans `LESSON-LEARNED.md`
-- [ ] T070 Relire `LESSON-LEARNED.md`, transformer les leçons automatisables en tests ou gates (principe V), ouvrir la PR de la feature (description, gates vertes, SC-008 non mesurable en CI signalé) et relire `gh pr checks` après chaque push (LL-002)
+- [X] T064 [P] Mettre à jour `SECURITY.md` et `README.md` (liste des lectures du cluster, quatre annotations publiques, dates de ConfigMap sans valeur, nouveaux types de `diagnose`, `expose`, capture de stderr des commandes interactives, `hints.json`) dans la même PR que le code (contracts/cli.md § Sécurité transverse) ; chaque commande du README est rejouée par un test (LL-004)
+- [X] T065 [P] Étendre `cmd/kubectl-telemach/language_test.go` (`TestCorpusLanguageAndSecrets`) au corpus `testdata/objects/` : chaque cas passé par `diagnose <type>/<nom>` puis `last`, aucune valeur sensible dans la sortie, `last.json` et `hints.json`, textes en français (SC-006, LL-003)
+- [X] T066 [P] Ajouter W14 à `tests/integration/pitfalls_test.go` : état du namespace (`get all,configmaps,pvc,ingress,endpointslices -o json`, hors champs volatils) identique avant et après chaque `diagnose` et `watch` (SC-005) ; lecture refusée via `--as=system:serviceaccount:<ns>:default` → diagnostic partiel
+- [X] T067 [P] Ajouter une cible de fuzzing `FuzzImageRef` (`internal/pitfall/image_test.go`) au job hebdomadaire `.github/workflows/fuzz.yml` (60 s) et vérifier que toute nouvelle règle de masquage éventuelle a son cas de fuzzing (LL-001)
+- [X] T068 Lancer `scripts/couverture 80` (≥ 80 % sur `internal/`, `internal/pitfall` compris), golangci-lint compilé avec Go 1.27.2 (D-LL-001), `go test -race ./...`, `scripts/secrets` ; corriger tout écart
+- [X] T069 Vérifier dans le journal détaillé du job `integration` que W1 à W14 passent sous bash et zsh sur les trois versions, sans aucun test ignoré (D-LL-009), et consigner tout écart dans `LESSON-LEARNED.md`
+- [X] T070 Relire `LESSON-LEARNED.md`, transformer les leçons automatisables en tests ou gates (principe V), ouvrir la PR de la feature (description, gates vertes, SC-008 non mesurable en CI signalé) et relire `gh pr checks` après chaque push (LL-002)
 
 ---
 

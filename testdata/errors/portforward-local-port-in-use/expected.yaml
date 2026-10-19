@@ -1,0 +1,3 @@
+entry: portforward.local-port-in-use
+origin: kubectl
+fixed_command_contains: 'port-forward deploy/web :8080'

@@ -131,12 +131,18 @@ dans la sortie ou `last.json`.
 ```bash
 kubectl apply -n demo -f testdata/objects/scenarios/ingress-no-class.yaml
 kubectl telemach diagnose ingress/web -n demo
+kubectl apply -f testdata/objects/scenarios/ingressclass-not-default.yaml   # classe « demo », objet du cluster
 kubectl apply -n demo -f testdata/objects/scenarios/ingress-backend-missing.yaml
 kubectl telemach diagnose ingress/shop -n demo
+kubectl telemach diagnose ingress/web -n demo
+kubectl delete ingressclass demo
 ```
 
 Attendu : aucune classe d'Ingress dans le cluster → « aucun contrôleur d'Ingress installé »,
-adresse vide expliquée ; `shop` vise un Service inexistant, règle et Service nommés.
+sans contrôleur nommé (FR-012) ; une fois la classe `demo` créée (non marquée par défaut, sans
+contrôleur), `shop` vise un Service inexistant (règle et Service nommés) et n'a pas d'adresse ;
+`web`, sans classe, n'est pris par aucune. La classe est supprimée à la fin : elle vaut pour
+tout le cluster.
 
 ### W9 — PVC (US3-4, US3-5)
 
@@ -157,8 +163,10 @@ kubectl telemach diagnose -n demo
 kubectl telemach diagnose hello -n demo; echo "code: $?"
 ```
 
-Attendu : pods en échec expliqués, puis liste courte des autres pièges des scénarios
-précédents ; `hello` (Deployment et Service) → liste des deux objets, `code: 2`.
+Attendu (dans le namespace des scénarios W4, W8 et W9, avec un pod en échec) : pods en échec
+expliqués, puis liste courte des autres pièges des scénarios précédents (Ingress sans classe
+prise en charge, PVC `fast-data`), sans le PVC `data` qui attend normalement son premier pod ;
+`hello` (Deployment et Service) → liste des deux objets, `code: 2`.
 
 ### W11 — Signal après création (US4-1, US4-3, US4-4)
 
@@ -177,9 +185,15 @@ introuvable), rien pour `watch-together` (pods pas encore créés : transitoire)
 ### W12 — Nouvelles erreurs du catalogue (US5-1 à US5-5)
 
 ```bash
+kubectl apply -n demo -f testdata/objects/scenarios/healthy.yaml
+kubectl wait -n demo --for=condition=Available deployment/hello --timeout=90s
 kubectl exec -it -n demo deploy/hello -c helo -- sh; echo "code: $?"
-kubectl logs -n demo pod/two-containers; echo "code: $?"
-kubectl port-forward -n demo service/hello 8080:80 & sleep 2; kubectl port-forward -n demo service/hello 8080:80; kill %1
+kubectl apply -n demo -f testdata/objects/scenarios/two-containers.yaml
+kubectl wait -n demo --for=condition=Ready pod/two-containers --timeout=90s
+kubectl logs -n demo pod/two-containers -c trois; echo "code: $?"
+command kubectl port-forward -n demo service/hello 18080:80 >/dev/null 2>&1 & sleep 2   # occupe le port 18080
+kubectl port-forward -n demo service/hello 18080:80; echo "code: $?"
+kill $!
 kubectl apply -n demo -f testdata/objects/scenarios/rollout-stalled.yaml
 kubectl rollout status -n demo deployment/stalled --timeout=90s
 kubectl set image -n demo deployment/stalled app=nginxinc/nginx-unprivileged:0.0.0-inexistant
@@ -187,11 +201,13 @@ kubectl rollout status -n demo deployment/stalled --timeout=120s; echo "code: $?
 kubectl apply -n demo -f testdata/objects/scenarios/immutable-selector.yaml; echo "code: $?"
 ```
 
-Attendu : conteneur inconnu (liste des conteneurs proposée), conteneur à préciser (une
-commande par conteneur), port local occupé, échéance de rollout (`diagnose deployment/…`
-proposé), champ immuable (deux voies, aucune suppression exécutée) ; codes d'origine
+Attendu : conteneur inconnu pour `exec -it` et `logs` (conteneurs du pod listés, commande
+corrigée), port local occupé (port de la machine distingué de celui du pod, `:80` pour laisser
+kubectl choisir), échéance de rollout (`diagnose deployment/…` proposé), champ immuable (deux
+voies, aucune suppression exécutée : le Deployment existe toujours) ; codes d'origine
 préservés ; la session `exec -it` d'un nom correct reste utilisable (tests en
-pseudo-terminal, S10).
+pseudo-terminal, S10). « Conteneur à préciser » (`logs` sans `-c` sur un pod à plusieurs
+conteneurs) n'est plus une erreur en 1.35 à 1.37 : kubectl choisit un conteneur par défaut.
 
 ### W13 — DNS d'un autre namespace et anti-pattern `Terminating` (US5-6, US5-7)
 
@@ -202,8 +218,9 @@ kubectl telemach diagnose pod/dns-client -n demo
 ```
 
 Attendu : le pod appelle le Service `kubernetes` (namespace `default`) par son nom court
-depuis `demo` ; la portée d'un nom court est expliquée et `kubernetes.default` ainsi que
-`kubernetes.default.svc.cluster.local` sont proposés. L'anti-pattern de suppression forcée est vérifié par les golden files et par un test
+depuis `demo` ; la portée d'un nom court est expliquée, `kubernetes.NAMESPACE` et
+`kubernetes.NAMESPACE.svc.cluster.local` sont proposés avec la commande qui trouve le
+namespace du Service (`diagnose` ne lit pas les Services d'autres namespaces). L'anti-pattern de suppression forcée est vérifié par les golden files et par un test
 du catalogue : toute leçon dont une correction mène à `--force --grace-period=0` ou à la
 suppression des finalizers porte le bloc ⚠ Anti-pattern.
 

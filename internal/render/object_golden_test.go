@@ -85,3 +85,35 @@ func TestObjectGolden(t *testing.T) {
 		}
 	}
 }
+
+// FR-015 : la liste courte de diagnose sans argument donne, pour chaque objet, le résumé de
+// sa leçon avec ses propres valeurs (classe demandée) et la commande à copier.
+func TestRenderObjectSummaries(t *testing.T) {
+	cat, err := catalog.Default()
+	if err != nil {
+		t.Fatal(err)
+	}
+	list := []pitfall.ObjectSummary{
+		{Kind: pitfall.KindIngress, Name: "typo", Pitfall: pitfall.IngressUnknownClass, Captures: map[string]string{"class": "nginx-tpyo"}},
+		{Kind: pitfall.KindPVC, Name: "fast-data", Pitfall: pitfall.PVCUnknownClass, Captures: map[string]string{"class": "rapide"}},
+	}
+	var b bytes.Buffer
+	captures := map[string]string{"kubectl": "kubectl", "scope": "-n demo"}
+	if err := RenderObjectSummaries(&b, list, cat, captures, Options{Theme: NewTheme(false, true), Width: 80}); err != nil {
+		t.Fatal(err)
+	}
+	got := b.String()
+	for _, want := range []string{
+		"ingress/typo — L'Ingress « typo » demande la classe « nginx-tpyo »",
+		"kubectl telemach diagnose ingress/typo -n demo",
+		"pvc/fast-data — Le PVC « fast-data » demande la classe « rapide »",
+		"kubectl telemach diagnose pvc/fast-data -n demo",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("liste sans %q :\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "…") {
+		t.Errorf("valeur manquante dans un résumé :\n%s", got)
+	}
+}

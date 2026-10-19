@@ -1,0 +1,3 @@
+entry: notfound.container-exec
+origin: kubectl
+fixed_command_contains: '-c CONTENEUR'

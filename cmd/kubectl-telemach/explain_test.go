@@ -187,3 +187,42 @@ func TestExplainManifestFromStdin(t *testing.T) {
 		t.Errorf("mention attendue :\n%s", errb)
 	}
 }
+
+// Research.md S10 : une commande interrompue par Ctrl-C (code 130) n'est expliquée que si son
+// stderr capté contient une erreur reconnue (transfert refusé d'un port-forward) ; une
+// commande interactive dont stderr a été capté n'est pas présentée comme « non captée ».
+func TestExplainInterrupted(t *testing.T) {
+	refused, err := os.ReadFile("../../testdata/errors/portforward-connection-refused/stderr.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	args := []string{"port-forward", "deploy/web", "18083:9999", "-n", "demo"}
+	for _, tc := range []struct {
+		name, stderr string
+		want         string
+	}{
+		{"erreur de transfert reconnue", string(refused), "Rien n'écoute sur le port 9999 dans le pod"},
+		{"interruption seule", "Forwarding from 127.0.0.1:18083 -> 9999\n", ""},
+		{"stderr vide", "", ""},
+	} {
+		a, _, errb := newTestApp(t, nil)
+		f := writeStderr(t, tc.stderr)
+		if code := run(a, append([]string{"explain", "--color=never", "--exit-code", "130", "--stderr-file", f, "--"}, args...)); code != 0 {
+			t.Fatalf("%s : code %d", tc.name, code)
+		}
+		got := errb.String()
+		if tc.want == "" && got != "" {
+			t.Errorf("%s : rien ne doit être affiché après Ctrl-C :\n%s", tc.name, got)
+		}
+		if tc.want != "" && !strings.Contains(got, tc.want) {
+			t.Errorf("%s : sortie sans %q :\n%s", tc.name, tc.want, got)
+		}
+	}
+
+	a, _, errb := newTestApp(t, nil)
+	f := writeStderr(t, "error: something totally new\n")
+	run(a, []string{"explain", "--color=never", "--exit-code", "1", "--stderr-file", f, "--", "exec", "-it", "web", "--", "sh"})
+	if got := errb.String(); strings.Contains(got, "n'a pas été capté") || !strings.Contains(got, "something totally new") {
+		t.Errorf("exec -it au stderr capté :\n%s", got)
+	}
+}

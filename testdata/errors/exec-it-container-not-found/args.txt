@@ -1,0 +1,9 @@
+exec
+-it
+deploy/web
+-c
+helo
+-n
+demo
+--
+sh

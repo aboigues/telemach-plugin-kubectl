@@ -1,0 +1,5 @@
+port-forward
+deploy/web
+18081:8080
+-n
+demo

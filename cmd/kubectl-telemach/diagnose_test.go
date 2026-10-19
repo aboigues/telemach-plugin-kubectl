@@ -182,7 +182,7 @@ func TestWatchSignals(t *testing.T) {
 	a.now = func() time.Time { return at }
 	pid := os.Getpid()
 	for _, pod := range []string{"bad-image", "healthy"} {
-		run(a, []string{"watch", "--delay", "0", "--shell-pid", itoa(pid), "--", "run", pod, "--image=x", "-n", "demo"})
+		run(a, []string{"watch", "--delay", "0", "--shell-pid", itoa(pid), "--", "run", pod, "--image=x:1.0", "-n", "demo"})
 	}
 	if out.Len() != 0 || errb.Len() != 0 {
 		t.Errorf("watch ne doit rien écrire sur le terminal : %q %q", out, errb)

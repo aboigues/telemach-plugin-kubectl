@@ -234,6 +234,13 @@ de blogs d'éditeurs et de formations, pas d'enquêtes chiffrées : chaque pièg
   interactives (`exec` sans `-t`, `logs -c`).
 - **Alternatives considered** : relire le pod pour vérifier le nom du conteneur (impossible :
   `explain` ne contacte jamais le cluster).
+- **Mise en œuvre (2026-10-19)** : validée par `tests/shell/interactive_test.go`, en vrai
+  pseudo-terminal (bash et zsh) : stdin et stdout restent le terminal, écho unique, code
+  préservé, Ctrl-C transmis ; aucun repli n'a été nécessaire. Le sous-shell remplace son trap
+  `exit 130` par `:` et tee ignore Ctrl-C, pour garder le stderr écrit avant l'interruption.
+  Le code de kubectl est écrit par le pipeline lui-même dans `<fichier temporaire>.rc` :
+  après l'exécution d'un trap, zsh ne garde pas le code du pipeline (`pipestatus` vaut 0).
+  `explain` ne dit rien d'un code 130 sans erreur reconnue.
 
 ## S11. Entrées du catalogue (FR-026 à FR-028, FR-032)
 
@@ -252,6 +259,14 @@ de blogs d'éditeurs et de formations, pas d'enquêtes chiffrées : chaque pièg
   `kubectl get endpointslices -l kubernetes.io/service-name=<nom>` (FR-032).
 - **Messages exacts** : relevés sur kind (S12) avant d'écrire les motifs ; aucun motif n'est
   écrit d'après un message supposé (principe « ne jamais inventer »).
+- **Écarts constatés au relevé (2026-10-19)** : `unable to upgrade connection: container not
+  found` et `a container name must be specified` n'apparaissent plus en 1.35 à 1.37 (kubectl
+  vérifie le conteneur lui-même et en choisit un par défaut) : `notfound.container-exec`
+  reconnaît `container … is not valid for pod … [out of: …]` et `cmdline.container-required`
+  est abandonnée. Le seul échec DNS relevé est celui de busybox (`bad address 'kubernetes:443'`) :
+  `runtime.dns-short-name` ne reconnaît que lui ; les formes curl, Go et glibc seront ajoutées
+  une fois relevées. Les motifs de journal sont un nouveau champ du catalogue (`log_patterns`),
+  confronté à la fin du journal d'un pod en échec ; il l'emporte sur l'entrée de l'état du pod.
 
 ## S12. Corpus réel relevé sur kind (FR-029)
 

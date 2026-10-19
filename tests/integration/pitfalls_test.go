@@ -64,9 +64,10 @@ func runScenario(t *testing.T, shell, id string) (stdout, stderr, ns string) {
 
 func expect(t *testing.T, id, out string, want ...string) {
 	t.Helper()
-	// Le rendu colle les guillemets à leur contenu par une espace insécable (typographie
-	// française) dans les paragraphes coupés : on compare le texte, pas la typographie.
-	out = strings.ReplaceAll(out, "\u00a0", " ")
+	// On compare le texte, pas la mise en page : le rendu coupe les paragraphes à la largeur du
+	// terminal et colle les guillemets à leur contenu par une espace insécable (typographie
+	// française) ; strings.Fields traite les deux comme des espaces.
+	out = strings.Join(strings.Fields(out), " ")
 	for _, w := range want {
 		if !strings.Contains(out, w) {
 			t.Errorf("%s : sortie sans %q :\n%s", id, w, out)
@@ -121,6 +122,161 @@ func TestPitfallsDeployment(t *testing.T) {
 				if strings.Contains(stderr, leak) {
 					t.Errorf("W7 : valeur de ConfigMap ou de Secret affichée (%q)", leak)
 				}
+			}
+		})
+	}
+}
+
+// W8 à W10 : Ingress, PVC, diagnostic sans argument et nom ambigu (US3).
+func TestPitfallsIngressPVC(t *testing.T) {
+	// La classe « demo » vaut pour tout le cluster : W8 la supprime, y compris en cas d'échec.
+	t.Cleanup(func() { _ = cluster.Kubectl("delete", "ingressclass", "demo", "--ignore-not-found") })
+	for _, shell := range shells {
+		t.Run(shell+"/W8", func(t *testing.T) {
+			_, stderr, ns := runScenario(t, shell, "W8")
+			expect(t, "W8", stderr,
+				"L'Ingress « web » existe, mais aucun contrôleur d'Ingress n'est installé",
+				"La règle « / » de l'Ingress « shop » vise le Service « absent », introuvable",
+				"kubectl get services -n "+ns,
+				"L'Ingress « shop » n'a pas d'adresse",
+				"L'Ingress « web » ne demande aucune classe, et aucune classe n'est marquée par défaut")
+			for _, name := range []string{"nginx", "traefik", "haproxy"} {
+				if strings.Contains(strings.ToLower(stderr), name) {
+					t.Errorf("W8 : un contrôleur est nommé (%s), FR-012", name)
+				}
+			}
+		})
+		t.Run(shell+"/W9", func(t *testing.T) {
+			_, stderr, _ := runScenario(t, shell, "W9")
+			expect(t, "W9", stderr,
+				"Le PVC « fast-data » demande la classe « rapide », qui n'existe pas",
+				"standard (par défaut)",
+				"Le PVC « data » attend son premier pod, c'est normal")
+		})
+		t.Run(shell+"/W10", func(t *testing.T) {
+			ns := namespace(t, "w10-"+shell)
+			testdata, _ := filepath.Abs("../../testdata")
+			// Namespace des scénarios précédents, plus un pod en échec (nouvelle image introuvable).
+			prep := quickstartBlock(t, "W4", ns) + quickstartBlock(t, "W8", ns) + quickstartBlock(t, "W9", ns) +
+				"kubectl apply -n " + ns + " -f " + testdata + "/objects/scenarios/rollout-stalled.yaml\n" +
+				"kubectl wait -n " + ns + " --for=condition=Available deployment/stalled --timeout=90s\n" +
+				"kubectl set image -n " + ns + " deployment/stalled app=nginxinc/nginx-unprivileged:0.0.0-inexistant\n" +
+				"sleep 20\n"
+			_, _ = shellRun(t, shell, prep)
+			before := snapshot(t, ns)
+			stdout, stderr := shellRun(t, shell, quickstartBlock(t, "W10", ns))
+			if after := snapshot(t, ns); after != before {
+				t.Errorf("W10 : le namespace a été modifié par diagnose (SC-005)")
+			}
+			out := stdout + stderr
+			expect(t, "W10", out,
+				"stalled-", "Autres objets en difficulté",
+				"kubectl telemach diagnose ingress/web -n "+ns,
+				"kubectl telemach diagnose ingress/shop -n "+ns,
+				"kubectl telemach diagnose pvc/fast-data -n "+ns,
+				"service/hello", "deployment/hello", "code: 2")
+			if strings.Contains(out, "diagnose pvc/data ") {
+				t.Error("W10 : un PVC en attente normale ne doit pas être listé (FR-014)")
+			}
+		})
+	}
+}
+
+// W11 : signal à l'invite suivante après une création réussie (US4) : Service sans pod,
+// targetPort nommé introuvable après expose ; rien pour un Service créé avec ses pods
+// (transitoire) ni avec TELEMACH_WATCH=0.
+func TestPitfallsWatch(t *testing.T) {
+	for _, shell := range shells {
+		t.Run(shell+"/W11", func(t *testing.T) {
+			ns := namespace(t, "w11-"+shell)
+			testdata, _ := filepath.Abs("../../testdata")
+			runtime := t.TempDir()
+			body := `eval "$(kubectl-telemach shell-init ` + shell + `)"` + "\n" +
+				// Le Deployment « hello » qu'exposera le scénario.
+				"kubectl apply -n " + ns + " -f " + testdata + "/objects/scenarios/healthy.yaml >/dev/null\n" +
+				"kubectl wait -n " + ns + " --for=condition=Available deployment/hello --timeout=90s >/dev/null\n" +
+				"__telemach_prompt 2>/dev/null\n" +
+				quickstartBlock(t, "W11", ns) + "\n" +
+				"sleep 15\n__telemach_prompt\necho fin"
+			stdout, stderr := shellRunInteractiveEnv(t, shell, body, "XDG_RUNTIME_DIR="+runtime)
+			if !strings.Contains(stdout, "fin") {
+				t.Fatalf("scénario interrompu :\n%s\n%s", stdout, stderr)
+			}
+			expect(t, "W11", stderr,
+				"⚠ Le Service orphan ne désigne aucun pod : kubectl telemach diagnose service/orphan -n "+ns,
+				"⚠ Le Service hello-typo vise le port nommé « web », qu'aucun pod ne déclare : kubectl telemach diagnose service/hello-typo -n "+ns)
+			for _, absent := range []string{"together", "orphan-2"} {
+				if strings.Contains(stderr, "Service "+absent+" ") {
+					t.Errorf("W11 : signal inattendu pour %s :\n%s", absent, stderr)
+				}
+			}
+		})
+	}
+}
+
+// W12 et W13 : nouvelles erreurs du catalogue et DNS d'un nom court (US5).
+func TestPitfallsNewErrors(t *testing.T) {
+	for _, shell := range shells {
+		t.Run(shell+"/W12", func(t *testing.T) {
+			stdout, stderr, ns := runScenario(t, shell, "W12")
+			out := stdout + stderr
+			expect(t, "W12", out,
+				// kubectl 1.35 ne cite pas les conteneurs du pod (pas de « out of: … ») : la leçon
+				// propose alors la commande qui les liste, présente dans les trois versions.
+				"n'a pas de conteneur « helo »", "n'a pas de conteneur « trois »",
+				"kubectl get pod two-containers -n "+ns+" -o jsonpath='{.spec.containers[*].name}'",
+				"Le port 18080 de ta machine est déjà utilisé", "port-forward -n "+ns+" service/hello :80",
+				"Le déploiement de « stalled » est bloqué", "kubectl telemach diagnose deployment/stalled -n "+ns,
+				"Le champ spec.selector de « hello » (Deployment) ne peut pas être modifié", "Seconde voie")
+			if n := strings.Count(out, "code: 1"); n < 4 {
+				t.Errorf("W12 : codes de sortie d'origine non préservés (%d « code: 1 ») :\n%s", n, stdout)
+			}
+			// Aucune suppression n'est exécutée : le Deployment existe toujours.
+			if r := cluster.Kubectl("get", "deployment", "hello", "-n", ns); r.ExitCode != 0 {
+				t.Errorf("W12 : le Deployment hello a disparu : %s", r.Stderr)
+			}
+		})
+		t.Run(shell+"/W13", func(t *testing.T) {
+			_, stderr, _ := runScenario(t, shell, "W13")
+			expect(t, "W13", stderr,
+				"Le programme du pod « dns-client » n'a pas pu résoudre le nom « kubernetes »",
+				"kubernetes.NAMESPACE.svc.cluster.local",
+				"kubectl get services -A --field-selector metadata.name=kubernetes")
+		})
+	}
+}
+
+// W14 : lecture refusée par RBAC → diagnostic partiel, sans cause affirmée sur ce qui n'a pas
+// été lu (FR-020). L'identité empruntée ne peut lire que les Services : le Service est trouvé,
+// ses pods et EndpointSlices non. L'état du namespace avant et après chaque diagnose et watch
+// est vérifié par les tests de W1 à W13 (runScenario, SC-005).
+func TestPitfallsDenied(t *testing.T) {
+	for _, shell := range shells {
+		t.Run(shell+"/W14", func(t *testing.T) {
+			ns := namespace(t, "w14-"+shell)
+			testdata, _ := filepath.Abs("../../testdata")
+			// Préparation du test (pas une commande de l'apprenant) : droits de lecture des seuls
+			// Services pour le compte de service par défaut.
+			for _, args := range [][]string{
+				{"apply", "-n", ns, "-f", testdata + "/objects/scenarios/healthy.yaml"},
+				{"create", "role", "services-only", "--verb=get", "--resource=services", "-n", ns},
+				{"create", "rolebinding", "services-only", "--role=services-only", "--serviceaccount=" + ns + ":default", "-n", ns},
+				{"wait", "-n", ns, "--for=condition=Available", "deployment/hello", "--timeout=90s"},
+			} {
+				if err := cluster.Must(args...); err != nil {
+					t.Fatal(err)
+				}
+			}
+			before := snapshot(t, ns)
+			_, stderr := shellRun(t, shell, "kubectl telemach diagnose service/hello -n "+ns+" --as=system:serviceaccount:"+ns+":default")
+			expect(t, "W14", stderr, "◐ Diagnostic partiel", "Lecture refusée par RBAC")
+			for _, claim := range []string{"ne désigne aucun pod", "aucun n'est prêt"} {
+				if strings.Contains(stderr, claim) {
+					t.Errorf("W14 : cause affirmée sur une information non lue (%q) :\n%s", claim, stderr)
+				}
+			}
+			if after := snapshot(t, ns); after != before {
+				t.Errorf("W14 : le namespace a été modifié par diagnose (SC-005)")
 			}
 		})
 	}

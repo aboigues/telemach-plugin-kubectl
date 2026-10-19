@@ -104,3 +104,45 @@
       ensuite.
   doc_url: https://kubernetes.io/docs/tasks/debug/debug-application/
   tests: [exec-application-error]
+
+# Motif du journal d'un pod en échec (feature 002, FR-027), écrit d'après le seul message relevé
+# sur kind (busybox wget) : les autres formes (curl, Go, glibc) seront ajoutées quand elles
+# auront été relevées (research.md S11).
+- id: runtime.dns-short-name
+  category: runtime
+  log_patterns:
+    - "bad address '(?P<host>[a-z0-9]([a-z0-9-]*[a-z0-9])?)(?::[0-9]+)?'"
+  concept:
+    name: nom DNS d'un Service
+    definition: >-
+      Chaque Service reçoit un nom DNS. Le nom court (« web ») n'est résolu que depuis un pod du
+      même namespace ; depuis un autre namespace, il faut « web.NAMESPACE » ou le nom complet
+      « web.NAMESPACE.svc.cluster.local ».
+  summary: Le programme du pod « {{.pod}} » n'a pas pu résoudre le nom « {{.host}} ».
+  cause: >-
+    « {{.host}} » est un nom court : le DNS du cluster le cherche seulement parmi les Services
+    du namespace du pod ({{if .namespace}}{{.namespace}}{{else}}namespace courant{{end}}). Le
+    Service visé est sans doute dans un autre namespace (le Service « kubernetes » est dans
+    « default »), ou son nom est mal écrit.
+  fixes:
+    - description: Trouver dans quel namespace se trouve le Service.
+      command: '{{.kubectl}} get services -A --field-selector metadata.name={{.host}}'
+      safe: true
+    - description: Dans la configuration de l'application, viser « {{.host}}.NAMESPACE », ou le nom complet « {{.host}}.NAMESPACE.svc.cluster.local », valable depuis n'importe quel namespace, puis recréer le pod.
+      safe: true
+  deepen:
+    explanation: >-
+      Le fichier /etc/resolv.conf d'un pod liste des domaines de recherche (NAMESPACE.svc.
+      cluster.local, svc.cluster.local, cluster.local) : un nom court est complété avec le
+      namespace du pod d'abord. C'est pourquoi « web » fonctionne dans le même namespace et
+      échoue ailleurs.
+    example: |-
+      kubectl exec -it pod/client -- cat /etc/resolv.conf
+      kubectl exec -it pod/client -- nslookup kubernetes.default
+    exercise: >-
+      Crée deux namespaces d'exercice avec « kubectl create namespace exo-dns-a » et « kubectl
+      create namespace exo-dns-b », expose un deployment dans le premier, puis interroge son
+      nom court et son nom avec namespace depuis un pod busybox du second. Supprime les
+      namespaces ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/
+  tests: [dns-short-name]

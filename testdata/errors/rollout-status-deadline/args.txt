@@ -1,0 +1,6 @@
+rollout
+status
+deployment/stalled
+--timeout=120s
+-n
+demo

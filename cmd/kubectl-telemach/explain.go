@@ -59,6 +59,9 @@ func (a *app) explainCommand() *cobra.Command {
 	return cmd
 }
 
+// interruptedCode est le code de sortie d'une commande interrompue par Ctrl-C.
+const interruptedCode = 130
+
 // explain enchaîne : lecture → nettoyage → masquage → analyse → diagnostic → rendu. Une
 // explication est toujours produite (code 0), même pour une erreur non reconnue.
 func (a *app) explain(f explainFlags, args []string) error {
@@ -77,11 +80,18 @@ func (a *app) explain(f explainFlags, args []string) error {
 	if err != nil {
 		cat = nil // catalogue invalide : le repli « non reconnue » reste disponible
 	}
+	// Une commande interactive dont stderr a été capté (exec, attach, debug, port-forward,
+	// research.md S10) n'est pas présentée comme « message non capté ».
 	in := diagnose.Input{
 		Command: cmd, ExitCode: f.exitCode, Stderr: stderr,
-		Interactive: f.interactive || cmd.Interactive, InvokedAs: f.invokedAs,
+		Interactive: f.interactive || (cmd.Interactive && f.stderrFile == ""), InvokedAs: f.invokedAs,
 	}
 	d := diagnose.Diagnose(in, cat)
+	// Ctrl-C (code 130) est une interruption voulue, pas une erreur : rien n'est expliqué, sauf
+	// une erreur reconnue écrite avant l'interruption (transfert refusé d'un port-forward).
+	if f.exitCode == interruptedCode && d.Confidence != diagnose.Recognized {
+		return nil
+	}
 
 	now := a.now()
 	repeated := a.store.IsRepeat(d.Fingerprint, now)

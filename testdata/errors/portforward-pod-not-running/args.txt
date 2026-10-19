@@ -1,0 +1,5 @@
+port-forward
+pod/badimage
+18082:8080
+-n
+demo

@@ -1,0 +1,1 @@
+error: container helo is not valid for pod web-b4b8b4fc-brt9h out of: nginx-unprivileged
