@@ -88,6 +88,11 @@ dans le registre d'origine ; seule la règle préventive, transposée à kubectl
 - **Règle préventive** : un objectif de performance se mesure sur le binaire tel qu'il est
   livré, jamais sous un outil d'instrumentation ; avant d'ajuster un seuil ou d'optimiser,
   comparer avant et après avec un benchmark et un profil.
+- **Complément (2026-10-19)** : `TestWatchLatency` (SC-007) a dépassé 50 ms en CI (bash,
+  58 ms au p95) alors qu'il mesure 4 à 6 ms en local, avant comme après le changement en
+  cause : il tournait en même temps que la mesure de SC-004, qui lance des processus pendant
+  20 s. Les mesures de latence s'exécutent paquet par paquet (`go test -p 1`), jamais en
+  parallèle d'une autre charge.
 - **Suivi** : `internal/diagnose/race_on_test.go` et étape « Objectifs de latence » de
   `.github/workflows/ci.yml`.
 
