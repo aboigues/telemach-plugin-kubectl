@@ -170,6 +170,13 @@ de blogs d'éditeurs et de formations, pas d'enquêtes chiffrées : chaque pièg
   consommateur (pods du namespace dont `volumes[].persistentVolumeClaim.claimName` désigne le
   PVC) → état **normal** ; avec un pod consommateur `Pending` → diagnostic de ce pod
   (feature 001).
+- **Précision (2026-10-19)** : le pod consommateur `Pending` est diagnostiqué par la même
+  fonction que le pod en difficulté d'un rollout (`ObjectSnapshot.Failing`), sans nouvel
+  identifiant de piège : si le PVC lui-même n'a aucun piège, la leçon du pod devient la leçon
+  principale (« le PVC attend le pod X, qui ne démarre pas »). Relevé réel :
+  `testdata/objects/pvc-consumer-pending/` (nodeSelector impossible, `NodeSelectorMismatch`).
+  Alternative écartée : un piège `pvc.consumer-pending` qui renvoie à `diagnose pod/<nom>`
+  (identifiant de plus, et une deuxième commande pour l'apprenant).
 - **Alternatives considered** : lire les PersistentVolumes (objets du cluster, rarement
   lisibles par un apprenant, inutiles au provisionnement dynamique de kind).
 

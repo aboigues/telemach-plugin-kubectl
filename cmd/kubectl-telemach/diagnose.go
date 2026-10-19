@@ -236,6 +236,9 @@ func (a *app) showObject(w io.Writer, snap pitfall.ObjectSnapshot, cat *catalog.
 		if e, ok := cat.ByPitfall(p.ID); ok {
 			last.EntryID = e.ID
 		}
+	} else if f := snap.Failing; f != nil {
+		// Leçon du pod en difficulté quand l'objet lui-même n'a aucun piège (PVC).
+		last.Captures, last.EntryID, last.Origin = f.Captures, f.Entry, f.Origin
 	}
 	if data, err := json.Marshal(snap); err == nil {
 		last.Object = data

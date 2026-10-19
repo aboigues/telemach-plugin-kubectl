@@ -95,13 +95,16 @@ type RolloutState struct {
 	NewDesired int
 	OldReady   int
 	Deadline   time.Duration
-	// FailingPod est le pod en difficulté le plus récent de la nouvelle version, diagnostiqué
-	// comme dans la feature 001 ; FailingEntry, FailingOrigin et FailingCaptures permettent de
-	// réafficher sa leçon sans relire le cluster (last).
-	FailingPod      *workload.PodSnapshot
-	FailingEntry    string
-	FailingOrigin   string
-	FailingCaptures map[string]string
+}
+
+// FailingPod est un pod en difficulté lié à l'objet (pod de la nouvelle version d'un rollout,
+// pod qui utilise un PVC), diagnostiqué comme dans la feature 001 ; Entry, Origin et Captures
+// permettent de réafficher sa leçon sans relire le cluster (last).
+type FailingPod struct {
+	Pod      workload.PodSnapshot
+	Entry    string
+	Origin   string
+	Captures map[string]string
 }
 
 // ObjectSummary est un objet en difficulté de la liste courte de diagnose sans argument.
@@ -122,6 +125,7 @@ type ObjectSnapshot struct {
 	Pitfalls    []Pitfall
 	Pods        []workload.PodSummary
 	Rollout     *RolloutState
+	Failing     *FailingPod
 	DeniedReads []string
 	Others      []ObjectSummary
 	// Captures sont les valeurs communes à toutes les leçons de l'objet (kubectl, scope,

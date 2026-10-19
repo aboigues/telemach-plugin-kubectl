@@ -3,6 +3,7 @@ package pitfall
 import (
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/aboigues/telemach-plugin-kubectl/internal/kuberead"
 )
@@ -24,6 +25,7 @@ func init() {
 	knownIDs = append(knownIDs, IngressNoController, IngressUnknownClass, IngressNoClass,
 		IngressBackendAbsent, IngressBackendPort, IngressNoAddress)
 	diagnosers[KindIngress] = DiagnoseIngress
+	summarizers = append(summarizers, ingressSummaries)
 }
 
 // backend est un Service visé par une règle d'un Ingress.
@@ -61,8 +63,32 @@ func DiagnoseIngress(ctx Context, name string) (ObjectSnapshot, error) {
 	return s, nil
 }
 
-// classLink détermine la classe effective : ingressClassName, sinon l'ancienne annotation,
-// sinon la classe par défaut. Elle renvoie faux si aucun contrôleur ne prendra l'Ingress.
+// ingressClass détermine la classe effective d'un Ingress : ingressClassName, sinon l'ancienne
+// annotation, sinon la classe par défaut. id est le piège de classe ("" si une classe existante
+// le prend en charge) ; requested et source disent quelle classe a été demandée et comment.
+func ingressClass(ing kuberead.Ingress, classes []kuberead.IngressClass) (id, requested, source string, class *kuberead.IngressClass) {
+	switch {
+	case ing.Spec.IngressClassName != nil:
+		requested, source = *ing.Spec.IngressClassName, "ingressClassName"
+	case ing.Metadata.Annotations.IngressClass != "":
+		requested, source = ing.Metadata.Annotations.IngressClass, "annotation kubernetes.io/ingress.class (dépréciée)"
+	}
+	if len(classes) == 0 {
+		return IngressNoController, requested, source, nil
+	}
+	for i, c := range classes {
+		if (requested != "" && c.Metadata.Name == requested) || (requested == "" && c.Metadata.Annotations.DefaultIngressClass) {
+			return "", requested, source, &classes[i]
+		}
+	}
+	if requested != "" {
+		return IngressUnknownClass, requested, source, nil
+	}
+	return IngressNoClass, "", "", nil
+}
+
+// classLink vérifie la classe effective. Elle renvoie faux si aucun contrôleur ne prendra
+// l'Ingress.
 func classLink(ctx Context, s *ObjectSnapshot, ing kuberead.Ingress) bool {
 	classes, err := ctx.Reader.ListIngressClasses()
 	if err != nil {
@@ -70,51 +96,61 @@ func classLink(ctx Context, s *ObjectSnapshot, ing kuberead.Ingress) bool {
 		s.AddLink(StepClass, StateUnknown)
 		return false
 	}
-	names := map[string]kuberead.IngressClass{}
 	var list []string
-	defaultClass := ""
 	for _, c := range classes.Items {
-		names[c.Metadata.Name] = c
 		label := c.Metadata.Name
 		if c.Metadata.Annotations.DefaultIngressClass {
-			defaultClass = c.Metadata.Name
 			label += " (par défaut)"
 		}
 		list = append(list, label)
 	}
 	s.Captures["classes"] = strings.Join(list, ", ")
-	requested, source := "", ""
-	switch {
-	case ing.Spec.IngressClassName != nil:
-		requested, source = *ing.Spec.IngressClassName, "ingressClassName"
-	case ing.Metadata.Annotations.IngressClass != "":
-		requested, source = ing.Metadata.Annotations.IngressClass, "annotation kubernetes.io/ingress.class (dépréciée)"
-	}
+	id, requested, source, class := ingressClass(ing, classes.Items)
 	s.Captures["class"] = requested
 	switch {
-	case len(classes.Items) == 0:
+	case id == IngressNoController:
 		s.AddLink(StepClass, StateOK, Observation{Value: "aucune classe d'Ingress dans le cluster"})
-		s.Add(Pitfall{ID: IngressNoController, Step: StepClass, Severity: Warning})
-		return false
-	case requested != "":
-		c, ok := names[requested]
-		if !ok {
-			s.AddLink(StepClass, StateOK, Observation{Label: source, Value: requested + " : inconnue"})
-			s.Add(Pitfall{ID: IngressUnknownClass, Step: StepClass, Severity: Warning})
-			return false
-		}
-		s.AddLink(StepClass, StateOK, Observation{Label: source, Value: requested + " (contrôleur " + c.Spec.Controller + ")"})
-		s.Captures["controller"] = c.Spec.Controller
-		return true
-	case defaultClass != "":
-		s.AddLink(StepClass, StateOK, Observation{Label: "classe par défaut", Value: defaultClass})
-		s.Captures["class"], s.Captures["controller"] = defaultClass, names[defaultClass].Spec.Controller
-		return true
-	default:
+	case id == IngressUnknownClass:
+		s.AddLink(StepClass, StateOK, Observation{Label: source, Value: requested + " : inconnue"})
+	case id == IngressNoClass:
 		s.AddLink(StepClass, StateOK, Observation{Value: "aucune classe demandée, aucune par défaut"})
-		s.Add(Pitfall{ID: IngressNoClass, Step: StepClass, Severity: Warning})
+	case requested == "":
+		s.AddLink(StepClass, StateOK, Observation{Label: "classe par défaut", Value: class.Metadata.Name})
+		s.Captures["class"] = class.Metadata.Name
+	default:
+		s.AddLink(StepClass, StateOK, Observation{Label: source, Value: requested + " (contrôleur " + class.Spec.Controller + ")"})
+	}
+	if id != "" {
+		s.Add(Pitfall{ID: id, Step: StepClass, Severity: Warning})
 		return false
 	}
+	s.Captures["controller"] = class.Spec.Controller
+	return true
+}
+
+// ingressSummaries repère les Ingress qu'aucune classe existante ne prend en charge (FR-015).
+func ingressSummaries(ctx Context, _ []kuberead.Pod) ([]ObjectSummary, error) {
+	var ings kuberead.IngressList
+	var classes kuberead.IngressClassList
+	var errIng, errCls error
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() { defer wg.Done(); ings, errIng = ctx.Reader.ListIngresses() }()
+	go func() { defer wg.Done(); classes, errCls = ctx.Reader.ListIngressClasses() }()
+	wg.Wait()
+	if errIng != nil {
+		return nil, errIng
+	}
+	if errCls != nil {
+		return nil, errCls
+	}
+	var out []ObjectSummary
+	for _, ing := range ings.Items {
+		if id, _, _, _ := ingressClass(ing, classes.Items); id != "" {
+			out = append(out, ObjectSummary{Kind: KindIngress, Name: ing.Metadata.Name, Pitfall: id})
+		}
+	}
+	return out, nil
 }
 
 // backendLink vérifie que chaque Service visé existe et expose le port demandé.
@@ -145,6 +181,11 @@ func backendLink(ctx Context, s *ObjectSnapshot, ing kuberead.Ingress) {
 	if len(backends) == 0 {
 		s.AddLink(StepBackend, StateOK, Observation{Value: "aucun backend"})
 		return
+	}
+	// Premier backend : la leçon propose de tester l'application par son Service.
+	s.Captures["service"], s.Captures["backendPort"] = backends[0].service, backends[0].portName
+	if backends[0].portName == "" {
+		s.Captures["backendPort"] = strconv.Itoa(backends[0].number)
 	}
 	state := StateOK
 	var obs []Observation

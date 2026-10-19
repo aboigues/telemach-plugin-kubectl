@@ -1,0 +1,25 @@
+[1;38;2;255;122;122m✖ PVC « cache-data » attend le pod « cache-user », qui ne démarre pas (NodeSelectorMismatch).[m
+   [2;38;2;138;143;152mpvc cache-data · namespace demo · Pending · taille 16Mi[m
+
+   ✔ classe de stockage standard (rancher.io/local-path)
+   ✔ liaison            Pending (WaitForFirstConsumer)
+[1;38;2;255;122;122m   ✖ pod consommateur   cache-user (Pending)[m
+
+[1m── Pod qui utilise ce PVC ──[m
+[1;38;2;255;122;122m✖ Le pod « cache-user » reste en attente, aucun nœud ne correspond à son nodeSelector.[m
+   [2;38;2;138;143;152mpod cache-user · namespace demo · image busybox:1.38 · état NodeSelectorMismatch[m
+
+[1;38;2;122;162;247m📘 Concept — node selector[m
+   nodeSelector (ou l'affinité de nœud) limite un pod aux nœuds qui portent
+   certains labels. Si aucun nœud ne les porte, le pod reste Pending.
+
+[1;38;2;224;175;104m🔎 Cause probable[m
+   Les labels demandés par nodeSelector ou par l'affinité de nœud ne sont portés
+   par aucun nœud du cluster.
+
+[1;38;2;158;206;106m💡 Corrections[m
+   1. Comparer les labels des nœuds au nodeSelector du pod.
+      [38;2;248;248;242mkubectl get nodes --show-labels[0m
+   2. Corriger ou retirer le nodeSelector dans le manifeste.
+
+[3;38;2;125;207;255m➜ Pour aller plus loin : kubectl telemach deepen[m

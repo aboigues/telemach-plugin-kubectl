@@ -1,0 +1,22 @@
+ℹ Le PVC « data » attend son premier pod, c'est normal avec la classe « standard ».
+   pvc data · namespace demo · Pending · taille 16Mi
+
+   ✔ classe de stockage standard (rancher.io/local-path)
+   ✔ liaison            Pending, en attente d'un premier pod (WaitForFirstConsumer)
+   ✔ pod consommateur   aucun pod
+
+📘 Concept — volumeBindingMode
+   Le mode de liaison d'une StorageClass décide quand le volume est créé. En
+   mode WaitForFirstConsumer, il n'est créé qu'au démarrage du premier pod qui
+   utilise le PVC, sur le nœud choisi pour ce pod.
+
+🔎 Cause probable
+   La classe « standard » utilise le mode WaitForFirstConsumer et aucun pod
+   n'utilise encore ce PVC : il reste Pending, et c'est attendu. Le volume sera
+   créé dès qu'un pod qui le monte sera planifié.
+
+💡 Corrections
+   1. Créer ou appliquer le pod qui utilise ce PVC, puis suivre sa liaison.
+      kubectl get pvc data -w -n demo
+
+➜ Pour aller plus loin : kubectl telemach deepen

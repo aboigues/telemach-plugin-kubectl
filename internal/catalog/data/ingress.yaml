@@ -21,7 +21,7 @@
       command: '{{.kubectl}} get ingressclasses'
       safe: true
     - description: En attendant un contrôleur, tester l'application par le Service avec un transfert de port.
-      command: '{{.kubectl}} port-forward service/<service> 8080:<port> {{.scope}}'
+      command: '{{.kubectl}} port-forward service/{{.service}} 8080:{{.backendPort}} {{.scope}}'
       safe: true
   deepen:
     explanation: >-

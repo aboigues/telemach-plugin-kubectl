@@ -1,0 +1,29 @@
+[1;38;2;255;122;122m✖ La règle « / » de l'Ingress « shop » vise le Service « absent », introuvable.[m
+   [2;38;2;138;143;152mingress shop · namespace demo[m
+
+   ✔ classe             ingressClassName : demo (contrôleur example.com/telemach-demo)
+[1;38;2;255;122;122m   ✖ backends           / : service/absent : introuvable[m
+[1;38;2;255;122;122m   ✖ adresse            aucune adresse attribuée[m
+
+[1;38;2;122;162;247m📘 Concept — backend d'un Ingress[m
+   Chaque règle d'un Ingress envoie le trafic d'un chemin vers un Service du
+   même namespace, son backend. Le contrôleur ne peut rien envoyer à un Service
+   qui n'existe pas.
+
+[1;38;2;224;175;104m🔎 Cause probable[m
+   Aucun Service « absent » n'existe dans le namespace demo : les requêtes de ce
+   chemin échoueront. Le nom est peut-être mal écrit, ou le Service est dans un
+   autre namespace (un Ingress ne vise que les Services de son namespace).
+
+[1;38;2;158;206;106m💡 Corrections[m
+   1. Lister les Services du namespace.
+      [38;2;248;248;242mkubectl get services -n demo[0m
+   2. Corriger le nom du Service dans la règle (backend.service.name), ou créer
+      le Service, puis relire les backends de l'Ingress.
+      [38;2;248;248;242mkubectl describe ingress shop -n demo[0m
+
+[1mAutres points relevés[m
+   ⚠ L'Ingress « shop » n'a pas d'adresse, son contrôleur ne l'a pas encore
+   traité.
+
+[3;38;2;125;207;255m➜ Pour aller plus loin : kubectl telemach deepen[m

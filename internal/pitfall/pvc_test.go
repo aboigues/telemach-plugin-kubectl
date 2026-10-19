@@ -19,8 +19,17 @@ func TestPVCCorpus(t *testing.T) {
 			continue
 		}
 		ok := true
-		if p := snap.Primary(); p == nil || p.ID != c.exp.Primary {
+		switch p := snap.Primary(); {
+		case c.exp.Primary == "" && p != nil:
+			t.Errorf("%s : aucun piège attendu sur le PVC : %+v", c.name, p)
+			ok = false
+		case c.exp.Primary != "" && (p == nil || p.ID != c.exp.Primary):
 			t.Errorf("%s : piège principal %+v, attendu %s", c.name, p, c.exp.Primary)
+			ok = false
+		}
+		// Research.md S7 : un pod consommateur en attente est diagnostiqué comme dans la feature 001.
+		if f := snap.Failing; (c.exp.Failing == "") != (f == nil) || (f != nil && f.Pod.Reason != c.exp.Failing) {
+			t.Errorf("%s : pod consommateur en difficulté %+v, attendu %q", c.name, f, c.exp.Failing)
 			ok = false
 		}
 		if diff := cmp.Diff(c.exp.Links, linkStates(snap)); diff != "" {

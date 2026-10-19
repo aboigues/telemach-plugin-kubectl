@@ -17,6 +17,7 @@ const (
 	LabelOtherObjects = "Autres objets en difficulté"
 	LabelTest         = "▶ Pour tester"
 	LabelNewPod       = "── Pod en difficulté de la nouvelle version ──"
+	LabelConsumerPod  = "── Pod qui utilise ce PVC ──"
 )
 
 // stepLabels nomme chaque maillon dans la liste affichée ; les termes Kubernetes restent tels
@@ -65,6 +66,10 @@ func RenderObject(w io.Writer, snap pitfall.ObjectSnapshot, cat *catalog.Catalog
 	}
 
 	switch {
+	case entry == nil && snap.Failing != nil:
+		// Aucun piège sur l'objet lui-même : la leçon est celle du pod en difficulté (PVC qui attend
+		// un pod qui ne démarre pas, research.md S7).
+		b.WriteString(t.Title(SymbolError+" "+kindLabels[snap.Kind]+" « "+snap.Name+" » attend le pod « "+snap.Failing.Pod.Name+" », qui ne démarre pas ("+snap.Failing.Pod.Reason+").") + "\n")
 	case entry == nil:
 		b.WriteString(t.Success(SymbolSuccess+" "+kindLabels[snap.Kind]+" « "+snap.Name+" » : aucun problème relevé.") + "\n")
 	case primary.Severity == pitfall.Warning:
@@ -92,19 +97,24 @@ func RenderObject(w io.Writer, snap pitfall.ObjectSnapshot, cat *catalog.Catalog
 		}
 	}
 
-	if r := snap.Rollout; r != nil && r.FailingPod != nil {
-		b.WriteString("\n" + t.Label(LabelNewPod) + "\n")
-		d := diagnose.Diagnosis{Origin: diagnose.Origin(r.FailingOrigin), Captures: r.FailingCaptures}
-		if cat != nil && r.FailingEntry != "" {
-			d.Entry, _ = cat.Get(r.FailingEntry)
+	if f := snap.Failing; f != nil {
+		label := LabelNewPod
+		if snap.Kind == pitfall.KindPVC {
+			label = LabelConsumerPod
+		}
+		b.WriteString("\n" + t.Label(label) + "\n")
+		d := diagnose.Diagnosis{Origin: diagnose.Origin(f.Origin), Captures: f.Captures}
+		if cat != nil && f.Entry != "" {
+			d.Entry, _ = cat.Get(f.Entry)
 		}
 		var pod strings.Builder
-		if err := RenderPod(&pod, *r.FailingPod, d, o); err != nil {
+		if err := RenderPod(&pod, f.Pod, d, o); err != nil {
 			return err
 		}
-		// L'invitation à approfondir du pod est remplacée par celle de l'objet, en fin de rendu.
+		// L'invitation à approfondir du pod est remplacée par celle de l'objet, en fin de rendu,
+		// sauf quand la leçon du pod est la seule.
 		text := strings.TrimRight(pod.String(), "\n")
-		if i := strings.LastIndex(text, "\n"); i >= 0 && strings.Contains(text[i:], "telemach deepen") {
+		if i := strings.LastIndex(text, "\n"); entry != nil && i >= 0 && strings.Contains(text[i:], "telemach deepen") {
 			text = strings.TrimRight(text[:i], "\n")
 		}
 		b.WriteString(text + "\n")

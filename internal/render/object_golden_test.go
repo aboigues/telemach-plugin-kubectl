@@ -19,22 +19,34 @@ type objectGolden struct {
 	corpus string // dossier de testdata/objects/
 	kind   pitfall.Kind
 	name   string
+	file   string // nom du fichier de référence quand <type>-<nom> ne suffit pas
 }
 
 var objectGoldens = []objectGolden{
-	{"selector-typo", pitfall.KindService, "web"},
-	{"not-ready", pitfall.KindService, "api"},
-	{"targetport-name", pitfall.KindService, "shop"},
-	{"targetport-number", pitfall.KindService, "cart"},
-	{"targetport-undeclared", pitfall.KindService, "blog"},
-	{"no-selector", pitfall.KindService, "external"},
-	{"no-selector", pitfall.KindService, "docs"},
-	{"healthy", pitfall.KindService, "hello"},
-	{"rollout-stalled", pitfall.KindDeployment, "stalled"},
-	{"mutable-tag", pitfall.KindDeployment, "latest-app"},
-	{"config-env", pitfall.KindDeployment, "conf"},
-	{"config-env-stale", pitfall.KindDeployment, "conf"},
-	{"healthy", pitfall.KindDeployment, "hello"},
+	{"selector-typo", pitfall.KindService, "web", ""},
+	{"not-ready", pitfall.KindService, "api", ""},
+	{"targetport-name", pitfall.KindService, "shop", ""},
+	{"targetport-number", pitfall.KindService, "cart", ""},
+	{"targetport-undeclared", pitfall.KindService, "blog", ""},
+	{"no-selector", pitfall.KindService, "external", ""},
+	{"no-selector", pitfall.KindService, "docs", ""},
+	{"healthy", pitfall.KindService, "hello", ""},
+	{"rollout-stalled", pitfall.KindDeployment, "stalled", ""},
+	{"mutable-tag", pitfall.KindDeployment, "latest-app", ""},
+	{"config-env", pitfall.KindDeployment, "conf", ""},
+	{"config-env-stale", pitfall.KindDeployment, "conf", "deployment-conf-stale"},
+	{"healthy", pitfall.KindDeployment, "hello", ""},
+	{"ingress-no-class", pitfall.KindIngress, "web", ""},
+	{"ingress-no-default-class", pitfall.KindIngress, "web", "ingress-web-no-default"},
+	{"ingress-unknown-class", pitfall.KindIngress, "typo", ""},
+	{"ingress-backend-missing", pitfall.KindIngress, "shop", ""},
+	{"ingress-backend-port", pitfall.KindIngress, "wrong-port", ""},
+	{"ingress-no-address", pitfall.KindIngress, "hello-web", ""},
+	{"pvc-unknown-class", pitfall.KindPVC, "fast-data", ""},
+	{"pvc-empty-class", pitfall.KindPVC, "static-data", ""},
+	{"pvc-no-default-class", pitfall.KindPVC, "nodefault-data", ""},
+	{"pvc-waiting", pitfall.KindPVC, "data", ""},
+	{"pvc-consumer-pending", pitfall.KindPVC, "cache-data", ""},
 }
 
 // TestObjectGolden fige le rendu de diagnose <type>/<nom> (FR-021), en couleur et sans
@@ -63,8 +75,8 @@ func TestObjectGolden(t *testing.T) {
 				t.Fatal(err)
 			}
 			name := string(g.kind) + "-" + g.name + "." + suffix + ".txt"
-			if g.corpus == "config-env-stale" {
-				name = string(g.kind) + "-" + g.name + "-stale." + suffix + ".txt"
+			if g.file != "" {
+				name = g.file + "." + suffix + ".txt"
 			}
 			checkGolden(t, filepath.Join("f002", name), b.String())
 			if !color && strings.Contains(b.String(), "\x1b") {

@@ -123,6 +123,8 @@ func TestCorpusObjectsDecode(t *testing.T) {
 		"storageclasses": func() any { return &StorageClassList{} },
 		"service-hello":  func() any { return &Service{} },
 		"service-docs":   func() any { return &Service{} },
+		// Événements d'un pod en difficulté lié à l'objet (pod consommateur d'un PVC).
+		"events-cache-user": func() any { return &EventList{} },
 	}
 	decoded := 0
 	for _, f := range files {

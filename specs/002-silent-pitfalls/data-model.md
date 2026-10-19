@@ -41,6 +41,7 @@ Vue masquée d'un objet diagnostiqué et des objets liés (FR-021).
 | `Pitfalls` | liste de `Pitfall` | le premier `Severity=warning` porte la leçon complète |
 | `Pods` | liste de `PodSummary` (feature 001) | pods désignés, au plus 10 |
 | `Rollout` | `RolloutState` ou vide | Deployment seulement |
+| `Failing` | `FailingPod` ou vide | pod en difficulté lié à l'objet : pod le plus récent du nouveau ReplicaSet (Deployment), pod `Pending` qui utilise le PVC (S7) |
 | `DeniedReads` | liste de textes | lectures refusées (FR-020) |
 | `Others` | liste de `ObjectSummary` | `diagnose` sans argument (FR-015), au plus 10 |
 
@@ -69,7 +70,18 @@ Vue masquée d'un objet diagnostiqué et des objets liés (FR-021).
 | `NewImage`, `OldImage` | textes | images des ReplicaSets nouveau et précédent |
 | `NewReady`, `NewDesired`, `OldReady` | entiers | — |
 | `Deadline` | durée | `progressDeadlineSeconds` (600 s par défaut) |
-| `FailingPod` | `PodSnapshot` (feature 001) ou vide | pod en difficulté le plus récent du nouveau ReplicaSet |
+
+## FailingPod
+
+Pod en difficulté lié à un objet, diagnostiqué comme dans la feature 001 (S5, S7).
+
+| Champ | Type | Règle |
+|-------|------|-------|
+| `Pod` | `PodSnapshot` (feature 001) | masqué |
+| `Entry`, `Origin`, `Captures` | textes, dictionnaire | leçon du pod, réaffichée par `last` sans relire le cluster |
+
+Quand l'objet ne porte aucun piège (PVC qui attend un pod impossible à démarrer), la leçon du
+pod est la leçon principale du diagnostic, de `last` et de `deepen`.
 
 ## ObjectTarget (vérification différée)
 

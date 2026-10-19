@@ -55,8 +55,8 @@ func TestRolloutStalledDetails(t *testing.T) {
 	if r == nil || !strings.Contains(r.NewImage, "0.0.0-inexistant") || !strings.Contains(r.OldImage, "1.30-alpine") || r.OldReady != 1 {
 		t.Fatalf("versions du rollout : %+v", r)
 	}
-	if r.FailingPod == nil || r.FailingPod.Reason != "ImagePullBackOff" || r.FailingEntry != "pod.image-pull" {
-		t.Errorf("pod en échec de la nouvelle version : %+v %s", r.FailingPod, r.FailingEntry)
+	if f := snap.Failing; f == nil || f.Pod.Reason != "ImagePullBackOff" || f.Entry != "pod.image-pull" {
+		t.Errorf("pod en échec de la nouvelle version : %+v", snap.Failing)
 	}
 	cat := testContext(t, f, timeOf(t, f.Dir)).Catalog
 	e, _ := cat.ByPitfall(snap.Primary().ID)

@@ -5,14 +5,14 @@
     "annotations": {
       "kubectl.kubernetes.io/last-applied-configuration": "••••••"
     },
-    "creationTimestamp": "2026-10-17T19:03:44Z",
+    "creationTimestamp": "2026-10-19T07:29:38Z",
     "finalizers": [
       "kubernetes.io/pvc-protection"
     ],
     "name": "static-data",
     "namespace": "demo",
-    "resourceVersion": "972",
-    "uid": "cd801d75-50cf-47c7-836d-4b2ba564d3b4"
+    "resourceVersion": "1096",
+    "uid": "3b48ee28-8ce4-4f48-a324-91ff934f7c20"
   },
   "spec": {
     "accessModes": [

@@ -98,15 +98,15 @@ func rolloutLink(ctx Context, s *ObjectSnapshot, dep kuberead.Deployment, desire
 	s.AddLink(StepRollout, StateOK, obs...)
 	s.Facts = append(s.Facts, Observation{Label: "rollout", Value: phaseLabels[r.Phase]})
 	if newRS != nil && podsRead {
-		failingPod(ctx, s, r, newRS, pods)
+		newVersionFailing(ctx, s, newRS, pods)
 	}
 	caps := map[string]string{
 		"newImage": r.NewImage, "oldImage": r.OldImage, "oldReady": strconv.Itoa(r.OldReady),
 		"newReady": strconv.Itoa(r.NewReady), "desired": strconv.Itoa(desired),
 		"deadline": strconv.Itoa(int(r.Deadline.Seconds())),
 	}
-	if r.FailingPod != nil {
-		caps["pod"], caps["reason"] = r.FailingPod.Name, r.FailingPod.Reason
+	if f := s.Failing; f != nil {
+		caps["pod"], caps["reason"] = f.Pod.Name, f.Pod.Reason
 	}
 	switch r.Phase {
 	case PhaseStalled:
@@ -160,8 +160,8 @@ func versions(sets []kuberead.ReplicaSet) (newRS, oldRS *kuberead.ReplicaSet) {
 	return newRS, oldRS
 }
 
-// failingPod diagnostique le pod en difficulté le plus récent de la nouvelle version.
-func failingPod(ctx Context, s *ObjectSnapshot, r *RolloutState, newRS *kuberead.ReplicaSet, pods []kuberead.Pod) {
+// newVersionFailing diagnostique le pod en difficulté le plus récent de la nouvelle version.
+func newVersionFailing(ctx Context, s *ObjectSnapshot, newRS *kuberead.ReplicaSet, pods []kuberead.Pod) {
 	hash := newRS.Metadata.Labels["pod-template-hash"]
 	var fresh []kuberead.Pod
 	for _, p := range pods {
@@ -169,18 +169,24 @@ func failingPod(ctx Context, s *ObjectSnapshot, r *RolloutState, newRS *kuberead
 			fresh = append(fresh, p)
 		}
 	}
-	for _, c := range workload.SelectFailing(fresh, ctx.Now) {
+	s.Failing = firstFailing(ctx, fresh)
+}
+
+// firstFailing diagnostique, comme dans la feature 001, le plus récent des pods en difficulté ;
+// nil si aucun ne l'est.
+func firstFailing(ctx Context, pods []kuberead.Pod) *FailingPod {
+	for _, c := range workload.SelectFailing(pods, ctx.Now) {
 		snap, d := workload.Diagnose(ctx.Reader, c.Pod, ctx.Scope, ctx.Catalog, ctx.Now)
 		if snap.State != workload.StateFailing {
 			continue
 		}
-		r.FailingPod = &snap
-		r.FailingOrigin, r.FailingCaptures = string(d.Origin), d.Captures
+		f := &FailingPod{Pod: snap, Origin: string(d.Origin), Captures: d.Captures}
 		if d.Entry != nil {
-			r.FailingEntry = d.Entry.ID
+			f.Entry = d.Entry.ID
 		}
-		return
+		return f
 	}
+	return nil
 }
 
 // imageLink signale, sous forme d'information, une image au tag mutable (FR-009).

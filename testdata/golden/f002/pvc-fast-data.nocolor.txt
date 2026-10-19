@@ -1,0 +1,26 @@
+✖ Le PVC « fast-data » demande la classe « rapide », qui n'existe pas dans ce cluster.
+   pvc fast-data · namespace demo · Pending · taille 16Mi
+
+   ✖ classe de stockage rapide : inconnue
+   · liaison            non vérifié
+   ✔ pod consommateur   aucun pod
+
+📘 Concept — StorageClass
+   Une StorageClass décrit une façon de créer des volumes (son provisionneur et
+   ses paramètres). Un PVC qui demande une classe obtient un volume créé
+   automatiquement par cette classe : c'est le provisionnement dynamique.
+
+🔎 Cause probable
+   Aucune classe ne s'appelle « rapide » : aucun volume ne sera créé et le PVC
+   restera Pending, ainsi que les pods qui l'utilisent. Classes disponibles :
+   standard (par défaut).
+
+💡 Corrections
+   1. Lister les classes de stockage du cluster.
+      kubectl get storageclasses
+   2. Corriger spec.storageClassName dans le manifeste (ou le retirer pour la
+      classe par défaut), puis recréer le PVC, ce champ ne se modifie pas après
+      création ; vérifier ensuite sa classe.
+      kubectl get pvc fast-data -o jsonpath='{.spec.storageClassName}' -n demo
+
+➜ Pour aller plus loin : kubectl telemach deepen

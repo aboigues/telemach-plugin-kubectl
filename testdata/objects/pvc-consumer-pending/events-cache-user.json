@@ -1,0 +1,40 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-19T07:29:44Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "cache-user",
+        "namespace": "demo",
+        "resourceVersion": "1108",
+        "uid": "b25ba0d9-caea-472d-a73f-c3ef9b878c7b"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-19T07:29:44Z",
+      "message": "0/1 nodes are available: 1 node(s) didn't match Pod's node affinity/selector. preemption: 0/1 nodes are available: 1 Preemption is not helpful for scheduling.",
+      "metadata": {
+        "creationTimestamp": "2026-10-19T07:29:44Z",
+        "name": "cache-user.18dfddbdd2ee5a09",
+        "namespace": "demo",
+        "resourceVersion": "1109",
+        "uid": "aade52a1-d4ca-4294-98c2-acfd9da453a0"
+      },
+      "reason": "FailedScheduling",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "",
+      "source": {
+        "component": "default-scheduler"
+      },
+      "type": "Warning"
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

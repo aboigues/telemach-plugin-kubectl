@@ -30,6 +30,8 @@ type expectation struct {
 	Links   map[string]string `yaml:"links"`
 	Closest []string          `yaml:"closest"`
 	Phase   string            `yaml:"phase"`
+	// Failing est la raison du pod en difficulté lié à l'objet (feature 001), s'il y en a un.
+	Failing string `yaml:"failing"`
 	Also    *struct {
 		Name    string `yaml:"name"`
 		Primary string `yaml:"primary"`

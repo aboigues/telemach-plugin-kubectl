@@ -9,10 +9,10 @@
           "kubectl.kubernetes.io/last-applied-configuration": "••••••",
           "storageclass.kubernetes.io/is-default-class": "true"
         },
-        "creationTimestamp": "2026-10-17T19:01:22Z",
+        "creationTimestamp": "2026-10-19T07:26:40Z",
         "name": "standard",
-        "resourceVersion": "282",
-        "uid": "697b7542-037a-4c92-a61c-23863fab2c36"
+        "resourceVersion": "295",
+        "uid": "293cbfa7-3137-404c-8723-8173b5c6fa0a"
       },
       "provisioner": "rancher.io/local-path",
       "reclaimPolicy": "Delete",
