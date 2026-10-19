@@ -112,6 +112,8 @@ type ObjectSummary struct {
 	Kind    Kind
 	Name    string
 	Pitfall string // identifiant du premier piège
+	// Captures complète le résumé de la leçon (classe demandée…), masquées.
+	Captures map[string]string `json:",omitempty"`
 }
 
 // ObjectSnapshot est la vue masquée d'un objet diagnostiqué (data-model.md § ObjectSnapshot).

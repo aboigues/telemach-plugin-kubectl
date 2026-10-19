@@ -131,12 +131,18 @@ dans la sortie ou `last.json`.
 ```bash
 kubectl apply -n demo -f testdata/objects/scenarios/ingress-no-class.yaml
 kubectl telemach diagnose ingress/web -n demo
+kubectl apply -f testdata/objects/scenarios/ingressclass-not-default.yaml   # classe « demo », objet du cluster
 kubectl apply -n demo -f testdata/objects/scenarios/ingress-backend-missing.yaml
 kubectl telemach diagnose ingress/shop -n demo
+kubectl telemach diagnose ingress/web -n demo
+kubectl delete ingressclass demo
 ```
 
 Attendu : aucune classe d'Ingress dans le cluster → « aucun contrôleur d'Ingress installé »,
-adresse vide expliquée ; `shop` vise un Service inexistant, règle et Service nommés.
+sans contrôleur nommé (FR-012) ; une fois la classe `demo` créée (non marquée par défaut, sans
+contrôleur), `shop` vise un Service inexistant (règle et Service nommés) et n'a pas d'adresse ;
+`web`, sans classe, n'est pris par aucune. La classe est supprimée à la fin : elle vaut pour
+tout le cluster.
 
 ### W9 — PVC (US3-4, US3-5)
 
@@ -157,8 +163,10 @@ kubectl telemach diagnose -n demo
 kubectl telemach diagnose hello -n demo; echo "code: $?"
 ```
 
-Attendu : pods en échec expliqués, puis liste courte des autres pièges des scénarios
-précédents ; `hello` (Deployment et Service) → liste des deux objets, `code: 2`.
+Attendu (dans le namespace des scénarios W4, W8 et W9, avec un pod en échec) : pods en échec
+expliqués, puis liste courte des autres pièges des scénarios précédents (Ingress sans classe
+prise en charge, PVC `fast-data`), sans le PVC `data` qui attend normalement son premier pod ;
+`hello` (Deployment et Service) → liste des deux objets, `code: 2`.
 
 ### W11 — Signal après création (US4-1, US4-3, US4-4)
 

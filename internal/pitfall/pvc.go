@@ -141,7 +141,11 @@ func pvcSummaries(ctx Context, _ []kuberead.Pod) ([]ObjectSummary, error) {
 			continue
 		}
 		if id, _ := storageClass(pvc, classes.Items); id != "" {
-			out = append(out, ObjectSummary{Kind: KindPVC, Name: pvc.Metadata.Name, Pitfall: id})
+			caps := map[string]string{}
+			if pvc.Spec.StorageClassName != nil {
+				caps["class"] = *pvc.Spec.StorageClassName
+			}
+			out = append(out, ObjectSummary{Kind: KindPVC, Name: pvc.Metadata.Name, Pitfall: id, Captures: caps})
 		}
 	}
 	return out, nil

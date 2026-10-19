@@ -110,10 +110,10 @@ func TestIngressPVCSummaries(t *testing.T) {
 	ctx.Reader = f
 	got, _ := Summaries(ctx, nil, MaxSummaries)
 	want := []ObjectSummary{
-		{Kind: KindIngress, Name: "typo", Pitfall: IngressUnknownClass},
-		{Kind: KindIngress, Name: "web", Pitfall: IngressNoClass},
-		{Kind: KindPVC, Name: "fast-data", Pitfall: PVCUnknownClass},
-		{Kind: KindPVC, Name: "static-data", Pitfall: PVCEmptyClass},
+		{Kind: KindIngress, Name: "typo", Pitfall: IngressUnknownClass, Captures: map[string]string{"class": "nginx-tpyo"}},
+		{Kind: KindIngress, Name: "web", Pitfall: IngressNoClass, Captures: map[string]string{"class": ""}},
+		{Kind: KindPVC, Name: "fast-data", Pitfall: PVCUnknownClass, Captures: map[string]string{"class": "rapide"}},
+		{Kind: KindPVC, Name: "static-data", Pitfall: PVCEmptyClass, Captures: map[string]string{"class": ""}},
 	}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("objets en difficulté (-attendu +obtenu) :\n%s", diff)

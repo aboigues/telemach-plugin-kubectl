@@ -156,7 +156,7 @@ configuration figée, puis diagnostique le pod en échec de la nouvelle version.
 
 - [X] T040 [P] [US3] Écrire `internal/pitfall/ingress_test.go` sur `testdata/objects/{ingress-no-class,ingress-unknown-class,ingress-backend-missing,ingressclass-not-default}/` : classe effective (`ingressClassName`, annotation dépréciée signalée, classe par défaut), aucune classe → « aucun contrôleur installé » sans contrôleur nommé (FR-012), adresse vide expliquée, Service ou port visé absent, au plus 10 backends lus, IngressClasses non lisibles → `unknown`
 - [X] T041 [P] [US3] Écrire `internal/pitfall/pvc_test.go` sur `testdata/objects/{pvc-unknown-class,pvc-waiting,pvc-empty-class}/` : classe inexistante, classe par défaut utilisée, `storageClassName: ""` expliqué, `WaitForFirstConsumer` sans pod → `pvc.waiting-first-consumer` (`info`, transitoire, jamais présenté comme une erreur), pod consommateur `Pending` → diagnostic de ce pod
-- [ ] T042 [P] [US3] Écrire les scénarios W8 et W9 dans `tests/integration/pitfalls_test.go` (`ingressclass-not-default.yaml` crée seulement un objet IngressClass, aucun contrôleur installé, research.md S6)
+- [X] T042 [P] [US3] Écrire les scénarios W8 et W9 dans `tests/integration/pitfalls_test.go` (`ingressclass-not-default.yaml` crée seulement un objet IngressClass, aucun contrôleur installé, research.md S6)
 
 ### Implementation for User Story 3
 

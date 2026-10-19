@@ -282,5 +282,8 @@ func mergeName(base map[string]string, other pitfall.ObjectSummary) map[string]s
 	}
 	out[string(other.Kind)] = other.Name
 	out["name"] = other.Name
+	for k, v := range other.Captures {
+		out[k] = v
+	}
 	return out
 }
