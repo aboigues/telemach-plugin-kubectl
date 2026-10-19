@@ -1,5 +1,9 @@
-# Binaires
+# Binaires (go build ./... ou ./scripts/... dépose un exécutable par commande à la racine,
+# LL-007)
 /kubectl-telemach
+/gen-schemas
+/collect-errors
+/collect-objects
 /dist/
 *.exe
 *.test

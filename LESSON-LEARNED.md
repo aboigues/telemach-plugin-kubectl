@@ -71,6 +71,68 @@ dans le registre d'origine ; seule la règle préventive, transposée à kubectl
 
 ## Incidents
 
+### LL-009 — Code de sortie perdu par zsh après un trap
+
+- **Date** : 2026-10-19
+- **Catégorie** : bug
+- **Contexte** : feature 002, capture de stderr de `exec`, `attach`, `debug` et `port-forward`
+  (US5, research.md S10) : le sous-shell remplace son trap `exit 130` par `:` pour expliquer
+  une erreur captée avant un Ctrl-C.
+- **Cause racine** : en zsh, une fois le trap exécuté, `pipestatus` du pipeline interrompu
+  vaut 0 ; le code 130 de kubectl était perdu, et `explain` n'était pas appelé. bash garde le
+  bon code. Aucun test ne lançait le shell dans un vrai terminal : les tests « interactifs »
+  de la feature 001 tournaient sans terminal, où Ctrl-C n'existe pas.
+- **Impact** : aucun en production (détecté par le premier test en pseudo-terminal) ; une
+  erreur de transfert suivie d'un Ctrl-C n'aurait jamais été expliquée sous zsh.
+- **Correctif** : le pipeline écrit lui-même le code de kubectl dans
+  `<fichier temporaire>.rc`, supprimé par le même trap de sortie ; un pseudo-terminal de test
+  (`tests/shell/pty_test.go`, sans dépendance nouvelle) vérifie session, écho, code et Ctrl-C
+  sous bash et zsh.
+- **Règle préventive** : tout comportement shell qui dépend d'un terminal (Ctrl-C, `-t`, écho)
+  se teste dans un vrai pseudo-terminal, sous bash et zsh ; ne jamais se fier à
+  `$?`/`PIPESTATUS`/`pipestatus` après l'exécution d'un trap.
+- **Suivi** : `TestInteractiveSessionCaptured` et `TestInteractiveInterrupt`
+  (`tests/shell/interactive_test.go`), répétés 15 fois sous `-race` sans échec.
+
+### LL-008 — Attentes écrites d'après un message supposé ou une seule version
+
+- **Date** : 2026-10-19
+- **Catégorie** : processus
+- **Contexte** : feature 002, scénarios W8 à W13 et entrées du catalogue de l'US5.
+- **Cause racine** : plusieurs attentes avaient été rédigées avant les relevés, ou d'après la
+  seule version 1.37 : W8 supposait la classe d'Ingress `demo` présente, W10 supposait les
+  scénarios précédents dans le même namespace, W12 et research.md S11 citaient des messages
+  qui n'existent plus en 1.35 à 1.37 (« unable to upgrade connection », « a container name
+  must be specified »), et W12 exigeait la liste des conteneurs, absente du message de 1.35.
+- **Impact** : un `integration-kind` rouge (1.35) sur la PR #4 ; sans les relevés, deux
+  entrées du catalogue auraient reconnu des messages qu'aucun apprenant ne verra.
+- **Correctif** : scénarios réécrits d'après les relevés, attentes valables sur les trois
+  versions, entrée `cmdline.container-required` abandonnée (research.md S11, écarts).
+- **Règle préventive** : avant d'écrire une attente de test ou un motif, relire le relevé de
+  **chaque** version (`<cas>`, `<cas>@1.35`, `<cas>@1.36`) ; un scénario de guide se rejoue
+  seul, dans un namespace neuf, sans dépendre d'un autre scénario ni d'un objet du cluster
+  qu'il n'a pas créé.
+- **Suivi** : gate `integration-kind` sur les trois versions (elle a détecté l'écart de 1.35) ;
+  la relecture des variantes reste humaine.
+
+### LL-007 — Binaire compilé versionné par « git add -A »
+
+- **Date** : 2026-10-19
+- **Catégorie** : processus
+- **Contexte** : feature 002, US3 ; `go build ./scripts/...` lancé pour vérifier une
+  modification du collecteur, puis `git add -A` avant un commit poussé (eb011ea).
+- **Cause racine** : `go build` d'un paquet `main` dépose son exécutable dans le dossier
+  courant ; seul `/kubectl-telemach` était ignoré par `.gitignore`, et la liste des fichiers
+  ajoutés n'a pas été relue avant le commit.
+- **Impact** : un exécutable de 10 Mo dans l'historique de la branche (aucune donnée
+  sensible) ; retiré au commit suivant, absent de `main` grâce à la fusion par squash.
+- **Correctif** : binaire retiré ; `.gitignore` couvre les exécutables de `cmd/` et
+  `scripts/`.
+- **Règle préventive** : vérifier une compilation sans écrire de fichier
+  (`go vet`, ou `go build -o /dev/null`) ; relire `git status` avant tout `git add -A`.
+- **Suivi** : `TestNoBinaryCommitted` (`tests/manifests/hygiene_test.go`) échoue sur tout
+  fichier versionné à en-tête ELF, Mach-O ou PE.
+
 ### LL-006 — Objectif de latence mesuré sous le détecteur de courses
 
 - **Date** : 2026-10-17
