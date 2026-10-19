@@ -6,6 +6,7 @@ run:
   # Analyser aussi les tests à étiquette de build (D-LL-007).
   build-tags:
     - integration
+    - dist
 
 linters:
   default: none

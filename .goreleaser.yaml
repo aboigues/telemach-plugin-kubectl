@@ -1,0 +1,115 @@
+# Configuration GoReleaser OSS v2.18.3 — publication d'une version (feature 003).
+# Contrats : specs/003-distribution/contracts/release-assets.md et image-tags.md.
+version: 2
+
+project_name: telemach-plugin-kubectl
+
+builds:
+  # Plugin kubectl, publié dans la Release (binaire et archive) et embarqué dans l'image.
+  - id: kubectl-telemach
+    main: ./cmd/kubectl-telemach
+    binary: kubectl-telemach
+    goos: [linux, darwin]
+    goarch: [amd64, arm64]
+    env: [CGO_ENABLED=0]
+    flags: [-trimpath]
+    # Mêmes options que la vérification de reproductibilité (tests/release).
+    ldflags: ["-s -w -buildid= -X main.version={{ .Version }}"]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+  # Point d'entrée de l'image ; jamais publié dans la Release.
+  - id: telemach-image
+    main: ./cmd/telemach-image
+    binary: telemach-image
+    goos: [linux]
+    goarch: [amd64, arm64]
+    env: [CGO_ENABLED=0]
+    flags: [-trimpath]
+    ldflags: ["-s -w -buildid= -X main.version={{ .Version }}"]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  # Binaires bruts, sans archive : un seul fichier à télécharger et à vérifier (voie manuelle).
+  - id: kubectl-telemach
+    ids: [kubectl-telemach]
+    formats: [binary]
+    name_template: "kubectl-telemach_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+  # Archives pour Krew, qui n'installe que des archives (research R2).
+  - id: kubectl-telemach-krew
+    ids: [kubectl-telemach]
+    formats: [tar.gz]
+    name_template: "kubectl-telemach_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    wrap_in_directory: false
+    files:
+      - LICENSE
+      - NOTICE
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+sboms:
+  - id: kubectl-telemach
+    artifacts: binary
+    ids: [kubectl-telemach]
+    documents: ["{{ .ArtifactName }}.sbom.json"]
+
+signs:
+  # Signature keyless (Sigstore) du fichier de sommes : identité OIDC du workflow release.yml.
+  - id: checksums
+    cmd: cosign
+    artifacts: checksum
+    signature: "${artifact}.sigstore.json"
+    args: ["sign-blob", "--bundle=${signature}", "${artifact}", "--yes"]
+
+dockers_v2:
+  - id: telemach-kubectl
+    ids: [kubectl-telemach, telemach-image]
+    dockerfile: Dockerfile
+    # dockers_v2 ne place dans le contexte que les binaires linux de la plateforme visée :
+    # les binaires darwin (mêmes fichiers que dans la Release) y sont ajoutés depuis dist/.
+    extra_files:
+      - dist/kubectl-telemach_darwin_amd64_v1
+      - dist/kubectl-telemach_darwin_arm64_v8.0
+    images: [docker.io/telemachlearning/telemach-kubectl]
+    platforms: [linux/amd64, linux/arm64]
+    # X.Y et latest seulement pour une version stable (contracts/image-tags.md).
+    tags:
+      - "{{ .Version }}"
+      - "{{ if not .Prerelease }}{{ .Major }}.{{ .Minor }}{{ end }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    sbom: true
+    labels:
+      org.opencontainers.image.title: TELEMACH kubectl
+      org.opencontainers.image.description: Explique en français les erreurs kubectl et ce qui ne marche pas ; installe le plugin kubectl telemach.
+      org.opencontainers.image.source: https://github.com/aboigues/telemach-plugin-kubectl
+      org.opencontainers.image.url: https://www.telemach-learning.fr
+      org.opencontainers.image.licenses: Apache-2.0
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.created: "{{ .CommitDate }}"
+
+release:
+  # Brouillon : release.yml ajoute les attestations puis publie (releases immuables).
+  draft: true
+  replace_existing_draft: false
+  prerelease: auto
+  name_template: "TELEMACH {{ .Version }}"
+
+changelog:
+  use: git
+  sort: asc
+  filters:
+    exclude:
+      - "^docs"
+      - "^ci"
+      - "^test"
+  groups:
+    - title: Nouveautés
+      regexp: "^feat"
+      order: 0
+    - title: Corrections
+      regexp: "^fix"
+      order: 1
+    - title: Autres changements
+      order: 999
