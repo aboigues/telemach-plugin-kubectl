@@ -1,0 +1,214 @@
+# Pièges silencieux d'un Ingress (feature 002, US3) : l'Ingress est créé, mais aucun contrôleur
+# ne le prend en charge ou il vise un Service qui ne peut pas répondre (research.md S6). Aucun
+# contrôleur n'est nommé : le choix dépend du cluster (FR-012).
+
+- id: ingress.no-controller
+  category: ingress
+  pitfalls: [ingress.no-controller]
+  concept:
+    name: contrôleur d'Ingress
+    definition: >-
+      Un Ingress n'est qu'une liste de règles HTTP. Il ne fait rien seul : un contrôleur
+      d'Ingress, installé dans le cluster et déclaré par un objet IngressClass, lit ces règles
+      et configure le proxy qui reçoit le trafic.
+  summary: L'Ingress « {{.ingress}} » existe, mais aucun contrôleur d'Ingress n'est installé dans ce cluster.
+  cause: >-
+    Le cluster ne contient aucune IngressClass : aucun contrôleur ne lira l'Ingress, qui
+    restera sans adresse. Ce n'est pas une erreur de l'Ingress lui-même ; un contrôleur doit
+    être installé par l'administrateur du cluster (le choix dépend de l'environnement).
+  fixes:
+    - description: Vérifier qu'aucune classe d'Ingress n'existe.
+      command: '{{.kubectl}} get ingressclasses'
+      safe: true
+    - description: En attendant un contrôleur, tester l'application par le Service avec un transfert de port.
+      command: '{{.kubectl}} port-forward service/{{.service}} 8080:{{.backendPort}} {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Kubernetes fournit l'objet Ingress mais pas le logiciel qui l'applique. Chaque
+      contrôleur déclare une IngressClass (spec.controller) ; un Ingress choisit sa classe par
+      spec.ingressClassName. Gateway API, plus récente, sépare de la même façon les classes
+      (GatewayClass) des règles (HTTPRoute).
+    example: |-
+      kubectl get ingressclasses
+      kubectl get ingress -A
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-controleur », crée-y un
+      Ingress, puis lis les IngressClasses du cluster et la colonne ADDRESS de « kubectl get
+      ingress -n exo-controleur » : sans classe, l'adresse reste vide. Supprime le namespace
+      ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/
+  tests: [ingress-no-class]
+
+- id: ingress.unknown-class
+  category: ingress
+  pitfalls: [ingress.unknown-class]
+  concept:
+    name: IngressClass
+    definition: >-
+      Une IngressClass relie un nom de classe à un contrôleur d'Ingress. Un Ingress désigne sa
+      classe par spec.ingressClassName ; une classe inconnue n'est prise en charge par aucun
+      contrôleur.
+  summary: L'Ingress « {{.ingress}} » demande la classe « {{.class}} », qui n'existe pas dans ce cluster.
+  cause: >-
+    Aucun contrôleur ne prend en charge la classe « {{.class}} » : l'Ingress est ignoré. Les
+    classes disponibles sont : {{.classes}}.
+  fixes:
+    - description: Lister les classes d'Ingress du cluster.
+      command: '{{.kubectl}} get ingressclasses'
+      safe: true
+    - description: Corriger spec.ingressClassName dans le manifeste avec une classe existante, réappliquer, puis vérifier la classe retenue.
+      command: '{{.kubectl}} get ingress {{.ingress}} -o jsonpath=''{.spec.ingressClassName}'' {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      L'ancienne annotation kubernetes.io/ingress.class est dépréciée : spec.ingressClassName
+      la remplace. Sans l'un ni l'autre, l'Ingress reçoit la classe marquée par défaut, s'il y
+      en a une.
+    example: |-
+      kubectl get ingressclasses
+      kubectl get ingress web -o jsonpath='{.spec.ingressClassName}'
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-classe », crée un
+      Ingress avec une classe qui n'existe pas, lis son adresse avec « kubectl get ingress »,
+      puis corrige la classe. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class
+  tests: [ingress-unknown-class]
+
+- id: ingress.no-class
+  category: ingress
+  pitfalls: [ingress.no-class]
+  concept:
+    name: IngressClass par défaut
+    definition: >-
+      Un Ingress sans classe est pris en charge par la classe marquée par défaut (annotation
+      ingressclass.kubernetes.io/is-default-class). Si aucune ne l'est, aucun contrôleur ne le
+      prend.
+  summary: L'Ingress « {{.ingress}} » ne demande aucune classe, et aucune classe n'est marquée par défaut.
+  cause: >-
+    Des classes existent ({{.classes}}), mais l'Ingress n'en désigne aucune et aucune n'est
+    choisie par défaut : il est ignoré par tous les contrôleurs.
+  fixes:
+    - description: Lister les classes d'Ingress du cluster.
+      command: '{{.kubectl}} get ingressclasses'
+      safe: true
+    - description: Ajouter spec.ingressClassName au manifeste de l'Ingress, réappliquer, puis vérifier la classe retenue.
+      command: '{{.kubectl}} get ingress {{.ingress}} -o jsonpath=''{.spec.ingressClassName}'' {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Marquer une classe par défaut est une décision d'administrateur, qui vaut pour tout le
+      cluster. Nommer la classe dans chaque Ingress rend le manifeste explicite et portable.
+    example: |-
+      kubectl get ingressclasses -o custom-columns=NOM:.metadata.name,CONTROLEUR:.spec.controller
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-defaut », crée-y deux
+      Ingress, l'un avec spec.ingressClassName, l'autre sans, et compare la classe que chacun
+      reçoit avec « kubectl get ingress -n exo-defaut ». Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/services-networking/ingress/#default-ingress-class
+  tests: [ingress-no-default-class]
+
+- id: ingress.no-address
+  category: ingress
+  pitfalls: [ingress.no-address]
+  concept:
+    name: adresse d'un Ingress
+    definition: >-
+      Le contrôleur qui prend en charge un Ingress publie l'adresse où il reçoit le trafic dans
+      status.loadBalancer. Tant que ce champ est vide, l'Ingress n'est pas joignable.
+  summary: L'Ingress « {{.ingress}} » n'a pas d'adresse, son contrôleur ne l'a pas encore traité.
+  cause: >-
+    La classe « {{.class}} » existe (contrôleur {{.controller}}), mais aucune adresse n'est
+    publiée : juste après sa création, il faut parfois attendre quelques secondes ; si cela
+    dure, le contrôleur de cette classe n'est sans doute pas en marche.
+  fixes:
+    - description: Suivre l'apparition de l'adresse.
+      command: '{{.kubectl}} get ingress {{.ingress}} -w {{.scope}}'
+      safe: true
+    - description: Lire les événements de l'Ingress, où le contrôleur signale ses erreurs.
+      command: '{{.kubectl}} describe ingress {{.ingress}} {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Une IngressClass n'est qu'une déclaration : elle peut exister sans que le contrôleur
+      qu'elle nomme tourne. Seule l'adresse publiée prouve qu'un contrôleur a pris l'Ingress
+      en charge.
+    example: |-
+      kubectl get ingress -o wide
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-adresse », crée-y un
+      Ingress et compare la colonne ADDRESS de « kubectl get ingress -n exo-adresse » juste
+      après sa création puis une minute plus tard. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/services-networking/ingress/
+  tests: [ingress-no-address]
+
+- id: ingress.backend-missing
+  category: ingress
+  pitfalls: [ingress.backend-missing]
+  concept:
+    name: backend d'un Ingress
+    definition: >-
+      Chaque règle d'un Ingress envoie le trafic d'un chemin vers un Service du même
+      namespace, son backend. Le contrôleur ne peut rien envoyer à un Service qui n'existe pas.
+  summary: La règle « {{.path}} » de l'Ingress « {{.ingress}} » vise le Service « {{.service}} », introuvable.
+  cause: >-
+    Aucun Service « {{.service}} » n'existe dans le namespace {{.namespace}} : les requêtes de
+    ce chemin échoueront. Le nom est peut-être mal écrit, ou le Service est dans un autre
+    namespace (un Ingress ne vise que les Services de son namespace).
+  fixes:
+    - description: Lister les Services du namespace.
+      command: '{{.kubectl}} get services {{.scope}}'
+      safe: true
+    - description: Corriger le nom du Service dans la règle (backend.service.name), ou créer le Service, puis relire les backends de l'Ingress.
+      command: '{{.kubectl}} describe ingress {{.ingress}} {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Le chemin du trafic va de l'Ingress au Service, puis du Service aux pods. Chaque maillon
+      se vérifie séparément : d'abord le nom du Service, puis son port, puis ses endpoints.
+    example: |-
+      kubectl get ingress shop -o jsonpath='{.spec.rules[*].http.paths[*].backend.service.name}'
+      kubectl get services
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-backend », crée un
+      Ingress vers un Service absent, lis « kubectl describe ingress », puis crée le Service.
+      Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/services-networking/ingress/#the-ingress-resource
+  tests: [ingress-backend-missing]
+
+- id: ingress.backend-port
+  category: ingress
+  pitfalls: [ingress.backend-port]
+  concept:
+    name: port d'un backend
+    definition: >-
+      Un backend d'Ingress désigne un Service et l'un de ses ports, par numéro ou par nom. Ce
+      port est celui du Service (spec.ports[].port), pas celui du conteneur.
+  summary: La règle « {{.path}} » de l'Ingress « {{.ingress}} » vise le port {{.backendPort}} du Service « {{.service}} », qui ne l'expose pas.
+  cause: >-
+    Le Service « {{.service}} » expose {{.servicePorts}}. Le port de la règle est souvent
+    confondu avec le port du conteneur (targetPort).
+  fixes:
+    - description: Lire les ports du Service.
+      command: '{{.kubectl}} get service {{.service}} -o jsonpath=''{.spec.ports}'' {{.scope}}'
+      safe: true
+    - description: Corriger backend.service.port dans la règle avec un port du Service, réappliquer, puis relire les backends de l'Ingress.
+      command: '{{.kubectl}} describe ingress {{.ingress}} {{.scope}}'
+      safe: true
+    - description: Vérifier ensuite le Service lui-même.
+      command: '{{.kubectl}} telemach diagnose service/{{.service}} {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Trois ports se suivent : celui de la règle d'Ingress doit être un port du Service, et le
+      targetPort du Service doit être un port du conteneur. Une erreur à l'un des deux maillons
+      coupe le trafic sans message d'erreur.
+    example: |-
+      kubectl get service hello -o jsonpath='{.spec.ports[*].port}'
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-ports », expose un
+      Deployment avec « kubectl expose deployment web --port=80 --target-port=8080 -n
+      exo-ports », puis note le port et le targetPort du Service et retrouve le port du
+      conteneur dans le Deployment. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/services-networking/ingress/#the-ingress-resource
+  tests: [ingress-backend-port]

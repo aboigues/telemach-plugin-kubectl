@@ -1,0 +1,23 @@
+ℹ Les pods de « conf » lisent le Secret « conf-secret » au démarrage, une modification ne leur parviendra pas.
+   deployment conf · namespace demo · 1 réplique · rollout terminé
+
+   ✔ rollout            nouvelle version : busybox:1.38 (1/1 prêt(s))
+   ✔ image              conf : busybox:1.38
+   ✔ configuration      ConfigMap conf-settings : inchangée depuis le démarrage
+                        Secret conf-secret : non lu (jamais lu par TELEMACH)
+
+📘 Concept — configuration figée au démarrage
+   Les variables d'environnement issues d'un Secret, comme celles d'une
+   ConfigMap, sont lues au démarrage du pod ; un Secret modifié ensuite n'est
+   pas pris en compte.
+
+🔎 Cause probable
+   TELEMACH ne lit jamais le contenu d'un Secret : il ne peut pas savoir si
+   « conf-secret » a changé. Utilisation : envFrom. Si tu viens de le modifier,
+   redémarre les pods.
+
+💡 Corrections
+   1. Redémarrer les pods du Deployment après une modification du Secret.
+      kubectl rollout restart deployment/conf -n demo
+
+➜ Pour aller plus loin : kubectl telemach deepen

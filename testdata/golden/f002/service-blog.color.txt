@@ -1,0 +1,27 @@
+[3;38;2;125;207;255mℹ Le Service « blog » envoie le trafic au port 3000 ; ses pods ne déclarent aucun port, la correspondance n'est pas vérifiable.[m
+   [2;38;2;138;143;152mservice blog · namespace demo · ClusterIP · ports 80 → 3000[m
+
+   ✔ type               ClusterIP
+   ✔ selector           app=blog : 1 pod
+   ✔ pods prêts         1/1 prêt(s)
+   ✔ endpoints          1 prêt(s)
+[2;38;2;138;143;152m   ? ports              80 → 3000 : aucun port déclaré[m
+
+[1;38;2;122;162;247m📘 Concept — Service ports[m
+   targetPort désigne le port du conteneur qui reçoit le trafic. Déclarer ce
+   port dans le conteneur (containerPort) est facultatif : quand il n'est pas
+   déclaré, rien ne permet de vérifier la correspondance sans tester.
+
+[1;38;2;224;175;104m🔎 Cause probable[m
+   TELEMACH ne lit que la description des pods, jamais l'intérieur des
+   conteneurs : sans containerPort déclaré, il ne peut pas savoir si le
+   programme écoute sur le port 3000. Ce n'est pas forcément une erreur.
+
+[1;38;2;158;206;106m💡 Corrections[m
+   1. Tester le port directement sur un pod, depuis ton poste.
+      [38;2;248;248;242mkubectl port-forward pod/blog-97ff4d6f9-thz2r 8080:3000 -n demo[0m
+   2. Déclarer le port dans le conteneur (ports.containerPort) pour documenter
+      le manifeste.
+      [38;2;248;248;242mkubectl explain pod.spec.containers.ports[0m
+
+[3;38;2;125;207;255m➜ Pour aller plus loin : kubectl telemach deepen[m

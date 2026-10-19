@@ -1,0 +1,32 @@
+{
+  "apiVersion": "v1",
+  "kind": "PersistentVolumeClaim",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "••••••"
+    },
+    "creationTimestamp": "2026-10-17T19:03:39Z",
+    "finalizers": [
+      "kubernetes.io/pvc-protection"
+    ],
+    "name": "data",
+    "namespace": "demo",
+    "resourceVersion": "957",
+    "uid": "9de71214-154d-4654-a5c3-06c6c8cbda4b"
+  },
+  "spec": {
+    "accessModes": [
+      "ReadWriteOnce"
+    ],
+    "resources": {
+      "requests": {
+        "storage": "16Mi"
+      }
+    },
+    "storageClassName": "standard",
+    "volumeMode": "Filesystem"
+  },
+  "status": {
+    "phase": "Pending"
+  }
+}

@@ -1,0 +1,40 @@
+# Scénario W3 : targetPort numérique absent des ports déclarés (feature 002, quickstart).
+# Manifestes seulement : les attentes sont dans testdata/objects/<cas>/expected.yaml (LL-004,
+# LL-005).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cart
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cart
+  template:
+    metadata:
+      labels:
+        app: cart
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      containers:
+      - name: cart
+        image: nginxinc/nginx-unprivileged:1.30-alpine
+        ports:
+        - containerPort: 8080
+        securityContext: {allowPrivilegeEscalation: false}
+        resources:
+          requests: {cpu: 10m, memory: 16Mi}
+          limits: {cpu: 100m, memory: 64Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cart
+spec:
+  selector:
+    app: cart
+  ports:
+  - port: 80
+    targetPort: 8081

@@ -27,6 +27,7 @@ const (
 	SourceCommand = "command" // erreur d'une commande kubectl captée
 	SourceCheck   = "check"   // vérification de manifestes
 	SourcePod     = "pod"     // diagnostic d'un pod (diagnose)
+	SourceObject  = "object"  // diagnostic d'un Service, Deployment, Ingress ou PVC (feature 002)
 )
 
 // LastDiagnosis est le dernier diagnostic (data-model.md). Toutes les données textuelles sont
@@ -52,6 +53,9 @@ type LastDiagnosis struct {
 	// Pod est le diagnostic d'un pod (workload.PodSnapshot encodé), déjà masqué : « last »
 	// le réaffiche sans relire le cluster.
 	Pod json.RawMessage `json:",omitempty"`
+	// Object est le diagnostic d'un objet (pitfall.ObjectSnapshot encodé), déjà masqué :
+	// « last » le réaffiche sans relire le cluster (feature 002).
+	Object json.RawMessage `json:",omitempty"`
 }
 
 // Store lit et écrit l'état dans un répertoire privé.

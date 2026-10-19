@@ -99,6 +99,58 @@ func TestAllowlist(t *testing.T) {
 	}
 }
 
+// Feature 002 (research.md S1) : chaque nouvelle lecture produit exactement la commande prévue,
+// jamais sur un objet Secret, et la ConfigMap n'est lue qu'à travers ses dates.
+func TestAllowlistObjects(t *testing.T) {
+	r, log := setup(t, "")
+	_, _ = r.GetService("web")
+	_, _ = r.ListServices()
+	_, _ = r.ServiceEndpointSlices("web")
+	_, _ = r.ListEndpointSlices()
+	_, _ = r.ListDeployments()
+	_, _ = r.ReplicaSetsBySelector("app=web")
+	_, _ = r.GetIngress("web")
+	_, _ = r.ListIngresses()
+	_, _ = r.ListIngressClasses()
+	_, _ = r.GetPVC("data")
+	_, _ = r.ListPVCs()
+	_, _ = r.ListStorageClasses()
+	_, _ = r.ConfigMapDates("conf")
+	want := [][]string{
+		withScope("get", "service", "web", "-o", "json"),
+		withScope("get", "services", "-o", "json"),
+		withScope("get", "endpointslices", "-l", "kubernetes.io/service-name=web", "-o", "json"),
+		withScope("get", "endpointslices", "-o", "json"),
+		withScope("get", "deployments", "-o", "json"),
+		withScope("get", "replicasets", "-l", "app=web", "-o", "json"),
+		withScope("get", "ingress", "web", "-o", "json"),
+		withScope("get", "ingresses", "-o", "json"),
+		withScope("get", "ingressclasses", "-o", "json"),
+		withScope("get", "pvc", "data", "-o", "json"),
+		withScope("get", "pvc", "-o", "json"),
+		withScope("get", "storageclasses", "-o", "json"),
+		withScope("get", "configmap", "conf", "--show-managed-fields", "-o", "jsonpath="+ConfigMapDatesPath),
+	}
+	got := calls(t, log)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatalf("lectures (-attendu +obtenu) :\n%s", diff)
+	}
+	for _, c := range got {
+		if c[1] != "get" {
+			t.Errorf("verbe interdit : %v", c)
+		}
+		for _, a := range c {
+			switch a {
+			case "secret", "secrets", "describe", "exec", "port-forward", "-A", "--all-namespaces":
+				t.Errorf("argument interdit %q : %v", a, c)
+			}
+		}
+		if c[2] == "configmap" && !strings.HasPrefix(c[len(c)-len(scope)-1], "jsonpath=") {
+			t.Errorf("une ConfigMap ne se lit que par ses dates : %v", c)
+		}
+	}
+}
+
 // Les seules fonctions publiques du lecteur sont celles de la liste fermée : en ajouter une
 // impose de mettre à jour ce test (et research.md R8).
 func TestNoOtherReads(t *testing.T) {
@@ -108,7 +160,12 @@ func TestNoOtherReads(t *testing.T) {
 		methods = append(methods, rt.Method(i).Name)
 	}
 	sort.Strings(methods)
-	want := []string{"GetDeployment", "GetPod", "ListPods", "Logs", "PodEvents", "PodsBySelector"}
+	want := []string{
+		"ConfigMapDates", "GetDeployment", "GetIngress", "GetPVC", "GetPod", "GetService",
+		"ListDeployments", "ListEndpointSlices", "ListIngressClasses", "ListIngresses", "ListPVCs",
+		"ListPods", "ListServices", "ListStorageClasses", "Logs", "PodEvents", "PodsBySelector",
+		"ReplicaSetsBySelector", "ServiceEndpointSlices",
+	}
 	if diff := cmp.Diff(want, methods); diff != "" {
 		t.Errorf("méthodes publiques (-attendu +obtenu) :\n%s", diff)
 	}

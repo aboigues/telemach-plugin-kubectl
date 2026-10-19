@@ -1,0 +1,26 @@
+✖ L'Ingress « web » existe, mais aucun contrôleur d'Ingress n'est installé dans ce cluster.
+   ingress web · namespace demo
+
+   ✖ classe             aucune classe d'Ingress dans le cluster
+   ✔ backends           / : service/hello:80
+   · adresse            non vérifié
+
+📘 Concept — contrôleur d'Ingress
+   Un Ingress n'est qu'une liste de règles HTTP. Il ne fait rien seul : un
+   contrôleur d'Ingress, installé dans le cluster et déclaré par un objet
+   IngressClass, lit ces règles et configure le proxy qui reçoit le trafic.
+
+🔎 Cause probable
+   Le cluster ne contient aucune IngressClass : aucun contrôleur ne lira
+   l'Ingress, qui restera sans adresse. Ce n'est pas une erreur de l'Ingress
+   lui-même ; un contrôleur doit être installé par l'administrateur du cluster
+   (le choix dépend de l'environnement).
+
+💡 Corrections
+   1. Vérifier qu'aucune classe d'Ingress n'existe.
+      kubectl get ingressclasses
+   2. En attendant un contrôleur, tester l'application par le Service avec un
+      transfert de port.
+      kubectl port-forward service/hello 8080:80 -n demo
+
+➜ Pour aller plus loin : kubectl telemach deepen

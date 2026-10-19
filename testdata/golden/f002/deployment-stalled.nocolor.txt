@@ -1,0 +1,58 @@
+✖ Le déploiement de « stalled » est bloqué, sa nouvelle version ne démarre pas.
+   deployment stalled · namespace demo · 1 réplique · rollout bloqué
+
+   ✖ rollout            nouvelle version : nginxinc/nginx-unprivileged:0.0.0-inexistant (0/1 prêt(s))
+                        version précédente : nginxinc/nginx-unprivileged:1.30-alpine (1 prêt(s))
+   ✔ image              app : nginxinc/nginx-unprivileged:0.0.0-inexistant
+   ✔ configuration      aucune ConfigMap ni Secret figé au démarrage
+
+📘 Concept — rollout
+   Un Deployment remplace ses pods version par version : il crée un nouveau
+   ReplicaSet et n'arrête les anciens pods qu'à mesure que les nouveaux sont
+   prêts. Tant que la nouvelle version n'est pas prête, l'ancienne continue de
+   servir.
+
+🔎 Cause probable
+   Les pods de la nouvelle version
+   (nginxinc/nginx-unprivileged:0.0.0-inexistant) ne sont pas prêts après
+   l'échéance de 30 s : le pod « stalled-54db4dc9bb-dblk9 » est en
+   ImagePullBackOff. L'ancienne version
+   (nginxinc/nginx-unprivileged:1.30-alpine, 1 pod(s) prêt(s)) répond toujours :
+   c'est pourquoi l'application semble fonctionner. Kubernetes ne revient pas en
+   arrière de lui-même.
+
+💡 Corrections
+   1. Comprendre pourquoi le nouveau pod ne démarre pas.
+      kubectl telemach diagnose pod/stalled-54db4dc9bb-dblk9 -n demo
+   2. Corriger le manifeste puis le réappliquer ; ou, si tu préfères revenir
+      tout de suite à la version précédente, la restaurer.
+      kubectl rollout undo deployment/stalled -n demo
+   3. Suivre ensuite le déploiement jusqu'au bout.
+      kubectl rollout status deployment/stalled -n demo
+
+── Pod en difficulté de la nouvelle version ──
+✖ Le pod « stalled-54db4dc9bb-dblk9 » ne démarre pas, son image « nginxinc/nginx-unprivileged:0.0.0-inexistant » ne peut pas être téléchargée.
+   pod stalled-54db4dc9bb-dblk9 · namespace demo · ReplicaSet/stalled-54db4dc9bb · image nginxinc/nginx-unprivileged:0.0.0-inexistant · état ImagePullBackOff
+
+📘 Concept — image pull
+   Avant de démarrer un conteneur, le nœud télécharge son image depuis un
+   registre. En cas d'échec, Kubernetes réessaie à intervalles croissants
+   (BackOff).
+
+🔎 Cause probable
+   Le nœud n'arrive pas à télécharger l'image : nom ou tag inexistant, registre
+   privé sans identifiants (imagePullSecrets), ou registre injoignable. Message
+   du nœud : « Back-off pulling image
+   "nginxinc/nginx-unprivileged:0.0.0-inexistant": ErrImagePull: rpc error: code
+   = NotFound desc = failed to pull and unpack image
+   "docker.io/nginxinc/nginx-unprivileged:0.0.0-inexistant": failed to … ».
+
+💡 Corrections
+   1. Vérifier le nom et le tag de l'image sur son registre (Docker Hub, GHCR…),
+      puis corriger le manifeste et l'appliquer de nouveau.
+      kubectl get pod stalled-54db4dc9bb-dblk9 -n demo -o jsonpath='{.spec.containers[*].image}'
+   2. Pour une image privée, créer un Secret d'accès au registre à partir de ta
+      configuration Docker, puis le référencer dans imagePullSecrets.
+      kubectl create secret generic registre --from-file=.dockerconfigjson=$HOME/.docker/config.json --type=kubernetes.io/dockerconfigjson -n demo
+
+➜ Pour aller plus loin : kubectl telemach deepen

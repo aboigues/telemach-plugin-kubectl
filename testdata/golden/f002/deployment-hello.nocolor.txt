@@ -1,0 +1,22 @@
+✔ Le Deployment « hello » est entièrement déployé, 2/2 pod(s) prêt(s).
+   deployment hello · namespace demo · 2 répliques · rollout terminé
+
+   ✔ rollout            nouvelle version : nginxinc/nginx-unprivileged:1.30-alpine (2/2 prêt(s))
+   ✔ image              hello : nginxinc/nginx-unprivileged:1.30-alpine
+   ✔ configuration      aucune ConfigMap ni Secret figé au démarrage
+
+📘 Concept — rollout
+   Un rollout est terminé quand tous les pods de la version demandée sont prêts
+   : le Deployment ne garde plus de pod d'une version précédente.
+
+   La version en service est nginxinc/nginx-unprivileged:1.30-alpine. Si
+   l'application ne répond pas, le problème est sans doute en aval : vérifie le
+   Service qui l'expose.
+
+▶ Pour tester
+   1. Voir l'historique des versions de ce Deployment.
+      kubectl rollout history deployment/hello -n demo
+   2. Vérifier les Services du namespace.
+      kubectl get services -n demo
+
+➜ Pour aller plus loin : kubectl telemach deepen

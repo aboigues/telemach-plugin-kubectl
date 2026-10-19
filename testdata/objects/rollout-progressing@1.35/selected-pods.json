@@ -1,0 +1,260 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "creationTimestamp": "2026-10-17T19:35:22Z",
+        "generateName": "slow-64874cf844-",
+        "generation": 1,
+        "labels": {
+          "app": "slow",
+          "pod-template-hash": "64874cf844"
+        },
+        "name": "slow-64874cf844-8tj9w",
+        "namespace": "demo",
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "ReplicaSet",
+            "name": "slow-64874cf844",
+            "uid": "15968b98-26b1-4540-b666-bf6145d4c9ae"
+          }
+        ],
+        "resourceVersion": "846",
+        "uid": "58e8283c-938a-4343-9fb8-e4d1fd335aee"
+      },
+      "spec": {
+        "containers": [
+          {
+            "image": "nginxinc/nginx-unprivileged:1.30-alpine",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "app",
+            "ports": [
+              {
+                "containerPort": 8080,
+                "protocol": "TCP"
+              }
+            ],
+            "readinessProbe": {
+              "failureThreshold": 3,
+              "httpGet": {
+                "path": "/",
+                "port": 8080,
+                "scheme": "HTTP"
+              },
+              "initialDelaySeconds": 300,
+              "periodSeconds": 10,
+              "successThreshold": 1,
+              "timeoutSeconds": 1
+            },
+            "resources": {
+              "limits": {
+                "cpu": "100m",
+                "memory": "64Mi"
+              },
+              "requests": {
+                "cpu": "10m",
+                "memory": "16Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-st7n4",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": true,
+        "nodeName": "telemach-525b01-control-plane",
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "restartPolicy": "Always",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "runAsNonRoot": true,
+          "runAsUser": 65534
+        },
+        "serviceAccount": "default",
+        "serviceAccountName": "default",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          }
+        ],
+        "volumes": [
+          {
+            "name": "kube-api-access-st7n4",
+            "projected": {
+              "defaultMode": 420,
+              "sources": [
+                {
+                  "serviceAccountToken": {
+                    "expirationSeconds": 3607,
+                    "path": "token"
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "name": "kube-root-ca.crt"
+                  }
+                },
+                {
+                  "downwardAPI": {
+                    "items": [
+                      {
+                        "fieldRef": {
+                          "apiVersion": "v1",
+                          "fieldPath": "metadata.namespace"
+                        },
+                        "path": "namespace"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-10-17T19:35:24Z",
+            "observedGeneration": 1,
+            "status": "True",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-10-17T19:35:22Z",
+            "observedGeneration": 1,
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-10-17T19:35:22Z",
+            "message": "containers with unready status: [app]",
+            "observedGeneration": 1,
+            "reason": "ContainersNotReady",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-10-17T19:35:22Z",
+            "message": "containers with unready status: [app]",
+            "observedGeneration": 1,
+            "reason": "ContainersNotReady",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-10-17T19:35:22Z",
+            "observedGeneration": 1,
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "allocatedResources": {
+              "cpu": "10m",
+              "memory": "16Mi"
+            },
+            "containerID": "containerd://32d6404a63eb5eadfe0eede6c2a725b383f996b08ad16efbf9b987e76b248e70",
+            "image": "docker.io/nginxinc/nginx-unprivileged:1.30-alpine",
+            "imageID": "docker.io/nginxinc/nginx-unprivileged@sha256:782bb89768cc87b7f95c18b95baa1af250e5d451f26794f59363540161147c01",
+            "lastState": {},
+            "name": "app",
+            "ready": false,
+            "resources": {
+              "limits": {
+                "cpu": "100m",
+                "memory": "64Mi"
+              },
+              "requests": {
+                "cpu": "10m",
+                "memory": "16Mi"
+              }
+            },
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-10-17T19:35:23Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 65534,
+                "supplementalGroups": [
+                  65534
+                ],
+                "uid": 65534
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-st7n4",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          }
+        ],
+        "hostIP": "172.18.0.2",
+        "hostIPs": [
+          {
+            "ip": "172.18.0.2"
+          }
+        ],
+        "observedGeneration": 1,
+        "phase": "Running",
+        "podIP": "10.244.0.14",
+        "podIPs": [
+          {
+            "ip": "10.244.0.14"
+          }
+        ],
+        "qosClass": "Burstable",
+        "startTime": "2026-10-17T19:35:22Z"
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

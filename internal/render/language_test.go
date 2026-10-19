@@ -9,7 +9,8 @@ import (
 	"github.com/aboigues/telemach-plugin-kubectl/internal/testcorpus"
 )
 
-// goldenFiles renvoie tous les rendus de référence (US1 à US4), en couleur et sans couleur.
+// goldenFiles renvoie tous les rendus de référence (US1 à US4 de la feature 001, et ceux de la
+// feature 002), en couleur et sans couleur.
 func goldenFiles(t *testing.T) map[string]string {
 	t.Helper()
 	root := filepath.Join("..", "..", "testdata", "golden")
@@ -26,7 +27,7 @@ func goldenFiles(t *testing.T) map[string]string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, us := range []string{"us1", "us2", "us3", "us4"} {
+	for _, us := range []string{"us1", "us2", "us3", "us4", "f002"} {
 		found := false
 		for name := range out {
 			found = found || strings.HasPrefix(name, us+string(filepath.Separator))

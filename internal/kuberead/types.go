@@ -27,6 +27,7 @@ type ObjectMeta struct {
 	CreationTimestamp time.Time         `json:"creationTimestamp"`
 	Labels            map[string]string `json:"labels"`
 	OwnerReferences   []OwnerReference  `json:"ownerReferences"`
+	Generation        int               `json:"generation"`
 }
 
 // OwnerReference désigne l'objet propriétaire (ReplicaSet d'un deployment, par exemple).
@@ -35,22 +36,54 @@ type OwnerReference struct {
 	Name string `json:"name"`
 }
 
-// PodSpec est réduit aux conteneurs et au placement.
+// PodSpec est réduit aux conteneurs, au placement et aux volumes (références seulement).
 type PodSpec struct {
 	Containers     []Container       `json:"containers"`
 	InitContainers []Container       `json:"initContainers"`
 	NodeSelector   map[string]string `json:"nodeSelector"`
 	RestartPolicy  string            `json:"restartPolicy"`
+	Volumes        []Volume          `json:"volumes"`
+}
+
+// Volume ne garde que les noms des objets référencés (ConfigMap, Secret, PVC), jamais leur
+// contenu (feature 002, data-model.md).
+type Volume struct {
+	Name      string `json:"name"`
+	ConfigMap *struct {
+		Name string `json:"name"`
+	} `json:"configMap"`
+	Secret *struct {
+		SecretName string `json:"secretName"`
+	} `json:"secret"`
+	PersistentVolumeClaim *struct {
+		ClaimName string `json:"claimName"`
+	} `json:"persistentVolumeClaim"`
+}
+
+// ContainerPort est un port déclaré par un conteneur.
+type ContainerPort struct {
+	Name          string `json:"name"`
+	ContainerPort int    `json:"containerPort"`
+	Protocol      string `json:"protocol"`
+}
+
+// VolumeMount est un montage de volume ; SubPath compte pour la configuration figée (S3).
+type VolumeMount struct {
+	Name      string `json:"name"`
+	MountPath string `json:"mountPath"`
+	SubPath   string `json:"subPath"`
 }
 
 // Container est réduit : noms des variables et références aux Secret et ConfigMap, jamais
 // les valeurs.
 type Container struct {
-	Name      string          `json:"name"`
-	Image     string          `json:"image"`
-	Env       []EnvVar        `json:"env"`
-	EnvFrom   []EnvFromSource `json:"envFrom"`
-	Resources struct {
+	Name         string          `json:"name"`
+	Image        string          `json:"image"`
+	Env          []EnvVar        `json:"env"`
+	EnvFrom      []EnvFromSource `json:"envFrom"`
+	Ports        []ContainerPort `json:"ports"`
+	VolumeMounts []VolumeMount   `json:"volumeMounts"`
+	Resources    struct {
 		Requests map[string]string `json:"requests"`
 		Limits   map[string]string `json:"limits"`
 	} `json:"resources"`
@@ -87,6 +120,7 @@ type NameRef struct {
 
 // PodStatus est le statut observé du pod.
 type PodStatus struct {
+	StartTime             *time.Time        `json:"startTime"`
 	Phase                 string            `json:"phase"`
 	Reason                string            `json:"reason"`
 	Message               string            `json:"message"`
@@ -133,14 +167,55 @@ type StateDetail struct {
 	FinishedAt time.Time `json:"finishedAt"`
 }
 
-// Deployment est réduit au selector.
+// Deployment est réduit au selector, au modèle de pod (conteneurs sans valeur d'env) et à
+// l'état du rollout (feature 002, research.md S5).
 type Deployment struct {
-	Metadata ObjectMeta `json:"metadata"`
-	Spec     struct {
-		Selector struct {
-			MatchLabels map[string]string `json:"matchLabels"`
-		} `json:"selector"`
-	} `json:"spec"`
+	Metadata ObjectMeta       `json:"metadata"`
+	Spec     DeploymentSpec   `json:"spec"`
+	Status   DeploymentStatus `json:"status"`
+}
+
+// DeploymentList est la réponse de « get deployments -o json ».
+type DeploymentList struct {
+	Items []Deployment `json:"items"`
+}
+
+// DeploymentSpec est la partie utile de spec.
+type DeploymentSpec struct {
+	Replicas *int `json:"replicas"`
+	Selector struct {
+		MatchLabels map[string]string `json:"matchLabels"`
+	} `json:"selector"`
+	Paused                  bool        `json:"paused"`
+	ProgressDeadlineSeconds *int        `json:"progressDeadlineSeconds"`
+	Template                PodTemplate `json:"template"`
+}
+
+// PodTemplate est le modèle de pod d'un Deployment ou d'un ReplicaSet.
+type PodTemplate struct {
+	Metadata struct {
+		Labels map[string]string `json:"labels"`
+	} `json:"metadata"`
+	Spec PodSpec `json:"spec"`
+}
+
+// DeploymentStatus est l'état observé d'un rollout.
+type DeploymentStatus struct {
+	ObservedGeneration int                   `json:"observedGeneration"`
+	Replicas           int                   `json:"replicas"`
+	UpdatedReplicas    int                   `json:"updatedReplicas"`
+	ReadyReplicas      int                   `json:"readyReplicas"`
+	AvailableReplicas  int                   `json:"availableReplicas"`
+	Conditions         []DeploymentCondition `json:"conditions"`
+}
+
+// DeploymentCondition est une condition d'un Deployment (Available, Progressing…).
+type DeploymentCondition struct {
+	Type           string    `json:"type"`
+	Status         string    `json:"status"`
+	Reason         string    `json:"reason"`
+	Message        string    `json:"message"`
+	LastUpdateTime time.Time `json:"lastUpdateTime"`
 }
 
 // EventList est la réponse de « get events -o json ».

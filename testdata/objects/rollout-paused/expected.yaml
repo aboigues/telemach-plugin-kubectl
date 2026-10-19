@@ -1,0 +1,6 @@
+# Attendu du diagnostic (feature 002, T031), rédigé à la main d'après le relevé réel.
+kind: deployment
+name: paused
+primary: rollout.paused
+phase: paused
+links: {rollout: ok, image: ok, config: ok}

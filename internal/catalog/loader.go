@@ -50,6 +50,7 @@ func Load(fsys fs.FS) (*Catalog, error) {
 	}
 	sort.Strings(files)
 	c := &Catalog{byID: map[string]*Entry{}}
+	pitfallOwner := map[string]string{}
 	var errs []error
 	for _, f := range files {
 		data, err := fs.ReadFile(fsys, f)
@@ -69,6 +70,12 @@ func Load(fsys fs.FS) (*Catalog, error) {
 			}
 			if _, dup := c.byID[e.ID]; dup {
 				errs = append(errs, fmt.Errorf("%s : identifiant en double : %s", f, e.ID))
+			}
+			for _, p := range e.Pitfalls {
+				if owner, dup := pitfallOwner[p]; dup {
+					errs = append(errs, fmt.Errorf("%s : %s : piège %q déjà couvert par %s", f, e.ID, p, owner))
+				}
+				pitfallOwner[p] = e.ID
 			}
 			c.byID[e.ID] = e
 			c.Entries = append(c.Entries, e)
@@ -97,8 +104,8 @@ func validate(e *Entry) []error {
 	if !Categories[e.Category] {
 		fail("catégorie inconnue %q", e.Category)
 	}
-	if len(e.Patterns) == 0 && len(e.ExitCodes) == 0 && len(e.PodReasons) == 0 && e.Fallback == "" {
-		fail("au moins un motif est requis (ou pod_reasons, exit_codes, ou fallback)")
+	if len(e.Patterns) == 0 && len(e.ExitCodes) == 0 && len(e.PodReasons) == 0 && len(e.Pitfalls) == 0 && e.Fallback == "" {
+		fail("au moins un motif est requis (ou pod_reasons, exit_codes, pitfalls, ou fallback)")
 	}
 	if e.Fallback != "" && e.Fallback != FallbackApplication && e.Fallback != FallbackManifestIssue {
 		fail("fallback inconnu %q (valeurs possibles : application, manifest-issue)", e.Fallback)
@@ -161,8 +168,26 @@ func validate(e *Entry) []error {
 		if _, err := template.New("").Parse(tpl); err != nil {
 			fail("gabarit invalide %q : %v", tpl, err)
 		}
+		if strings.Contains(tpl, "get e") && deprecatedEndpoints.MatchString(tpl) {
+			fail("« get endpoints » utilise l'API Endpoints, dépréciée depuis Kubernetes 1.33 : proposer get endpointslices -l kubernetes.io/service-name=<nom> (EndpointSlice, FR-032)")
+		}
 	}
 	return errs
+}
+
+// deprecatedEndpoints reconnaît une commande qui lit l'API Endpoints (et non EndpointSlice).
+var deprecatedEndpoints = regexp.MustCompile(`\bget (?:endpoints|ep)\b`)
+
+// ByPitfall renvoie l'entrée qui couvre un piège silencieux (feature 002).
+func (c *Catalog) ByPitfall(id string) (*Entry, bool) {
+	for _, e := range c.Entries {
+		for _, p := range e.Pitfalls {
+			if p == id {
+				return e, true
+			}
+		}
+	}
+	return nil, false
 }
 
 func fixTexts(e *Entry) []string {

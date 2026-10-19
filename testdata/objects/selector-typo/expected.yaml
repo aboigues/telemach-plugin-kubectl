@@ -1,0 +1,6 @@
+# Attendu du diagnostic (feature 002, T023), rédigé à la main d'après le relevé réel.
+kind: service
+name: web
+primary: service.no-matching-pods
+links: {type: ok, selector: broken, readiness: skipped, endpoints: ok, ports: skipped}
+closest: [app=frontend]

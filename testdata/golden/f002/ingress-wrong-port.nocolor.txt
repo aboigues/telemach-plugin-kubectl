@@ -1,0 +1,30 @@
+✖ La règle « / » de l'Ingress « wrong-port » vise le port 8080 du Service « hello », qui ne l'expose pas.
+   ingress wrong-port · namespace demo
+
+   ✔ classe             ingressClassName : demo (contrôleur example.com/telemach-demo)
+   ✖ backends           / : service/hello : port 8080 non exposé
+   ✖ adresse            aucune adresse attribuée
+
+📘 Concept — port d'un backend
+   Un backend d'Ingress désigne un Service et l'un de ses ports, par numéro ou
+   par nom. Ce port est celui du Service (spec.ports[].port), pas celui du
+   conteneur.
+
+🔎 Cause probable
+   Le Service « hello » expose 80. Le port de la règle est souvent confondu avec
+   le port du conteneur (targetPort).
+
+💡 Corrections
+   1. Lire les ports du Service.
+      kubectl get service hello -o jsonpath='{.spec.ports}' -n demo
+   2. Corriger backend.service.port dans la règle avec un port du Service,
+      réappliquer, puis relire les backends de l'Ingress.
+      kubectl describe ingress wrong-port -n demo
+   3. Vérifier ensuite le Service lui-même.
+      kubectl telemach diagnose service/hello -n demo
+
+Autres points relevés
+   ⚠ L'Ingress « wrong-port » n'a pas d'adresse, son contrôleur ne l'a pas
+   encore traité.
+
+➜ Pour aller plus loin : kubectl telemach deepen

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -14,6 +13,7 @@ import (
 	"github.com/aboigues/telemach-plugin-kubectl/internal/command"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/diagnose"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/kuberead"
+	"github.com/aboigues/telemach-plugin-kubectl/internal/pitfall"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/render"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/state"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/textdist"
@@ -24,8 +24,8 @@ import (
 func (a *app) diagnoseCommand() *cobra.Command {
 	var scope kuberead.Scope
 	cmd := &cobra.Command{
-		Use:   "diagnose [pod/<nom> | deployment/<nom> | <nom de pod>] [-n <ns>] [--context <ctx>] [--kubeconfig <chemin>]",
-		Short: "Diagnostique, en lecture seule, les pods qui ne démarrent pas",
+		Use:   "diagnose [pod/<nom> | service/<nom> | deployment/<nom> | ingress/<nom> | pvc/<nom> | <nom>] [-n <ns>] [--context <ctx>] [--kubeconfig <chemin>]",
+		Short: "Diagnostique, en lecture seule, les pods et les objets qui ne fonctionnent pas",
 		Long: `Sans argument, repère les pods en difficulté du namespace, explique le plus récent et liste
 les autres. Le plugin lit seulement le statut des pods, leurs événements et la fin du journal
 d'un conteneur en échec, avec ta propre commande kubectl et tes droits ; il ne modifie rien.`,
@@ -49,12 +49,54 @@ d'un conteneur en échec, avec ta propre commande kubectl et tes droits ; il ne 
 	return cmd
 }
 
+// supportedTypes est rappelé quand un type n'est pas pris en charge.
+const supportedTypes = "pod/NOM, service/NOM, deployment/NOM, ingress/NOM ou pvc/NOM"
+
+// targetKinds normalise les noms de types acceptés par diagnose (noms courts et pluriels
+// compris, comme kubectl).
+var targetKinds = map[string]string{
+	"pod": "pod", "po": "pod", "pods": "pod",
+	"service": "service", "svc": "service", "services": "service",
+	"deployment": "deployment", "deploy": "deployment", "deployments": "deployment", "deployment.apps": "deployment",
+	"ingress": "ingress", "ing": "ingress", "ingresses": "ingress", "ingress.networking.k8s.io": "ingress",
+	"pvc": "pvc", "persistentvolumeclaim": "pvc", "persistentvolumeclaims": "pvc",
+}
+
+// parseTarget découpe l'argument de diagnose : « type/nom », ou un nom sans type (kind vide).
+// ok est faux pour un type non pris en charge ou un nom vide.
+func parseTarget(target string) (kind, name string, ok bool) {
+	if target == "" {
+		return "", "", true
+	}
+	k, n, typed := strings.Cut(target, "/")
+	if !typed {
+		return "", k, true
+	}
+	if norm, known := targetKinds[strings.ToLower(k)]; known {
+		return norm, n, n != ""
+	}
+	return strings.ToLower(k), n, false
+}
+
 func (a *app) diagnose(w io.Writer, r *kuberead.Reader, cat *catalog.Catalog, target string, opts render.Options) error {
-	kind, name, _ := strings.Cut(target, "/")
-	if name == "" {
-		kind, name = "pod", kind
+	kind, name, ok := parseTarget(target)
+	if !ok {
+		fmt.Fprintln(w, opts.Theme.Title(render.SymbolError+" « "+target+" » n'est pas pris en charge par diagnose : utilise "+supportedTypes+"."))
+		return exitError{code: 2}
+	}
+	if kind == "" && name != "" {
+		resolved, err := a.resolveName(w, r, name, opts)
+		if err != nil || resolved == "" {
+			return err
+		}
+		kind = resolved
+	}
+	switch kind {
+	case "service", "deployment", "ingress", "pvc":
+		return a.diagnoseObject(w, r, cat, pitfall.Kind(kind), name, opts)
 	}
 	var candidates []workload.Candidate
+	var allPods []kuberead.Pod // pods du namespace (diagnose sans argument)
 	label := ""
 	switch {
 	case target == "":
@@ -62,9 +104,10 @@ func (a *app) diagnose(w io.Writer, r *kuberead.Reader, cat *catalog.Catalog, ta
 		if err != nil {
 			return a.readFailure(w, err, []string{"get", "pods"}, r.Scope, cat, opts)
 		}
+		allPods = pods.Items
 		candidates = workload.SelectFailing(pods.Items, a.now())
 		label = "dans le namespace " + nsLabel(r.Scope)
-	case kind == "pod" || kind == "po" || kind == "pods":
+	case kind == "pod":
 		pod, err := r.GetPod(name)
 		if kuberead.IsNotFound(err) {
 			return a.notFound(w, r, "pod", name, opts)
@@ -74,24 +117,6 @@ func (a *app) diagnose(w io.Writer, r *kuberead.Reader, cat *catalog.Catalog, ta
 		}
 		snap, d := workload.Diagnose(r, pod, r.Scope, cat, a.now())
 		return a.showPod(w, snap, d, opts)
-	case kind == "deployment" || kind == "deploy" || kind == "deployments":
-		dep, err := r.GetDeployment(name)
-		if kuberead.IsNotFound(err) {
-			fmt.Fprintln(w, opts.Theme.Title(render.SymbolError+" Le deployment « "+name+" » est introuvable dans le namespace "+nsLabel(r.Scope)+"."))
-			return exitError{code: 2}
-		}
-		if err != nil {
-			return a.readFailure(w, err, []string{"get", "deployment", name}, r.Scope, cat, opts)
-		}
-		pods, err := r.PodsBySelector(selector(dep.Spec.Selector.MatchLabels))
-		if err != nil {
-			return a.readFailure(w, err, []string{"get", "pods"}, r.Scope, cat, opts)
-		}
-		candidates = workload.SelectFailing(pods.Items, a.now())
-		label = "pour deployment/" + name
-	default:
-		fmt.Fprintln(w, opts.Theme.Title(render.SymbolError+" « "+kind+" » n'est pas pris en charge par diagnose : utilise pod/NOM ou deployment/NOM."))
-		return exitError{code: 2}
 	}
 	// Le plus récent est expliqué ; un pod qui s'avère simplement en démarrage (aucune sonde en
 	// échec dans ses événements) est écarté au profit du suivant.
@@ -106,11 +131,119 @@ func (a *app) diagnose(w io.Writer, r *kuberead.Reader, cat *catalog.Catalog, ta
 			}
 			snap.Others = append(snap.Others, workload.PodSummary{Name: other.Pod.Metadata.Name, Reason: other.Class.Reason})
 		}
-		return a.showPod(w, snap, d, opts)
+		if err := a.showPod(w, snap, d, opts); err != nil {
+			return err
+		}
+		if target == "" {
+			return a.showSummaries(w, r, cat, allPods, pitfall.MaxSummaries-len(snap.Others), opts)
+		}
+		return nil
 	}
 	fmt.Fprintln(w, opts.Theme.Success(render.SymbolSuccess+" Aucun pod en difficulté "+label+"."))
 	fmt.Fprintln(w, render.Wrap("Pour un autre namespace : « kubectl telemach diagnose -n NAMESPACE ». "+
 		"Un pod encore en cours de création n'est pas signalé.", opts.Width, "   "))
+	if target == "" {
+		return a.showSummaries(w, r, cat, allPods, pitfall.MaxSummaries, opts)
+	}
+	return nil
+}
+
+// showSummaries liste, après les pods, les autres objets en difficulté du namespace (FR-015).
+// Une lecture refusée est signalée sans empêcher le reste de la liste.
+func (a *app) showSummaries(w io.Writer, r *kuberead.Reader, cat *catalog.Catalog, pods []kuberead.Pod, limit int, opts render.Options) error {
+	ctx := pitfall.Context{Reader: r, Scope: r.Scope, Catalog: cat, Now: a.now()}
+	list, denied := pitfall.Summaries(ctx, pods, limit)
+	captures := map[string]string{"kubectl": "kubectl", "scope": r.Scope.Flags()}
+	if err := render.RenderObjectSummaries(w, list, cat, captures, opts); err != nil {
+		return err
+	}
+	if len(denied) > 0 {
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, opts.Theme.Cause(render.LabelPartial))
+		fmt.Fprintln(w, render.Wrap("Lecture refusée par RBAC : "+strings.Join(denied, ", ")+" ; ces objets n'ont pas été vérifiés.", opts.Width, "   "))
+	}
+	return nil
+}
+
+// resolveName cherche un nom sans type parmi les pods, Services et Deployments (FR-016) : un
+// seul objet trouvé donne son type ; plusieurs, la liste des objets à copier (code 2) ; aucun,
+// le message de pod introuvable de la feature 001.
+func (a *app) resolveName(w io.Writer, r *kuberead.Reader, name string, opts render.Options) (string, error) {
+	type lookup struct {
+		kind string
+		get  func() error
+	}
+	lookups := []lookup{
+		{"pod", func() error { _, err := r.GetPod(name); return err }},
+		{"service", func() error { _, err := r.GetService(name); return err }},
+		{"deployment", func() error { _, err := r.GetDeployment(name); return err }},
+	}
+	var found []string
+	for _, l := range lookups {
+		err := l.get()
+		switch {
+		case err == nil:
+			found = append(found, l.kind)
+		case !kuberead.IsNotFound(err):
+			// Lecture impossible (cluster injoignable, droits) : le diagnostic de pod l'expliquera.
+			return "pod", nil
+		}
+	}
+	switch len(found) {
+	case 0:
+		return "", a.notFound(w, r, "pod", name, opts)
+	case 1:
+		return found[0], nil
+	}
+	t := opts.Theme
+	fmt.Fprintln(w, t.Title(render.SymbolError+" « "+name+" » désigne plusieurs objets du namespace "+nsLabel(r.Scope)+" : précise son type."))
+	for _, k := range found {
+		cmd := "kubectl telemach diagnose " + k + "/" + name + strings.TrimRight(" "+r.Scope.Flags(), " ")
+		fmt.Fprintln(w, "   • "+k+"/"+name)
+		fmt.Fprintln(w, "     "+t.Highlight(cmd, "bash"))
+	}
+	return "", exitError{code: 2}
+}
+
+// diagnoseObject diagnostique un Service, un Deployment, un Ingress ou un PVC (feature 002).
+func (a *app) diagnoseObject(w io.Writer, r *kuberead.Reader, cat *catalog.Catalog, kind pitfall.Kind, name string, opts render.Options) error {
+	snap, err := pitfall.Diagnose(pitfall.Context{Reader: r, Scope: r.Scope, Catalog: cat, Now: a.now()}, kind, name)
+	switch {
+	case errors.Is(err, pitfall.ErrNotYet):
+		fmt.Fprintln(w, opts.Theme.Title(render.SymbolError+" Le diagnostic des objets de type « "+string(kind)+" » n'est pas encore disponible : utilise "+supportedTypes+"."))
+		return exitError{code: 2}
+	case kuberead.IsNotFound(err):
+		fmt.Fprintln(w, opts.Theme.Title(render.SymbolError+" L'objet "+string(kind)+"/"+name+" est introuvable dans le namespace "+nsLabel(r.Scope)+"."))
+		fmt.Fprintln(w, "   "+opts.Theme.Highlight("kubectl get "+string(kind)+strings.TrimRight(" "+r.Scope.Flags(), " "), "bash"))
+		return exitError{code: 2}
+	case err != nil:
+		return a.readFailure(w, err, []string{"get", string(kind), name}, r.Scope, cat, opts)
+	}
+	return a.showObject(w, snap, cat, opts)
+}
+
+// showObject affiche le diagnostic d'un objet et l'enregistre comme dernier diagnostic.
+func (a *app) showObject(w io.Writer, snap pitfall.ObjectSnapshot, cat *catalog.Catalog, opts render.Options) error {
+	if err := render.RenderObject(w, snap, cat, opts); err != nil {
+		return err
+	}
+	last := state.LastDiagnosis{
+		Fingerprint: string(snap.Kind) + "/" + snap.Namespace + "/" + snap.Name, RecordedAt: a.now(),
+		Source: state.SourceObject, Args: []string{"telemach", "diagnose", string(snap.Kind) + "/" + snap.Name},
+	}
+	if p := snap.Primary(); p != nil {
+		last.Captures = snap.LessonCaptures(*p)
+		if e, ok := cat.ByPitfall(p.ID); ok {
+			last.EntryID = e.ID
+		}
+	} else if f := snap.Failing; f != nil {
+		// Leçon du pod en difficulté quand l'objet lui-même n'a aucun piège (PVC).
+		last.Captures, last.EntryID, last.Origin = f.Captures, f.Entry, f.Origin
+	}
+	if data, err := json.Marshal(snap); err == nil {
+		last.Object = data
+	}
+	_ = a.store.Save(last)
 	return nil
 }
 
@@ -187,18 +320,4 @@ func scopeArgs(s kuberead.Scope) []string {
 		return strings.Fields(f)
 	}
 	return nil
-}
-
-// selector écrit les labels d'un selector sous la forme « clé=valeur,… ».
-func selector(labels map[string]string) string {
-	keys := make([]string, 0, len(labels))
-	for k := range labels {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	parts := make([]string, len(keys))
-	for i, k := range keys {
-		parts[i] = k + "=" + labels[k]
-	}
-	return strings.Join(parts, ",")
 }

@@ -1,0 +1,25 @@
+[3;38;2;125;207;255mℹ L'image « nginxinc/nginx-unprivileged » n'a pas de tag explicite, un nouvel apply ne la mettra pas à jour.[m
+   [2;38;2;138;143;152mdeployment latest-app · namespace demo · 1 réplique · rollout terminé[m
+
+   ✔ rollout            nouvelle version : nginxinc/nginx-unprivileged (1/1 prêt(s))
+   ✔ image              app : nginxinc/nginx-unprivileged
+   ✔ configuration      aucune ConfigMap ni Secret figé au démarrage
+
+[1;38;2;122;162;247m📘 Concept — image tag[m
+   Le tag désigne la version d'une image. Un tag comme latest (ou l'absence de
+   tag) peut désigner une autre image d'un jour à l'autre, sans que le manifeste
+   change.
+
+[1;38;2;224;175;104m🔎 Cause probable[m
+   Réappliquer un manifeste dont l'image s'écrit pareil ne crée aucun nouveau
+   pod : pour Kubernetes, rien n'a changé. Les pods existants gardent l'image
+   qu'ils ont téléchargée, même si une nouvelle a été publiée sous le même nom.
+
+[1;38;2;158;206;106m💡 Corrections[m
+   1. Écrire un tag de version explicite dans le manifeste (par exemple
+      1.30-alpine), puis réappliquer.
+      [38;2;248;248;242mkubectl [0m[38;2;248;248;242mset[0m[38;2;248;248;242m image deployment/latest-app [0m[38;2;248;248;242mCONTENEUR[0m[38;2;249;38;114m=[0m[38;2;248;248;242mIMAGE:VERSION -n demo[0m
+   2. Pour une version figée, référencer l'image par son digest (@sha256:…).
+      [38;2;248;248;242mkubectl get pods -l [0m[38;2;248;248;242mapp[0m[38;2;249;38;114m=[0m[38;2;248;248;242mlatest-app -n demo -o [0m[38;2;248;248;242mjsonpath[0m[38;2;249;38;114m=[0m[38;2;230;219;116m'{.items[*].status.containerStatuses[*].imageID}'[0m
+
+[3;38;2;125;207;255m➜ Pour aller plus loin : kubectl telemach deepen[m

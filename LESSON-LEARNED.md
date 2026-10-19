@@ -71,6 +71,52 @@ dans le registre d'origine ; seule la règle préventive, transposée à kubectl
 
 ## Incidents
 
+### LL-006 — Objectif de latence mesuré sous le détecteur de courses
+
+- **Date** : 2026-10-17
+- **Catégorie** : CI/gates
+- **Contexte** : feature 002, ajout de contrôles au chargement du catalogue (FR-032).
+- **Cause racine** : `TestExplainLatency` (objectif interne de SC-003 : 200 ms au p95) tournait
+  dans la gate `test`, compilée avec `-race`, qui ralentit l'exécution d'un facteur 5 à 10.
+  La marge était déjà presque épuisée ; quelques entrées et contrôles de plus ont suffi à
+  dépasser le seuil (225 ms en CI), alors que le binaire réel reste à 7,5 ms.
+- **Impact** : gate `test` rouge sur la PR #3 ; risque de « corriger » par une hausse du
+  seuil, ou d'optimiser à l'aveugle un code qui n'est pas lent.
+- **Correctif** : mesure ignorée sous `-race` (étiquette de build `race`) et lancée dans une
+  étape dédiée de la gate `test`, sans `-race` ; pré-filtre `strings.Contains` avant
+  l'expression régulière du contrôle FR-032.
+- **Règle préventive** : un objectif de performance se mesure sur le binaire tel qu'il est
+  livré, jamais sous un outil d'instrumentation ; avant d'ajuster un seuil ou d'optimiser,
+  comparer avant et après avec un benchmark et un profil.
+- **Complément (2026-10-19)** : `TestWatchLatency` (SC-007) a dépassé 50 ms en CI (bash,
+  58 ms au p95) alors qu'il mesure 4 à 6 ms en local, avant comme après le changement en
+  cause : il tournait en même temps que la mesure de SC-004, qui lance des processus pendant
+  20 s. Les mesures de latence s'exécutent paquet par paquet (`go test -p 1`), jamais en
+  parallèle d'une autre charge.
+- **Suivi** : `internal/diagnose/race_on_test.go` et étape « Objectifs de latence » de
+  `.github/workflows/ci.yml`.
+
+### LL-005 — Dossier de scénarios appliqué en entier avec son fichier d'attentes
+
+- **Date** : 2026-10-17
+- **Catégorie** : processus
+- **Contexte** : préparation des scénarios de la feature 002 (T002), en relisant ceux de la
+  feature 001 à la lumière de LL-004.
+- **Cause racine** : `testdata/pods/scenarios/` contenait `expected.yaml` (défauts tolérés par
+  manifest-lint). Le scénario V13 du quickstart 001 lance
+  `kubectl apply -f testdata/pods/scenarios/` : kubectl lit aussi ce fichier, sans `apiVersion`
+  ni `kind`, et sort en code 1 alors que les pods sont créés. Le test d'intégration appliquait
+  les fichiers un par un : la commande du guide n'était donc pas celle du test (même cause que
+  LL-004, détectée pendant sa correction mais pas cherchée ailleurs).
+- **Impact** : aucun en production ; un apprenant qui suit le guide voit une erreur parasite.
+- **Correctif** : fichier déplacé en `testdata/pods/scenarios.expected.yaml` (hors du dossier),
+  contrôle `manifest-lint` adapté ; même règle pour `testdata/objects/scenarios/`.
+- **Règle préventive** : un dossier de scénarios ne contient que des objets Kubernetes ; quand
+  une leçon révèle un défaut, chercher le même défaut dans tout le dépôt avant de clore
+  l'incident.
+- **Suivi** : `TestScenarioDirsOnlyManifests` (`tests/manifests/lint_test.go`) échoue si un
+  fichier d'un dossier de scénarios n'a pas d'`apiVersion` et de `kind`.
+
 ### LL-004 — Commande du quickstart jamais exécutée telle qu'écrite
 
 - **Date** : 2026-10-17

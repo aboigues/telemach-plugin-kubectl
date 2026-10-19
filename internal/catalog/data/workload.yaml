@@ -400,7 +400,7 @@
       une application saine inaccessible.
     example: |-
       kubectl explain pod.spec.containers.readinessProbe
-      kubectl get endpoints
+      kubectl get endpointslices -l kubernetes.io/service-name=web
     exercise: >-
       Crée un namespace d'exercice avec « kubectl create namespace exo-sondes », lance
       nginx-unprivileged avec une readinessProbe sur le port 8080 puis sur le port 9999, et

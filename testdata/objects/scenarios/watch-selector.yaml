@@ -1,0 +1,12 @@
+# Scénario W11 : Service seul dont le selector ne désigne aucun pod (feature 002, quickstart). Manifestes seulement : les attentes sont
+# dans testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: v1
+kind: Service
+metadata:
+  name: orphan
+spec:
+  selector:
+    app: orphan
+  ports:
+  - port: 80
+    targetPort: 8080

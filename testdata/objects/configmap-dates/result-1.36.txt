@@ -1,0 +1,8 @@
+après création :
+2026-10-17T19:03:15Z
+après apply :
+2026-10-17T19:03:54Z
+après edit (code 0) :
+2026-10-17T19:03:54Z
+2026-10-17T19:03:56Z
+résultat : OK

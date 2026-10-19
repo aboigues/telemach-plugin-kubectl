@@ -1,0 +1,25 @@
+✖ L'Ingress « hello-web » n'a pas d'adresse, son contrôleur ne l'a pas encore traité.
+   ingress hello-web · namespace demo
+
+   ✔ classe             ingressClassName : demo (contrôleur example.com/telemach-demo)
+   ✔ backends           / : service/hello:80
+   ✖ adresse            aucune adresse attribuée
+
+📘 Concept — adresse d'un Ingress
+   Le contrôleur qui prend en charge un Ingress publie l'adresse où il reçoit le
+   trafic dans status.loadBalancer. Tant que ce champ est vide, l'Ingress n'est
+   pas joignable.
+
+🔎 Cause probable
+   La classe « demo » existe (contrôleur example.com/telemach-demo), mais aucune
+   adresse n'est publiée : juste après sa création, il faut parfois attendre
+   quelques secondes ; si cela dure, le contrôleur de cette classe n'est sans
+   doute pas en marche.
+
+💡 Corrections
+   1. Suivre l'apparition de l'adresse.
+      kubectl get ingress hello-web -w -n demo
+   2. Lire les événements de l'Ingress, où le contrôleur signale ses erreurs.
+      kubectl describe ingress hello-web -n demo
+
+➜ Pour aller plus loin : kubectl telemach deepen

@@ -14,10 +14,13 @@ import (
 var lintedDirs = []string{
 	"../../testdata/manifests/valid",
 	"../../testdata/pods/scenarios",
+	"../../testdata/objects/scenarios",
 }
 
-// expectations est le contenu facultatif d'un fichier expected.yaml : défauts tolérés par
-// fichier, chacun étant le défaut volontaire d'un scénario.
+// expectations est le contenu facultatif du fichier <dossier>.expected.yaml, rangé à côté du
+// dossier et non dedans : un « kubectl apply -f <dossier> » ne doit lire que des manifestes
+// (LL-005). Il liste les défauts tolérés par fichier, chacun étant le défaut volontaire d'un
+// scénario.
 type expectations struct {
 	AllowedDefects map[string][]string `yaml:"allowed_defects"`
 }
@@ -36,7 +39,7 @@ func TestRepositoryManifests(t *testing.T) {
 				}
 				return err
 			}
-			if d.IsDir() || filepath.Base(path) == "expected.yaml" || !isManifest(path) {
+			if d.IsDir() || !isManifest(path) {
 				return nil
 			}
 			found++
@@ -80,7 +83,7 @@ func checkFile(t *testing.T, path string, allowed []string) {
 	}
 	for _, a := range allowed {
 		if !used[a] {
-			t.Errorf("défaut déclaré %q absent du manifeste : retirer la déclaration de expected.yaml", a)
+			t.Errorf("défaut déclaré %q absent du manifeste : retirer la déclaration du fichier .expected.yaml", a)
 		}
 	}
 }
@@ -88,7 +91,7 @@ func checkFile(t *testing.T, path string, allowed []string) {
 func loadExpectations(t *testing.T, dir string) expectations {
 	t.Helper()
 	var exp expectations
-	data, err := os.ReadFile(filepath.Join(dir, "expected.yaml")) //nolint:gosec // chemin fixe du dépôt
+	data, err := os.ReadFile(dir + ".expected.yaml") //nolint:gosec // chemin fixe du dépôt
 	if os.IsNotExist(err) {
 		return exp
 	}
@@ -96,7 +99,7 @@ func loadExpectations(t *testing.T, dir string) expectations {
 		t.Fatal(err)
 	}
 	if err := yaml.Unmarshal(data, &exp); err != nil {
-		t.Fatalf("%s/expected.yaml : %v", dir, err)
+		t.Fatalf("%s.expected.yaml : %v", dir, err)
 	}
 	return exp
 }
@@ -166,5 +169,47 @@ spec:
 	}
 	if v, _ := Check([]byte("a: [")); len(v) != 1 || v[0].Rule != RuleParse {
 		t.Errorf("YAML invalide : violation parse attendue, obtenu %v", v)
+	}
+}
+
+// TestScenarioDirsOnlyManifests garantit qu'un dossier de scénarios peut être appliqué en
+// entier (« kubectl apply -f <dossier> ») : chaque fichier est un objet Kubernetes, avec
+// apiVersion et kind (LL-005).
+func TestScenarioDirsOnlyManifests(t *testing.T) {
+	for _, dir := range lintedDirs {
+		entries, err := os.ReadDir(dir)
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, e := range entries {
+			path := filepath.Join(dir, e.Name())
+			if e.IsDir() {
+				continue
+			}
+			if !isManifest(path) {
+				t.Errorf("%s : fichier non manifeste dans un dossier de scénarios", path)
+				continue
+			}
+			src, err := os.ReadFile(path) //nolint:gosec // chemin issu du parcours du dépôt
+			if err != nil {
+				t.Fatal(err)
+			}
+			dec := yaml.NewDecoder(strings.NewReader(string(src)))
+			for i := 1; ; i++ {
+				var doc struct {
+					APIVersion string `yaml:"apiVersion"`
+					Kind       string `yaml:"kind"`
+				}
+				if err := dec.Decode(&doc); err != nil {
+					break
+				}
+				if doc.APIVersion == "" || doc.Kind == "" {
+					t.Errorf("%s (document %d) : apiVersion ou kind absent ; kubectl apply -f %s échouerait (LL-005)", path, i, dir)
+				}
+			}
+		}
 	}
 }

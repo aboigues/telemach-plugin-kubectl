@@ -1,0 +1,24 @@
+[1;38;2;255;122;122m✖ L'Ingress « typo » demande la classe « nginx-tpyo », qui n'existe pas dans ce cluster.[m
+   [2;38;2;138;143;152mingress typo · namespace demo[m
+
+[1;38;2;255;122;122m   ✖ classe             ingressClassName : nginx-tpyo : inconnue[m
+   ✔ backends           / : service/hello:80
+[2;38;2;138;143;152m   · adresse            non vérifié[m
+
+[1;38;2;122;162;247m📘 Concept — IngressClass[m
+   Une IngressClass relie un nom de classe à un contrôleur d'Ingress. Un Ingress
+   désigne sa classe par spec.ingressClassName ; une classe inconnue n'est prise
+   en charge par aucun contrôleur.
+
+[1;38;2;224;175;104m🔎 Cause probable[m
+   Aucun contrôleur ne prend en charge la classe « nginx-tpyo » : l'Ingress est
+   ignoré. Les classes disponibles sont : demo.
+
+[1;38;2;158;206;106m💡 Corrections[m
+   1. Lister les classes d'Ingress du cluster.
+      [38;2;248;248;242mkubectl get ingressclasses[0m
+   2. Corriger spec.ingressClassName dans le manifeste avec une classe
+      existante, réappliquer, puis vérifier la classe retenue.
+      [38;2;248;248;242mkubectl get ingress typo -o [0m[38;2;248;248;242mjsonpath[0m[38;2;249;38;114m=[0m[38;2;230;219;116m'{.spec.ingressClassName}'[0m[38;2;248;248;242m -n demo[0m
+
+[3;38;2;125;207;255m➜ Pour aller plus loin : kubectl telemach deepen[m

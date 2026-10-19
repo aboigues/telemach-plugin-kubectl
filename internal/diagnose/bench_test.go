@@ -56,8 +56,12 @@ func explainOnce(tc timedCase) error {
 }
 
 // TestExplainLatency mesure l'objectif interne de SC-003 (moins de 200 ms au p95, l'exigence
-// étant de 2 s) sur tout le corpus (D-LL-012).
+// étant de 2 s) sur tout le corpus (D-LL-012). La mesure se fait sur le binaire normal : sous
+// -race, elle est ignorée, et la CI la lance dans une étape sans -race.
 func TestExplainLatency(t *testing.T) {
+	if raceEnabled {
+		t.Skip("latence mesurée sans le détecteur de courses (étape dédiée de la CI)")
+	}
 	cases := loadTimedCases(t)
 	var durations []time.Duration
 	for round := 0; round < 3; round++ {

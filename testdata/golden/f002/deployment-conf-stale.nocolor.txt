@@ -1,0 +1,30 @@
+✖ La ConfigMap « conf-settings » a changé après le démarrage des pods de « conf », qui gardent l'ancienne valeur.
+   deployment conf · namespace demo · 1 réplique · rollout terminé
+
+   ✔ rollout            nouvelle version : busybox:1.38 (1/1 prêt(s))
+   ✔ image              conf : busybox:1.38
+   ✖ configuration      ConfigMap conf-settings : modifiée après le démarrage des pods
+                        Secret conf-secret : non lu (jamais lu par TELEMACH)
+
+📘 Concept — configuration figée au démarrage
+   Les variables d'environnement d'un conteneur, et les fichiers montés avec
+   subPath, sont lus une seule fois, au démarrage du pod. Modifier ensuite la
+   ConfigMap ne change rien pour les pods déjà démarrés.
+
+🔎 Cause probable
+   La ConfigMap a été modifiée le 2026-10-17T19:26:21Z, après le démarrage du
+   plus ancien pod (2026-10-17T19:26:17Z). Elle est utilisée par : variable
+   MODE, montage subPath /etc/conf/mode. Ces valeurs sont figées au démarrage.
+
+💡 Corrections
+   1. Redémarrer les pods du Deployment, qui reliront la configuration
+      (redémarrage progressif, sans coupure).
+      kubectl rollout restart deployment/conf -n demo
+   2. Suivre le redémarrage jusqu'au bout.
+      kubectl rollout status deployment/conf -n demo
+
+Autres points relevés
+   ℹ Les pods de « conf » lisent le Secret « conf-secret » au démarrage, une
+   modification ne leur parviendra pas.
+
+➜ Pour aller plus loin : kubectl telemach deepen

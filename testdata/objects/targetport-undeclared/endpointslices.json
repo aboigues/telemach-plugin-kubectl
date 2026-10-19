@@ -1,0 +1,66 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "addressType": "IPv4",
+      "apiVersion": "discovery.k8s.io/v1",
+      "endpoints": [
+        {
+          "addresses": [
+            "10.244.0.8"
+          ],
+          "conditions": {
+            "ready": true,
+            "serving": true,
+            "terminating": false
+          },
+          "nodeName": "telemach-c006d8-control-plane",
+          "targetRef": {
+            "kind": "Pod",
+            "name": "blog-97ff4d6f9-thz2r",
+            "namespace": "demo",
+            "uid": "841aca24-8e6c-49ab-85c0-b2726e0a8844"
+          }
+        }
+      ],
+      "kind": "EndpointSlice",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-10-17T19:02:17Z"
+        },
+        "creationTimestamp": "2026-10-17T19:02:16Z",
+        "generateName": "blog-",
+        "generation": 2,
+        "labels": {
+          "endpointslice.kubernetes.io/managed-by": "endpointslice-controller.k8s.io",
+          "kubernetes.io/service-name": "blog"
+        },
+        "name": "blog-dmtx8",
+        "namespace": "demo",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "Service",
+            "name": "blog",
+            "uid": "65e23611-7338-45f5-8a4e-ed76a918527c"
+          }
+        ],
+        "resourceVersion": "665",
+        "uid": "a2a1ac1e-3bce-4f59-983d-82eb66529286"
+      },
+      "ports": [
+        {
+          "name": "",
+          "port": 3000,
+          "protocol": "TCP"
+        }
+      ]
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

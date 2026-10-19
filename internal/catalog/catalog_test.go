@@ -109,6 +109,10 @@ func checkTestCase(t *testing.T, e *Entry, name string) {
 	t.Helper()
 	root := "../../testdata"
 	switch {
+	case len(e.Pitfalls) > 0:
+		if _, err := os.Stat(filepath.Join(root, "objects", name)); err != nil {
+			t.Errorf("%s : cas %q absent de testdata/objects/", e.ID, name)
+		}
 	case e.Fallback == FallbackManifestIssue:
 		if _, err := os.Stat(filepath.Join(root, "manifests", name)); err != nil {
 			t.Errorf("%s : cas %q absent de testdata/manifests/", e.ID, name)
@@ -155,5 +159,51 @@ func TestExercisesAreSafe(t *testing.T) {
 				t.Errorf("%s : l'exercice ne doit pas viser %q", e.ID, forbidden)
 			}
 		}
+	}
+}
+
+// pitfallEntry est une leçon de piège silencieux (feature 002) : reconnue par son identifiant
+// de piège, sans motif.
+const pitfallEntry = `
+- id: service.no-matching-pods
+  category: service
+  pitfalls: [service.no-matching-pods]
+  concept:
+    name: label selector
+    definition: Un Service envoie le trafic aux pods dont les labels satisfont son selector.
+  summary: Le Service « {{.service}} » ne désigne aucun pod.
+  cause: Aucun pod du namespace ne porte les labels du selector.
+  fixes:
+    - description: Comparer les labels des pods au selector du Service.
+      command: '{{.kubectl}} get pods --show-labels'
+      safe: true
+  deepen:
+    explanation: Un Service ne connaît pas ses pods par leur nom, seulement par leurs labels.
+    example: kubectl get pods --show-labels
+    exercise: Crée un namespace d'exercice avec kubectl create namespace exo, puis un Service sans pod.
+  doc_url: https://kubernetes.io/docs/concepts/services-networking/service/
+  tests: [selector-typo]
+`
+
+// Feature 002 (T018) : une entrée de piège est valide sans motif ; un piège n'est couvert
+// qu'une fois ; aucune commande ne propose l'API Endpoints dépréciée (FR-032).
+func TestPitfallEntries(t *testing.T) {
+	c, err := Load(fstest.MapFS{"x.yaml": {Data: []byte(pitfallEntry)}})
+	if err != nil {
+		t.Fatalf("entrée de piège refusée : %v", err)
+	}
+	if e, ok := c.ByPitfall("service.no-matching-pods"); !ok || e.ID != "service.no-matching-pods" {
+		t.Error("ByPitfall doit retrouver l'entrée")
+	}
+	if _, ok := c.ByPitfall("service.inconnu"); ok {
+		t.Error("piège inconnu : aucune entrée attendue")
+	}
+	dup := pitfallEntry + strings.Replace(pitfallEntry, "id: service.no-matching-pods", "id: service.other", 1)
+	if err := load(t, dup); err == nil || !strings.Contains(err.Error(), "déjà couvert") {
+		t.Errorf("piège couvert deux fois : erreur attendue, obtenu %v", err)
+	}
+	endpoints := strings.Replace(pitfallEntry, "get pods --show-labels'", "get endpoints'", 1)
+	if err := load(t, endpoints); err == nil || !strings.Contains(err.Error(), "EndpointSlice") {
+		t.Errorf("get endpoints : erreur attendue (FR-032), obtenu %v", err)
 	}
 }

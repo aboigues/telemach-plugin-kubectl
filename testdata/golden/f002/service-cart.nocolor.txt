@@ -1,0 +1,27 @@
+✖ Le port 80 du Service « cart » envoie le trafic au port 8081, que les conteneurs ne déclarent pas.
+   service cart · namespace demo · ClusterIP · ports 80 → 8081
+
+   ✔ type               ClusterIP
+   ✔ selector           app=cart : 1 pod
+   ✔ pods prêts         1/1 prêt(s)
+   ✔ endpoints          1 prêt(s)
+   ✖ ports              80 → 8081 : non déclaré
+
+📘 Concept — Service ports
+   Un Service reçoit le trafic sur son port (port) et l'envoie au port du
+   conteneur désigné par targetPort. Si le programme du conteneur n'écoute pas
+   sur ce port, la connexion est refusée (connection refused).
+
+🔎 Cause probable
+   Les conteneurs des pods désignés déclarent 8080, mais targetPort vaut 8081.
+   La déclaration des ports est facultative : vérifie le port sur lequel le
+   programme écoute réellement avant de corriger.
+
+💡 Corrections
+   1. Mettre dans targetPort le port sur lequel le programme écoute (souvent
+      celui déclaré par containerPort).
+      kubectl get service cart -n demo -o jsonpath='{.spec.ports}'
+   2. Tester le port du conteneur directement, sans passer par le Service.
+      kubectl port-forward pod/cart-6c9cffc7c6-bgd6b 8080:8080 -n demo
+
+➜ Pour aller plus loin : kubectl telemach deepen

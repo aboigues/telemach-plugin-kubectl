@@ -150,7 +150,11 @@ func TestPromptHook(t *testing.T) {
 
 // SC-010 : l'intégration retarde l'invite de moins de 50 ms au p95 après une création réussie
 // (watch dort 3 s en arrière-plan sans être attendu), et le crochet sans signal est immédiat.
+// Mesure faite sans le détecteur de courses (LL-006).
 func TestWatchLatency(t *testing.T) {
+	if raceEnabled {
+		t.Skip("latence mesurée sans le détecteur de courses (étape dédiée de la CI, LL-006)")
+	}
 	forEachShell(t, func(t *testing.T, shell string) {
 		e := setupWatch(t)
 		waitWatchers(t, e)

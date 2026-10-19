@@ -1,0 +1,76 @@
+# Relevé du corpus réel (feature 002, research.md S12) : erreurs kubectl et objets des pièges
+# silencieux, sur un cluster kind JETABLE créé par le job (D-LL-015), pour chaque version de
+# Kubernetes prise en charge. Déclenchement manuel, ou sur une pull request qui modifie les
+# outils ou les scénarios du relevé (un workflow_dispatch n'est lançable qu'une fois présent
+# sur main) ; ce n'est pas une gate de fusion. Le résultat, déjà masqué, est publié en
+# artefact : le mainteneur le relit avant de le versionner. Actions épinglées par SHA de
+# commit complet (vérifiées le 2026-10-17).
+name: corpus
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - scripts/collect-errors/**
+      - scripts/collect-objects/**
+      - testdata/objects/scenarios/**
+      - tests/integration/kindcluster/**
+      - .github/workflows/corpus.yml
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 1.37 : relevé de référence ; 1.35 et 1.36 : variantes rangées dans <cas>@<version>.
+          - kubectl: v1.37.1
+            image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+            variant: ""
+          - kubectl: v1.36.5
+            image: kindest/node:v1.36.4@sha256:099e049362a1526b2db71494e1947aae99bd16290d7c895f2b7ea312e3cbfaed
+            variant: "1.36"
+          - kubectl: v1.35.9
+            image: kindest/node:v1.35.8@sha256:07b2536e30b803ed61d1677a79df6115f798ce64c80f9e22f6ed45afd09323c0
+            variant: "1.35"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Installer kind v0.33.0 (module vérifié par la base de sommes Go)
+        run: go install sigs.k8s.io/kind@v0.33.0
+      - name: Installer kubectl ${{ matrix.kubectl }} (somme SHA-256 vérifiée)
+        env:
+          KUBECTL_VERSION: ${{ matrix.kubectl }}
+        run: |
+          curl -sSfL -o kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+          echo "$(curl -sSfL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl.sha256")  kubectl" | sha256sum -c -
+          chmod +x kubectl
+          mkdir -p "$HOME/.local/bin" && mv kubectl "$HOME/.local/bin/"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Relever les erreurs kubectl
+        env:
+          TELEMACH_KIND_IMAGE: ${{ matrix.image }}
+          VARIANT: ${{ matrix.variant }}
+        run: go run -tags integration ./scripts/collect-errors -out testdata/errors ${VARIANT:+-variant "$VARIANT"}
+      - name: Relever les objets des pièges silencieux
+        env:
+          TELEMACH_KIND_IMAGE: ${{ matrix.image }}
+          VARIANT: ${{ matrix.variant }}
+        run: go run -tags integration ./scripts/collect-objects -out testdata/objects -pods testdata/pods ${VARIANT:+-variant "$VARIANT"}
+      - name: Publier le relevé
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: corpus-${{ matrix.kubectl }}
+          path: |
+            testdata/errors/
+            testdata/objects/
+            testdata/pods/
+          retention-days: 7

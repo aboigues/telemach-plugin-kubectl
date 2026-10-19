@@ -1,0 +1,41 @@
+{
+  "apiVersion": "networking.k8s.io/v1",
+  "kind": "Ingress",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "••••••"
+    },
+    "creationTimestamp": "2026-10-19T07:16:49Z",
+    "generation": 1,
+    "name": "typo",
+    "namespace": "demo",
+    "resourceVersion": "1036",
+    "uid": "20dc885b-e3e5-444a-bbc2-6b51d1542bb6"
+  },
+  "spec": {
+    "ingressClassName": "nginx-tpyo",
+    "rules": [
+      {
+        "http": {
+          "paths": [
+            {
+              "backend": {
+                "service": {
+                  "name": "hello",
+                  "port": {
+                    "number": 80
+                  }
+                }
+              },
+              "path": "/",
+              "pathType": "Prefix"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "status": {
+    "loadBalancer": {}
+  }
+}

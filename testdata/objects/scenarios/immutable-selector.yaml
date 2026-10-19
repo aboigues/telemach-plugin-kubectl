@@ -1,0 +1,28 @@
+# Scénario W12 : même Deployment que healthy.yaml avec un selector modifié (champ immuable) (feature 002, quickstart). Manifestes seulement : les attentes sont
+# dans testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hello-v2
+  template:
+    metadata:
+      labels:
+        app: hello-v2
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      containers:
+      - name: hello
+        image: nginxinc/nginx-unprivileged:1.30-alpine
+        ports:
+        - {name: http, containerPort: 8080}
+        securityContext: {allowPrivilegeEscalation: false}
+        resources:
+          requests: {cpu: 10m, memory: 16Mi}
+          limits: {cpu: 100m, memory: 64Mi}

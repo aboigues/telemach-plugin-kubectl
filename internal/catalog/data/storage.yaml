@@ -1,0 +1,141 @@
+# Pièges silencieux d'un PersistentVolumeClaim (feature 002, US3) : le PVC est créé, mais aucun
+# volume ne lui sera fourni (research.md S7). L'attente d'un premier pod en mode
+# WaitForFirstConsumer est un état normal, présenté comme tel (FR-014).
+
+- id: pvc.unknown-class
+  category: storage
+  pitfalls: [pvc.unknown-class]
+  concept:
+    name: StorageClass
+    definition: >-
+      Une StorageClass décrit une façon de créer des volumes (son provisionneur et ses
+      paramètres). Un PVC qui demande une classe obtient un volume créé automatiquement par
+      cette classe : c'est le provisionnement dynamique.
+  summary: Le PVC « {{.pvc}} » demande la classe « {{.class}} », qui n'existe pas dans ce cluster.
+  cause: >-
+    Aucune classe ne s'appelle « {{.class}} » : aucun volume ne sera créé et le PVC restera
+    Pending, ainsi que les pods qui l'utilisent. Classes disponibles : {{.classes}}.
+  fixes:
+    - description: Lister les classes de stockage du cluster.
+      command: '{{.kubectl}} get storageclasses'
+      safe: true
+    - description: Corriger spec.storageClassName dans le manifeste (ou le retirer pour la classe par défaut), puis recréer le PVC, ce champ ne se modifie pas après création ; vérifier ensuite sa classe.
+      command: '{{.kubectl}} get pvc {{.pvc}} -o jsonpath=''{.spec.storageClassName}'' {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      La plupart des champs d'un PVC sont immuables : pour changer de classe, il faut le
+      supprimer puis le recréer. Tant qu'aucun volume n'est lié, il n'y a aucune donnée à
+      perdre.
+    example: |-
+      kubectl get storageclasses
+      kubectl get pvc data -o jsonpath='{.spec.storageClassName}'
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-stockage », crée un PVC
+      avec une classe inexistante, lis « kubectl describe pvc », puis recrée-le avec la classe
+      par défaut. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/storage/storage-classes/
+  tests: [pvc-unknown-class]
+
+- id: pvc.no-default-class
+  category: storage
+  pitfalls: [pvc.no-default-class]
+  concept:
+    name: StorageClass par défaut
+    definition: >-
+      Un PVC sans storageClassName reçoit la classe marquée par défaut (annotation
+      storageclass.kubernetes.io/is-default-class). Sans classe par défaut, il n'en reçoit
+      aucune et attend qu'un volume existant lui convienne.
+  summary: Le PVC « {{.pvc}} » ne demande aucune classe de stockage, et aucune n'est marquée par défaut.
+  cause: >-
+    Sans classe, aucun volume n'est créé automatiquement : le PVC restera Pending tant
+    qu'aucun PersistentVolume compatible n'est créé à la main. Classes disponibles :
+    {{.classes}}.
+  fixes:
+    - description: Lister les classes de stockage du cluster.
+      command: '{{.kubectl}} get storageclasses'
+      safe: true
+    - description: Indiquer une classe existante dans spec.storageClassName, recréer le PVC, puis vérifier sa classe.
+      command: '{{.kubectl}} get pvc {{.pvc}} -o jsonpath=''{.spec.storageClassName}'' {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Marquer une classe par défaut est une décision d'administrateur, qui vaut pour tout le
+      cluster. Nommer la classe dans le PVC rend le manifeste explicite.
+    example: |-
+      kubectl get storageclasses
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-classe-defaut », crée-y
+      un PVC sans storageClassName, puis lis la classe qu'il a reçue avec « kubectl get pvc -n
+      exo-classe-defaut » et compare-la aux annotations des StorageClasses. Supprime le
+      namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/storage/storage-classes/#default-storageclass
+  tests: [pvc-no-default-class]
+
+- id: pvc.empty-class
+  category: storage
+  pitfalls: [pvc.empty-class]
+  concept:
+    name: provisionnement dynamique
+    definition: >-
+      Le provisionnement dynamique crée un volume à la demande d'un PVC, selon sa StorageClass.
+      Une classe vide (storageClassName: "") le désactive : le PVC ne peut alors être lié qu'à
+      un PersistentVolume créé à l'avance.
+  summary: Le PVC « {{.pvc}} » a une classe vide, aucun volume ne sera créé automatiquement.
+  cause: >-
+    storageClassName: "" n'est pas la même chose qu'un champ absent : la chaîne vide demande
+    un volume sans classe, créé à la main, et désactive la classe par défaut. Classes
+    disponibles : {{.classes}}.
+  fixes:
+    - description: Lister les classes de stockage du cluster.
+      command: '{{.kubectl}} get storageclasses'
+      safe: true
+    - description: Retirer storageClassName du manifeste (classe par défaut) ou y mettre une classe existante, recréer le PVC, puis vérifier sa classe.
+      command: '{{.kubectl}} get pvc {{.pvc}} -o jsonpath=''{.spec.storageClassName}'' {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      La classe vide sert quand un administrateur prépare des PersistentVolumes à l'avance
+      (stockage existant, disques réservés). Pour un volume ordinaire, on laisse le champ
+      absent ou on nomme une classe.
+    example: |-
+      kubectl get pvc static-data -o jsonpath='{.spec.storageClassName}'
+      kubectl get pv
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-classe-vide », crée-y
+      deux PVC, l'un sans storageClassName, l'autre avec storageClassName: "", et compare la
+      classe que chacun reçoit. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#class-1
+  tests: [pvc-empty-class]
+
+- id: pvc.waiting-first-consumer
+  category: storage
+  pitfalls: [pvc.waiting-first-consumer]
+  concept:
+    name: volumeBindingMode
+    definition: >-
+      Le mode de liaison d'une StorageClass décide quand le volume est créé. En mode
+      WaitForFirstConsumer, il n'est créé qu'au démarrage du premier pod qui utilise le PVC,
+      sur le nœud choisi pour ce pod.
+  summary: Le PVC « {{.pvc}} » attend son premier pod, c'est normal avec la classe « {{.class}} ».
+  cause: >-
+    La classe « {{.class}} » utilise le mode WaitForFirstConsumer et aucun pod n'utilise
+    encore ce PVC : il reste Pending, et c'est attendu. Le volume sera créé dès qu'un pod qui le
+    monte sera planifié.
+  fixes:
+    - description: Créer ou appliquer le pod qui utilise ce PVC, puis suivre sa liaison.
+      command: '{{.kubectl}} get pvc {{.pvc}} -w {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Attendre le premier pod permet de créer le volume dans la zone ou sur le nœud où le pod
+      tournera. Le mode Immediate crée le volume tout de suite, au risque qu'il soit
+      inaccessible au pod.
+    example: |-
+      kubectl get storageclass standard -o jsonpath='{.volumeBindingMode}'
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-liaison », crée-y un
+      PVC, constate qu'il reste Pending, puis crée un pod qui le monte et observe le PVC
+      passer Bound. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/storage/storage-classes/#volume-binding-mode
+  tests: [pvc-waiting]

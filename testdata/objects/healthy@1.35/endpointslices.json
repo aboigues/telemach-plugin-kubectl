@@ -1,0 +1,83 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "addressType": "IPv4",
+      "apiVersion": "discovery.k8s.io/v1",
+      "endpoints": [
+        {
+          "addresses": [
+            "10.244.0.10"
+          ],
+          "conditions": {
+            "ready": true,
+            "serving": true,
+            "terminating": false
+          },
+          "nodeName": "telemach-f1c67a-control-plane",
+          "targetRef": {
+            "kind": "Pod",
+            "name": "hello-7c5bd76565-grdzp",
+            "namespace": "demo",
+            "uid": "99a829ba-6ba5-4337-ba19-b00c16afe02e"
+          }
+        },
+        {
+          "addresses": [
+            "10.244.0.9"
+          ],
+          "conditions": {
+            "ready": true,
+            "serving": true,
+            "terminating": false
+          },
+          "nodeName": "telemach-f1c67a-control-plane",
+          "targetRef": {
+            "kind": "Pod",
+            "name": "hello-7c5bd76565-bqqjg",
+            "namespace": "demo",
+            "uid": "0354521f-74d3-40a5-bb3c-b70198a309b5"
+          }
+        }
+      ],
+      "kind": "EndpointSlice",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-10-17T19:02:21Z"
+        },
+        "creationTimestamp": "2026-10-17T19:02:20Z",
+        "generateName": "hello-",
+        "generation": 4,
+        "labels": {
+          "endpointslice.kubernetes.io/managed-by": "endpointslice-controller.k8s.io",
+          "kubernetes.io/service-name": "hello"
+        },
+        "name": "hello-xn9zs",
+        "namespace": "demo",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "Service",
+            "name": "hello",
+            "uid": "a95ec902-3c32-4d18-8e1f-a7f54c123674"
+          }
+        ],
+        "resourceVersion": "675",
+        "uid": "d74b73d0-ebf8-4ba3-ad05-04c5f4ff21a9"
+      },
+      "ports": [
+        {
+          "name": "",
+          "port": 8080,
+          "protocol": "TCP"
+        }
+      ]
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

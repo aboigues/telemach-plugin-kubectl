@@ -1,0 +1,24 @@
+✔ Le Service « hello » envoie le trafic à 2 pod(s) prêt(s).
+   service hello · namespace demo · ClusterIP · ports 80 → http
+
+   ✔ type               ClusterIP
+   ✔ selector           app=hello : 2 pods
+   ✔ pods prêts         2/2 prêt(s)
+   ✔ endpoints          2 prêt(s)
+   ✔ ports              80 → http (8080)
+
+📘 Concept — DNS d'un Service
+   Chaque Service reçoit un nom DNS : le nom court suffit depuis son namespace ;
+   depuis un autre namespace, il faut ajouter le namespace (nom.namespace) ou
+   écrire le nom complet (nom.namespace.svc.cluster.local).
+
+   Depuis le namespace demo, l'application le joint par « hello » ; depuis un
+   autre namespace, par « hello.demo » ou « hello.demo.svc.cluster.local ».
+
+▶ Pour tester
+   1. Tester le Service depuis ton poste, sans l'exposer.
+      kubectl port-forward service/hello 8080:80 -n demo
+   2. Voir les pods qui reçoivent son trafic.
+      kubectl get endpointslices -l kubernetes.io/service-name=hello -n demo
+
+➜ Pour aller plus loin : kubectl telemach deepen

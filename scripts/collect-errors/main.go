@@ -15,6 +15,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -88,7 +89,21 @@ var cases = []collectCase{
 	// Programme du conteneur.
 	{ID: "exec-application-error", Args: words("exec deploy/web -n {NS} -- sh -c exit_3")},
 	{ID: "exec-command-not-found", Args: words("exec deploy/web -n {NS} -- doesnotexist")},
+	// Feature 002 : conteneurs, port-forward, rollout, champs immuables.
+	{ID: "exec-container-not-found", Args: words("exec deploy/web -c helo -n {NS} -- ls")},
+	{ID: "exec-it-container-not-found", Args: words("exec -it deploy/web -c helo -n {NS} -- sh")},
+	{ID: "logs-container-not-found", Args: words("logs duo -c trois -n {NS}")},
+	{ID: "logs-container-required", Args: words("logs duo -n {NS}")},
+	{ID: "portforward-pod-not-running", Args: words("port-forward pod/badimage 18082:8080 -n {NS}")},
+	{ID: "rollout-status-deadline", Args: words("rollout status deployment/stalled --timeout=120s -n {NS}")},
+	{ID: "apply-field-immutable", Args: words("apply -f {IMMUTABLE} -n {NS}")},
 }
+
+// Ports locaux fixes des relevés de port-forward : un message stable d'un relevé à l'autre.
+const (
+	busyPort    = "18081" // occupé par le relevé lui-même
+	refusedPort = "18083" // transféré vers un port du pod où rien n'écoute
+)
 
 func words(s string) []string { return strings.Fields(s) }
 
@@ -145,7 +160,11 @@ func collect(out, variant, only string) error {
 	if err != nil {
 		return err
 	}
-	repl := strings.NewReplacer("{NS}", ns, "{EMPTY}", empty, "{SERVER}", c.ServerURL(), "{FILE}", stale)
+	immutable, err := immutableManifest(c)
+	if err != nil {
+		return err
+	}
+	repl := strings.NewReplacer("{NS}", ns, "{EMPTY}", empty, "{SERVER}", c.ServerURL(), "{FILE}", stale, "{IMMUTABLE}", immutable)
 	for _, tc := range cases {
 		if only != "" && tc.ID != only {
 			continue
@@ -168,8 +187,89 @@ func collect(out, variant, only string) error {
 			return err
 		}
 	}
+	return collectPortForward(out, variant, only, c, ns)
+}
+
+// collectPortForward relève les deux échecs de port-forward qui ne se produisent qu'avec un
+// processus en cours : port local déjà occupé, et connexion refusée par le pod (message écrit
+// pendant le transfert, relevé après un Ctrl-C).
+func collectPortForward(out, variant, only string, c *kindcluster.Cluster, ns string) error {
+	if only == "" || only == "portforward-local-port-in-use" {
+		// kubectl écoute en IPv4 et en IPv6 : il n'échoue que si les deux sont occupés (sinon il
+		// se rabat sur l'autre adresse et le transfert démarre).
+		var listeners []net.Listener
+		for _, addr := range []string{"127.0.0.1:" + busyPort, "[::1]:" + busyPort} {
+			if l, err := net.Listen("tcp", addr); err == nil {
+				listeners = append(listeners, l)
+			}
+		}
+		args := words("port-forward deploy/web " + busyPort + ":8080 -n " + ns)
+		b, err := c.KubectlBackground(args...)
+		if err != nil {
+			return err
+		}
+		time.Sleep(5 * time.Second)
+		r := b.Stop()
+		for _, l := range listeners {
+			_ = l.Close()
+		}
+		if err := saveFailure(out, variant, "portforward-local-port-in-use", c, args, r); err != nil {
+			return err
+		}
+	}
+	if only == "" || only == "portforward-connection-refused" {
+		args := words("port-forward deploy/web " + refusedPort + ":9999 -n " + ns)
+		b, err := c.KubectlBackground(args...)
+		if err != nil {
+			return err
+		}
+		time.Sleep(3 * time.Second)
+		if conn, err := net.DialTimeout("tcp", "127.0.0.1:"+refusedPort, 3*time.Second); err == nil {
+			_, _ = conn.Write([]byte("GET / HTTP/1.0\r\n\r\n"))
+			time.Sleep(time.Second)
+			_ = conn.Close()
+		}
+		time.Sleep(time.Second)
+		r := b.Stop()
+		if err := save(out, variant, "portforward-connection-refused", c, args, r); err != nil {
+			return err
+		}
+	}
 	return nil
 }
+
+// saveFailure range un cas seulement si la commande a échoué.
+func saveFailure(out, variant, id string, c *kindcluster.Cluster, args []string, r kindcluster.Result) error {
+	if r.ExitCode == 0 {
+		fmt.Fprintf(os.Stderr, "⚠ %s : la commande a réussi, cas ignoré\n", id)
+		return nil
+	}
+	return save(out, variant, id, c, args, r)
+}
+
+// immutableManifest écrit le deployment web avec un selector différent : l'appliquer modifie
+// un champ immuable (feature 002).
+func immutableManifest(c *kindcluster.Cluster) (string, error) {
+	file := filepath.Join(c.Dir, "web-immutable.yaml")
+	content := fmt.Sprintf(immutableYAML, webImage)
+	return file, os.WriteFile(file, []byte(content), 0o600) //nolint:gosec // dossier temporaire du cluster de test
+}
+
+const immutableYAML = `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  selector:
+    matchLabels: {app: web-v2}
+  template:
+    metadata:
+      labels: {app: web-v2}
+    spec:
+      containers:
+      - name: nginx-unprivileged
+        image: %s
+`
 
 // setup prépare le namespace de démonstration : un deployment sain, un pod à deux conteneurs
 // et un pod dont l'image est introuvable.
@@ -196,6 +296,19 @@ func setup(c *kindcluster.Cluster, ns string) error {
 	}
 	if err := c.Must("wait", "--for=condition=Ready", "pod/duo", "-n", ns, "--timeout=180s"); err != nil {
 		return err
+	}
+	// Deployment « stalled » (feature 002) : une mise à jour vers une image introuvable dépasse
+	// son échéance de progression de 30 s.
+	steps = [][]string{
+		{"create", "deployment", "stalled", "--image=" + webImage, "-n", ns},
+		{"patch", "deployment", "stalled", "-n", ns, "-p", `{"spec":{"progressDeadlineSeconds":30}}`},
+		{"rollout", "status", "deployment/stalled", "-n", ns, "--timeout=180s"},
+		{"set", "image", "deployment/stalled", "nginx-unprivileged=" + webImage + "-0.0.0-inexistant", "-n", ns},
+	}
+	for _, s := range steps {
+		if err := c.Must(s...); err != nil {
+			return err
+		}
 	}
 	// Laisser le temps au téléchargement de l'image introuvable d'échouer.
 	time.Sleep(15 * time.Second)
@@ -262,11 +375,21 @@ func normalize(s string, c *kindcluster.Cluster) string {
 		s = strings.ReplaceAll(s, strings.TrimPrefix(u, "https://"), "127.0.0.1:6443")
 	}
 	s = execID.ReplaceAllString(s, `exec "<id>"`)
+	s = sandboxID.ReplaceAllString(s, "<id>")
+	s = netnsID.ReplaceAllString(s, "cni-<id>")
+	s = klogHeader.ReplaceAllString(s, "${1}0000 00:00:00.000000       0 ")
 	return redact.Redact(s)
 }
 
-// execID est l'identifiant aléatoire d'une exécution dans un conteneur.
-var execID = regexp.MustCompile(`exec "[0-9a-f]{64}"`)
+var (
+	// execID est l'identifiant aléatoire d'une exécution dans un conteneur.
+	execID = regexp.MustCompile(`exec "[0-9a-f]{64}"`)
+	// sandboxID et netnsID identifient le bac à sable réseau d'un pod (port-forward).
+	sandboxID = regexp.MustCompile(`\b[0-9a-f]{64}\b`)
+	netnsID   = regexp.MustCompile(`cni-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`)
+	// klogHeader est l'en-tête daté d'une ligne de journal de kubectl (E1017 19:01:08.416287 14354).
+	klogHeader = regexp.MustCompile(`(?m)^([EWI])\d{4} \d{2}:\d{2}:\d{2}\.\d{6}\s+\d+ `)
+)
 
 func save(out, variant, id string, c *kindcluster.Cluster, args []string, r kindcluster.Result) error {
 	stderr := normalize(r.Stderr, c)

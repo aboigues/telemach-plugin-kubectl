@@ -1,0 +1,27 @@
+[3;38;2;125;207;255mℹ Le Service « external » n'a pas de selector, ses endpoints ne sont pas choisis par Kubernetes.[m
+   [2;38;2;138;143;152mservice external · namespace demo · ClusterIP · ports 80 → 8080[m
+
+   ✔ type               ClusterIP
+[2;38;2;138;143;152m   · selector           aucun selector[m
+[2;38;2;138;143;152m   · pods prêts         non vérifié[m
+   ✔ endpoints          0 prêt(s)
+[2;38;2;138;143;152m   · ports              non vérifié[m
+
+[1;38;2;122;162;247m📘 Concept — Service sans selector[m
+   Un Service sans selector ne cherche aucun pod : ses endpoints sont fournis à
+   la main (objets EndpointSlice) ou par un outil. C'est un cas voulu, par
+   exemple pour joindre une base de données hors du cluster.
+
+[1;38;2;224;175;104m🔎 Cause probable[m
+   Sans selector, Kubernetes ne crée aucun endpoint pour ce Service ; il en a
+   actuellement 0 prêt(s). Si tu voulais joindre des pods du cluster, ajoute un
+   selector qui correspond à leurs labels.
+
+[1;38;2;158;206;106m💡 Corrections[m
+   1. Voir les endpoints fournis pour ce Service.
+      [38;2;248;248;242mkubectl get endpointslices -l kubernetes.io/service-name[0m[38;2;249;38;114m=[0m[38;2;248;248;242mexternal -n demo[0m
+   2. Pour joindre des pods, ajouter un selector (spec.selector) qui correspond
+      à leurs labels.
+      [38;2;248;248;242mkubectl get pods --show-labels -n demo[0m
+
+[3;38;2;125;207;255m➜ Pour aller plus loin : kubectl telemach deepen[m

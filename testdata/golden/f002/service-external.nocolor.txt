@@ -1,0 +1,27 @@
+ℹ Le Service « external » n'a pas de selector, ses endpoints ne sont pas choisis par Kubernetes.
+   service external · namespace demo · ClusterIP · ports 80 → 8080
+
+   ✔ type               ClusterIP
+   · selector           aucun selector
+   · pods prêts         non vérifié
+   ✔ endpoints          0 prêt(s)
+   · ports              non vérifié
+
+📘 Concept — Service sans selector
+   Un Service sans selector ne cherche aucun pod : ses endpoints sont fournis à
+   la main (objets EndpointSlice) ou par un outil. C'est un cas voulu, par
+   exemple pour joindre une base de données hors du cluster.
+
+🔎 Cause probable
+   Sans selector, Kubernetes ne crée aucun endpoint pour ce Service ; il en a
+   actuellement 0 prêt(s). Si tu voulais joindre des pods du cluster, ajoute un
+   selector qui correspond à leurs labels.
+
+💡 Corrections
+   1. Voir les endpoints fournis pour ce Service.
+      kubectl get endpointslices -l kubernetes.io/service-name=external -n demo
+   2. Pour joindre des pods, ajouter un selector (spec.selector) qui correspond
+      à leurs labels.
+      kubectl get pods --show-labels -n demo
+
+➜ Pour aller plus loin : kubectl telemach deepen

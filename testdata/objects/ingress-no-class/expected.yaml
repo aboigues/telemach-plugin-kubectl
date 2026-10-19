@@ -1,0 +1,6 @@
+# Attendu du diagnostic (feature 002, T040-T041), rédigé à la main d'après le relevé réel.
+kind: ingress
+name: web
+# Aucune classe d'Ingress dans le cluster : aucun contrôleur installé (FR-012).
+primary: ingress.no-controller
+links: {class: broken, backend: ok, address: skipped}

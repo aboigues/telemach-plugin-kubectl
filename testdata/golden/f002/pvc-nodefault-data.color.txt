@@ -1,0 +1,25 @@
+[1;38;2;255;122;122m✖ Le PVC « nodefault-data » ne demande aucune classe de stockage, et aucune n'est marquée par défaut.[m
+   [2;38;2;138;143;152mpvc nodefault-data · namespace demo · Pending · taille 16Mi[m
+
+[1;38;2;255;122;122m   ✖ classe de stockage aucune classe demandée, aucune par défaut[m
+[2;38;2;138;143;152m   · liaison            non vérifié[m
+   ✔ pod consommateur   aucun pod
+
+[1;38;2;122;162;247m📘 Concept — StorageClass par défaut[m
+   Un PVC sans storageClassName reçoit la classe marquée par défaut (annotation
+   storageclass.kubernetes.io/is-default-class). Sans classe par défaut, il n'en
+   reçoit aucune et attend qu'un volume existant lui convienne.
+
+[1;38;2;224;175;104m🔎 Cause probable[m
+   Sans classe, aucun volume n'est créé automatiquement : le PVC restera Pending
+   tant qu'aucun PersistentVolume compatible n'est créé à la main. Classes
+   disponibles : standard.
+
+[1;38;2;158;206;106m💡 Corrections[m
+   1. Lister les classes de stockage du cluster.
+      [38;2;248;248;242mkubectl get storageclasses[0m
+   2. Indiquer une classe existante dans spec.storageClassName, recréer le PVC,
+      puis vérifier sa classe.
+      [38;2;248;248;242mkubectl get pvc nodefault-data -o [0m[38;2;248;248;242mjsonpath[0m[38;2;249;38;114m=[0m[38;2;230;219;116m'{.spec.storageClassName}'[0m[38;2;248;248;242m -n demo[0m
+
+[3;38;2;125;207;255m➜ Pour aller plus loin : kubectl telemach deepen[m

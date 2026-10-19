@@ -1,0 +1,42 @@
+# Scénario W2 : pods désignés mais jamais Ready (feature 002, quickstart). Manifestes seulement : les attentes sont
+# dans testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      containers:
+      - name: api
+        image: nginxinc/nginx-unprivileged:1.30-alpine
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet: {path: /, port: 9999}
+          periodSeconds: 2
+        securityContext: {allowPrivilegeEscalation: false}
+        resources:
+          requests: {cpu: 10m, memory: 16Mi}
+          limits: {cpu: 100m, memory: 64Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+spec:
+  selector:
+    app: api
+  ports:
+  - port: 80
+    targetPort: 8080

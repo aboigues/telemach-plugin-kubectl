@@ -39,6 +39,9 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends zsh
       - name: Tests unitaires et de régression
         run: go test -race -cover ./...
+      # -p 1 : un paquet à la fois, pour qu'une mesure ne se dispute pas le processeur avec une autre.
+      - name: Objectifs de latence (sans le détecteur de courses, qui fausse les mesures)
+        run: go test -p 1 -count=1 -run 'Latency' -v ./internal/diagnose/ ./cmd/kubectl-telemach/ ./tests/shell/
       - name: Couverture des paquets internal/ (80 % minimum)
         run: scripts/couverture 80
 

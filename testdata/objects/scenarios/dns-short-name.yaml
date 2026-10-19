@@ -1,0 +1,19 @@
+# Scénario W13 : pod qui appelle le Service « kubernetes » (namespace default) par son nom court (feature 002, quickstart). Manifestes seulement : les attentes sont
+# dans testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dns-client
+spec:
+  restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+  containers:
+  - name: client
+    image: busybox:1.38
+    command: ["sh", "-c", "wget -q -T 5 -O- https://kubernetes:443/ || exit 1"]
+    securityContext: {allowPrivilegeEscalation: false}
+    resources:
+      requests: {cpu: 10m, memory: 16Mi}
+      limits: {cpu: 100m, memory: 64Mi}

@@ -1,0 +1,6 @@
+# Attendu du diagnostic (feature 002, T031-T033), rédigé à la main d'après le relevé réel.
+kind: deployment
+name: conf
+primary: config.env-stale
+phase: complete
+links: {rollout: ok, image: ok, config: broken}

@@ -1,0 +1,25 @@
+✖ Le PVC « static-data » a une classe vide, aucun volume ne sera créé automatiquement.
+   pvc static-data · namespace demo · Pending · taille 16Mi
+
+   ✖ classe de stockage storageClassName vide : provisionnement dynamique désactivé
+   · liaison            non vérifié
+   ✔ pod consommateur   aucun pod
+
+📘 Concept — provisionnement dynamique
+   Le provisionnement dynamique crée un volume à la demande d'un PVC, selon sa
+   StorageClass. Une classe vide (storageClassName: "") le désactive : le PVC ne
+   peut alors être lié qu'à un PersistentVolume créé à l'avance.
+
+🔎 Cause probable
+   storageClassName: "" n'est pas la même chose qu'un champ absent : la chaîne
+   vide demande un volume sans classe, créé à la main, et désactive la classe
+   par défaut. Classes disponibles : standard (par défaut).
+
+💡 Corrections
+   1. Lister les classes de stockage du cluster.
+      kubectl get storageclasses
+   2. Retirer storageClassName du manifeste (classe par défaut) ou y mettre une
+      classe existante, recréer le PVC, puis vérifier sa classe.
+      kubectl get pvc static-data -o jsonpath='{.spec.storageClassName}' -n demo
+
+➜ Pour aller plus loin : kubectl telemach deepen

@@ -1,0 +1,5 @@
+# Attendu du diagnostic (feature 002, T040-T041), rédigé à la main d'après le relevé réel.
+kind: ingress
+name: shop
+primary: ingress.backend-missing
+links: {class: ok, backend: broken, address: broken}

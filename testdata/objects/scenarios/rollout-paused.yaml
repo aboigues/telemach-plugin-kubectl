@@ -1,0 +1,29 @@
+# Scénario W5 : Deployment mis en pause (kubectl rollout pause)
+# (feature 002, quickstart). Manifestes seulement : les attentes sont dans
+# testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paused
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: paused
+  template:
+    metadata:
+      labels:
+        app: paused
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      containers:
+      - name: app
+        image: nginxinc/nginx-unprivileged:1.30-alpine
+        ports:
+        - containerPort: 8080
+        securityContext: {allowPrivilegeEscalation: false}
+        resources:
+          requests: {cpu: 10m, memory: 16Mi}
+          limits: {cpu: 100m, memory: 64Mi}

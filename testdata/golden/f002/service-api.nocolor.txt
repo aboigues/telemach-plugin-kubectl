@@ -1,0 +1,27 @@
+✖ Le Service « api » désigne 1 pod(s), mais aucun n'est prêt à recevoir du trafic.
+   service api · namespace demo · ClusterIP · ports 80 → 8080
+
+   ✔ type               ClusterIP
+   ✔ selector           app=api : 1 pod
+   ✖ pods prêts         0/1 prêt(s)
+   ✔ endpoints          0 prêt(s)
+   ✔ ports              80 → 8080
+
+📘 Concept — endpoints
+   Les endpoints d'un Service sont les adresses des pods qui reçoivent son
+   trafic. Un pod désigné par le selector n'y est ajouté que lorsqu'il est
+   Ready, c'est-à-dire quand sa sonde de disponibilité réussit.
+
+🔎 Cause probable
+   Les pods désignés par « app=api » existent mais ne sont pas Ready
+   (api-6b957d4f76-vmnt6) : tant qu'ils ne le sont pas, le Service ne leur
+   envoie rien. La cause est dans les pods eux-mêmes (sonde de disponibilité,
+   démarrage, image).
+
+💡 Corrections
+   1. Diagnostiquer le pod qui n'est pas prêt.
+      kubectl telemach diagnose pod/api-6b957d4f76-vmnt6 -n demo
+   2. Voir l'état Ready des pods désignés par le Service.
+      kubectl get pods -l app=api -n demo
+
+➜ Pour aller plus loin : kubectl telemach deepen

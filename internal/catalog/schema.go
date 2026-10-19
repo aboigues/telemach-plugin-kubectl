@@ -9,6 +9,8 @@ type Category string
 var Categories = map[Category]bool{
 	"cmdline": true, "connection": true, "auth": true, "notfound": true, "namespace": true,
 	"manifest": true, "schema": true, "conflict": true, "workload": true, "runtime": true,
+	// Feature 002 : pièges silencieux et nouvelles erreurs.
+	"service": true, "rollout": true, "config": true, "ingress": true, "storage": true, "portforward": true,
 }
 
 // Valeurs autorisées du champ fallback.
@@ -28,6 +30,7 @@ type Entry struct {
 	PodReasons  []string         `yaml:"pod_reasons"` // états de pod couverts (diagnose)
 	ExitCodes   []int            `yaml:"exit_codes"`  // codes de sortie de conteneur couverts
 	IssueKinds  []string         `yaml:"issue_kinds"` // types de ManifestIssue couverts (manifest-issue)
+	Pitfalls    []string         `yaml:"pitfalls"`    // pièges silencieux couverts (feature 002, diagnose d'un objet)
 	Fallback    string           `yaml:"fallback"`
 	Concept     ConceptRef       `yaml:"concept"`
 	Summary     string           `yaml:"summary"`

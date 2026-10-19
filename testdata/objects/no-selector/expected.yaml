@@ -1,0 +1,7 @@
+# Attendu du diagnostic (feature 002, T023), rédigé à la main d'après le relevé réel.
+kind: service
+name: external
+primary: service.no-selector
+links: {type: ok, selector: skipped, readiness: skipped, endpoints: ok, ports: skipped}
+# Second Service du même relevé (service-docs.json) : docs, de type ExternalName.
+also: {name: docs, primary: service.external-name}

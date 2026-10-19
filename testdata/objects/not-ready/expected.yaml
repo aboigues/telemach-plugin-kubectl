@@ -1,0 +1,5 @@
+# Attendu du diagnostic (feature 002, T023), rédigé à la main d'après le relevé réel.
+kind: service
+name: api
+primary: service.pods-not-ready
+links: {type: ok, selector: ok, readiness: broken, endpoints: ok, ports: ok}

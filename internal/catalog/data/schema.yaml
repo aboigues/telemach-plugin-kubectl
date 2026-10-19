@@ -362,8 +362,8 @@
       kubectl get pods --show-labels
     exercise: >-
       Crée un namespace d'exercice avec « kubectl create namespace exo-labels », crée un
-      deployment et un service, puis vérifie avec « kubectl get endpoints » que le service
-      trouve bien les pods. Supprime le namespace ensuite.
+      deployment et un service, puis vérifie avec « kubectl get endpointslices -l
+      kubernetes.io/service-name=<nom du service> » que le service trouve bien les pods. Supprime le namespace ensuite.
   doc_url: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
   tests: [selector-mismatch]
 

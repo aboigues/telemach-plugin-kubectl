@@ -1,0 +1,24 @@
+✖ L'Ingress « web » ne demande aucune classe, et aucune classe n'est marquée par défaut.
+   ingress web · namespace demo
+
+   ✖ classe             aucune classe demandée, aucune par défaut
+   ✔ backends           / : service/hello:80
+   · adresse            non vérifié
+
+📘 Concept — IngressClass par défaut
+   Un Ingress sans classe est pris en charge par la classe marquée par défaut
+   (annotation ingressclass.kubernetes.io/is-default-class). Si aucune ne l'est,
+   aucun contrôleur ne le prend.
+
+🔎 Cause probable
+   Des classes existent (demo), mais l'Ingress n'en désigne aucune et aucune
+   n'est choisie par défaut : il est ignoré par tous les contrôleurs.
+
+💡 Corrections
+   1. Lister les classes d'Ingress du cluster.
+      kubectl get ingressclasses
+   2. Ajouter spec.ingressClassName au manifeste de l'Ingress, réappliquer, puis
+      vérifier la classe retenue.
+      kubectl get ingress web -o jsonpath='{.spec.ingressClassName}' -n demo
+
+➜ Pour aller plus loin : kubectl telemach deepen

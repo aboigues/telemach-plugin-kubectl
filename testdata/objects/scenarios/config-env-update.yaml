@@ -1,0 +1,9 @@
+# Scénario W7 (feature 002, quickstart) : nouvelle valeur de la ConfigMap de config-env.yaml,
+# appliquée après le démarrage des pods. Manifestes seulement : les attentes sont dans
+# testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: conf-settings
+data:
+  MODE: prod

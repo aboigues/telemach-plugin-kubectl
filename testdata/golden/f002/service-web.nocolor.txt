@@ -1,0 +1,27 @@
+✖ Le Service « web » ne désigne aucun pod, son selector ne correspond aux labels d'aucun pod.
+   service web · namespace demo · ClusterIP · ports 80 → 8080
+
+   ✔ type               ClusterIP
+   ✖ selector           app=web : aucun pod
+   · pods prêts         non vérifié
+   ✔ endpoints          0 prêt(s)
+   · ports              non vérifié
+
+📘 Concept — label selector
+   Un Service ne connaît pas ses pods par leur nom : il envoie le trafic aux
+   pods dont les labels satisfont son selector. Si aucun pod ne porte ces
+   labels, le Service existe mais n'a aucun endpoint.
+
+🔎 Cause probable
+   Aucun pod du namespace demo ne porte les labels « app=web ». Les pods les
+   plus proches portent « app=frontend » : le selector du Service ou les labels
+   du modèle de pod ne sont sans doute pas écrits pareil.
+
+💡 Corrections
+   1. Comparer les labels des pods au selector du Service.
+      kubectl get pods --show-labels -n demo
+   2. Corriger le selector du Service (spec.selector) ou les labels du modèle de
+      pod (spec.template.metadata.labels), puis vérifier les endpoints.
+      kubectl get endpointslices -l kubernetes.io/service-name=web -n demo
+
+➜ Pour aller plus loin : kubectl telemach deepen

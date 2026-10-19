@@ -1,0 +1,244 @@
+# Pièges silencieux d'un Deployment (feature 002, US2) : la commande a réussi, mais la nouvelle
+# version n'arrive pas, ou les pods gardent l'ancienne image ou l'ancienne configuration
+# (research.md S3, S5). Chaque entrée est choisie par son identifiant de piège.
+
+- id: rollout.stalled
+  category: rollout
+  pitfalls: [rollout.stalled]
+  concept:
+    name: rollout
+    definition: >-
+      Un Deployment remplace ses pods version par version : il crée un nouveau ReplicaSet et
+      n'arrête les anciens pods qu'à mesure que les nouveaux sont prêts. Tant que la nouvelle
+      version n'est pas prête, l'ancienne continue de servir.
+  summary: Le déploiement de « {{.deployment}} » est bloqué, sa nouvelle version ne démarre pas.
+  cause: >-
+    Les pods de la nouvelle version ({{.newImage}}) ne sont pas prêts après l'échéance de
+    {{.deadline}} s{{if .reason}} : le pod « {{.pod}} » est en {{.reason}}{{end}}.{{if .oldImage}}
+    L'ancienne version ({{.oldImage}}, {{.oldReady}} pod(s) prêt(s)) répond toujours : c'est
+    pourquoi l'application semble fonctionner.{{end}} Kubernetes ne revient pas en arrière de
+    lui-même.
+  fixes:
+    - description: Comprendre pourquoi le nouveau pod ne démarre pas.
+      command: '{{.kubectl}} telemach diagnose pod/{{.pod}} {{.scope}}'
+      safe: true
+    - description: Corriger le manifeste puis le réappliquer ; ou, si tu préfères revenir tout de suite à la version précédente, la restaurer.
+      command: '{{.kubectl}} rollout undo deployment/{{.deployment}} {{.scope}}'
+      safe: true
+    - description: Suivre ensuite le déploiement jusqu'au bout.
+      command: '{{.kubectl}} rollout status deployment/{{.deployment}} {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      L'échéance de progression (progressDeadlineSeconds, 600 s par défaut) ne fait que
+      constater le blocage : le Deployment passe à Progressing=False, raison
+      ProgressDeadlineExceeded, mais rien n'est annulé. C'est un symptôme ; la cause est dans
+      les pods de la nouvelle version.
+    example: |-
+      kubectl rollout history deployment/web
+      kubectl get replicasets -l app=web
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-rollout », déploie
+      nginx-unprivileged:1.30-alpine, mets à jour l'image vers un tag inexistant, observe
+      les deux ReplicaSets avec « kubectl get rs », puis reviens en arrière avec
+      « kubectl rollout undo ». Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#failed-deployment
+  tests: [rollout-stalled]
+
+- id: rollout.progressing
+  category: rollout
+  pitfalls: [rollout.progressing]
+  concept:
+    name: rollout
+    definition: >-
+      Un Deployment remplace ses pods version par version ; pendant ce temps, le rollout est
+      « en cours » jusqu'à ce que tous les pods de la nouvelle version soient prêts.
+  summary: Le déploiement de « {{.deployment}} » est en cours ({{.newReady}}/{{.desired}} pod(s) prêt(s)).
+  cause: >-
+    La nouvelle version ({{.newImage}}) n'est pas encore entièrement prête, mais l'échéance de
+    {{.deadline}} s n'est pas atteinte : c'est normal pendant un démarrage, il suffit
+    d'attendre.{{if .reason}} Le pod « {{.pod}} » est toutefois en {{.reason}} : le
+    déploiement risque de se bloquer.{{end}}
+  fixes:
+    - description: Suivre le déploiement jusqu'au bout.
+      command: '{{.kubectl}} rollout status deployment/{{.deployment}} {{.scope}}'
+      safe: true
+    - description: Voir l'état des pods de chaque version.
+      command: '{{.kubectl}} get pods -l {{.selector}} {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      maxSurge et maxUnavailable règlent la vitesse d'un rollout : combien de pods en plus
+      peuvent démarrer, et combien peuvent manquer, pendant le remplacement.
+    example: |-
+      kubectl explain deployment.spec.strategy.rollingUpdate
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-progression »,
+      déploie nginx-unprivileged avec une readinessProbe qui attend 60 s, et suis le rollout
+      avec « kubectl rollout status ». Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#progressing-deployment
+  tests: [rollout-progressing]
+
+- id: rollout.paused
+  category: rollout
+  pitfalls: [rollout.paused]
+  concept:
+    name: rollout en pause
+    definition: >-
+      Un Deployment en pause (kubectl rollout pause) enregistre les modifications de son modèle
+      de pod sans les déployer, et son échéance de progression n'est plus évaluée.
+  summary: Le Deployment « {{.deployment}} » est en pause, ses modifications ne sont pas déployées.
+  cause: >-
+    Tant que le Deployment est en pause, une nouvelle image ou une nouvelle configuration ne
+    crée aucun nouveau pod : les pods actuels ({{.oldImage}}{{if not .oldImage}}{{.newImage}}{{end}})
+    continuent de tourner.
+  fixes:
+    - description: Reprendre le déploiement quand tu es prêt.
+      command: '{{.kubectl}} rollout resume deployment/{{.deployment}} {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      La pause sert à regrouper plusieurs modifications en un seul rollout : on met en pause,
+      on change l'image et les ressources, puis on reprend.
+    example: |-
+      kubectl rollout pause deployment/web
+      kubectl rollout resume deployment/web
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-pause », mets un
+      Deployment en pause, change son image, constate qu'aucun pod n'est recréé, puis reprends
+      le rollout. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#pausing-and-resuming-a-deployment
+  tests: [rollout-paused]
+
+- id: rollout.complete
+  category: rollout
+  pitfalls: [rollout.complete]
+  concept:
+    name: rollout
+    definition: >-
+      Un rollout est terminé quand tous les pods de la version demandée sont prêts : le
+      Deployment ne garde plus de pod d'une version précédente.
+  summary: Le Deployment « {{.deployment}} » est entièrement déployé, {{.ready}}/{{.desired}} pod(s) prêt(s).
+  cause: >-
+    La version en service est {{.image}}. Si l'application ne répond pas, le problème est
+    sans doute en aval : vérifie le Service qui l'expose.
+  fixes:
+    - description: Voir l'historique des versions de ce Deployment.
+      command: '{{.kubectl}} rollout history deployment/{{.deployment}} {{.scope}}'
+      safe: true
+    - description: Vérifier les Services du namespace.
+      command: '{{.kubectl}} get services {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Chaque modification du modèle de pod crée une révision ; kubectl rollout history les
+      liste, et kubectl rollout undo --to-revision=N revient à l'une d'elles.
+    example: |-
+      kubectl rollout history deployment/web
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-revisions », change
+      deux fois l'image d'un Deployment, puis lis son historique de révisions. Supprime le
+      namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+  tests: [healthy]
+
+- id: image.mutable-tag
+  category: rollout
+  pitfalls: [image.mutable-tag]
+  concept:
+    name: image tag
+    definition: >-
+      Le tag désigne la version d'une image. Un tag comme latest (ou l'absence de tag) peut
+      désigner une autre image d'un jour à l'autre, sans que le manifeste change.
+  summary: L'image « {{.image}} » n'a pas de tag explicite, un nouvel apply ne la mettra pas à jour.
+  cause: >-
+    Réappliquer un manifeste dont l'image s'écrit pareil ne crée aucun nouveau pod : pour
+    Kubernetes, rien n'a changé. Les pods existants gardent l'image qu'ils ont téléchargée,
+    même si une nouvelle a été publiée sous le même nom.
+  fixes:
+    - description: Écrire un tag de version explicite dans le manifeste (par exemple 1.30-alpine), puis réappliquer.
+      command: '{{.kubectl}} set image deployment/{{.deployment}} CONTENEUR=IMAGE:VERSION {{.scope}}'
+      safe: true
+    - description: Pour une version figée, référencer l'image par son digest (@sha256:…).
+      command: '{{.kubectl}} get pods -l {{.selector}} {{.scope}} -o jsonpath=''{.items[*].status.containerStatuses[*].imageID}'''
+      safe: true
+  deepen:
+    explanation: >-
+      Un tag explicite rend un déploiement reproductible et réversible : on sait quelle
+      version tourne, et kubectl rollout undo revient à une version connue. imagePullPolicy:
+      Always ne règle rien : il retélécharge l'image au démarrage d'un pod, mais ne redémarre
+      pas les pods existants.
+    example: |-
+      kubectl get pods -o jsonpath='{.items[*].status.containerStatuses[*].imageID}'
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-tag », déploie
+      nginx-unprivileged sans tag, réapplique le même manifeste et constate qu'aucun pod n'est
+      recréé ; recommence avec un tag explicite que tu changes. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/containers/images/#image-names
+  tests: [mutable-tag]
+
+- id: config.env-stale
+  category: config
+  pitfalls: [config.env-stale]
+  concept:
+    name: configuration figée au démarrage
+    definition: >-
+      Les variables d'environnement d'un conteneur, et les fichiers montés avec subPath, sont
+      lus une seule fois, au démarrage du pod. Modifier ensuite la ConfigMap ne change rien
+      pour les pods déjà démarrés.
+  summary: La ConfigMap « {{.configmap}} » a changé après le démarrage des pods de « {{.deployment}} », qui gardent l'ancienne valeur.
+  cause: >-
+    La ConfigMap a été modifiée le {{.modified}}, après le démarrage du plus ancien pod
+    ({{.started}}). Elle est utilisée par : {{.refs}}. Ces valeurs sont figées au démarrage.
+  fixes:
+    - description: Redémarrer les pods du Deployment, qui reliront la configuration (redémarrage progressif, sans coupure).
+      command: '{{.kubectl}} rollout restart deployment/{{.deployment}} {{.scope}}'
+      safe: true
+    - description: Suivre le redémarrage jusqu'au bout.
+      command: '{{.kubectl}} rollout status deployment/{{.deployment}} {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Un volume ConfigMap monté sans subPath est mis à jour par le kubelet au bout de quelques
+      dizaines de secondes, mais l'application doit relire le fichier. Les variables
+      d'environnement et les montages subPath, eux, demandent un redémarrage du pod.
+    example: |-
+      kubectl rollout restart deployment/web
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-config », crée une
+      ConfigMap utilisée en variable d'environnement, modifie-la, vérifie avec « kubectl exec
+      … -- env » que le pod garde l'ancienne valeur, puis redémarre le Deployment. Supprime le
+      namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/configuration/configmap/#mounted-configmaps-are-updated-automatically
+  tests: [config-env-stale]
+
+- id: config.secret-env
+  category: config
+  pitfalls: [config.secret-env]
+  concept:
+    name: configuration figée au démarrage
+    definition: >-
+      Les variables d'environnement issues d'un Secret, comme celles d'une ConfigMap, sont lues
+      au démarrage du pod ; un Secret modifié ensuite n'est pas pris en compte.
+  summary: Les pods de « {{.deployment}} » lisent le Secret « {{.secret}} » au démarrage, une modification ne leur parviendra pas.
+  cause: >-
+    TELEMACH ne lit jamais le contenu d'un Secret : il ne peut pas savoir si « {{.secret}} »
+    a changé. Utilisation : {{.refs}}. Si tu viens de le modifier, redémarre les pods.
+  fixes:
+    - description: Redémarrer les pods du Deployment après une modification du Secret.
+      command: '{{.kubectl}} rollout restart deployment/{{.deployment}} {{.scope}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Monter un Secret en volume (sans subPath) permet à l'application de relire sa nouvelle
+      valeur sans redémarrer, si elle surveille le fichier ; les variables d'environnement
+      exigent un redémarrage.
+    example: |-
+      kubectl explain pod.spec.volumes.secret
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-secret », crée un
+      Secret avec « kubectl create secret generic demo --from-file=./valeur.txt », utilise-le
+      en variable d'environnement, modifie-le et redémarre le Deployment. Supprime le
+      namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/configuration/secret/
+  tests: [config-env]

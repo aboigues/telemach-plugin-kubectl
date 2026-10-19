@@ -1,0 +1,103 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "apps/v1",
+      "kind": "ReplicaSet",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/desired-replicas": "1",
+          "deployment.kubernetes.io/max-replicas": "2",
+          "deployment.kubernetes.io/revision": "1"
+        },
+        "creationTimestamp": "2026-10-17T19:35:37Z",
+        "generation": 1,
+        "labels": {
+          "app": "paused",
+          "pod-template-hash": "7c5484b794"
+        },
+        "name": "paused-7c5484b794",
+        "namespace": "demo",
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "Deployment",
+            "name": "paused",
+            "uid": "0a27bc79-d6b8-4632-b75c-3fb5ecd5dfe2"
+          }
+        ],
+        "resourceVersion": "886",
+        "uid": "280fb910-1211-4de4-a674-406c2f3aa4c3"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "paused",
+            "pod-template-hash": "7c5484b794"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "paused",
+              "pod-template-hash": "7c5484b794"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "image": "nginxinc/nginx-unprivileged:1.30-alpine",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "app",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "100m",
+                    "memory": "64Mi"
+                  },
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "16Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "runAsUser": 65534
+            },
+            "terminationGracePeriodSeconds": 30
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 1,
+        "fullyLabeledReplicas": 1,
+        "observedGeneration": 1,
+        "readyReplicas": 1,
+        "replicas": 1,
+        "terminatingReplicas": 0
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}
