@@ -9,6 +9,9 @@
 Règles :
 
 - Chaque tag désigne un index multi-architecture `linux/amd64` + `linux/arm64`.
+- Ordre de publication : `X.Y.Z` est poussé, signé et attesté ; ensuite seulement, pour une
+  version stable, `X.Y` et `latest` sont déplacés sur **le même digest**. Si la signature ou
+  l'attestation échoue, `X.Y` et `latest` restent sur la version précédente, signée.
 - La documentation, les notes de Release et les messages de l'image utilisent **toujours**
   `X.Y.Z` (principe III : tag explicite). `latest` existe pour la commodité, avec un rappel
   pédagogique dans le README.

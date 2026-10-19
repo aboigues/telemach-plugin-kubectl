@@ -157,6 +157,7 @@ func TestImageInstall(t *testing.T) {
 		// ~/.local existe souvent ; seul bin manque, et Docker le crée avec le compte root.
 		{"dossier créé par Docker", "mkdir -p ~/.local\n" + imageInstallCmd(image, ""), "appartient à root", 1},
 		{"Windows", "mkdir -p ~/.local/bin\n" + imageInstallCmd(image, "-e HOST_OS=windows "), "WSL2", 2},
+		{"monté en lecture seule", "mkdir -p ~/.local/bin\ndocker run --rm --user \"$(id -u):$(id -g)\" -v ~/.local/bin:/sortie:ro " + image + " install", "lecture seule", 1},
 		{"fichier étranger", "mkdir -p ~/.local/bin\nprintf '#!/bin/sh\\n' > ~/.local/bin/kubectl-telemach\n" + imageInstallCmd(image, ""), "n'est pas un binaire TELEMACH", 1},
 		{"lien symbolique", "mkdir -p ~/.local/bin ~/ailleurs\nprintf '#!/bin/sh\\n' > ~/ailleurs/k\nln -s ~/ailleurs/k ~/.local/bin/kubectl-telemach\n" + imageInstallCmd(image, ""), "lien symbolique", 1},
 	}
@@ -176,7 +177,7 @@ func TestImageInstall(t *testing.T) {
 					t.Errorf("le fichier étranger a été modifié")
 				}
 			}
-			if r.name == "dossier créé par Docker" {
+			if r.name == "dossier créé par Docker" || r.name == "monté en lecture seule" {
 				entries, _ := os.ReadDir(filepath.Join(home, ".local", "bin"))
 				if len(entries) != 0 {
 					t.Errorf("rien ne doit être écrit : %v", entries)

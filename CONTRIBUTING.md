@@ -104,8 +104,9 @@ l'index Krew.
   sur `main` si nécessaire, puis relancer **sur le tag** :
   `gh workflow run release.yml --ref vX.Y.Z`. Ne jamais lancer depuis une branche :
   l'identité des signatures serait celle de la branche et les vérifications documentées
-  échoueraient. Si l'image a déjà été poussée, la relance est refusée : publier une nouvelle
-  version.
+  échoueraient. Si l'image `X.Y.Z` a déjà été poussée, la relance est refusée : publier une
+  nouvelle version. `X.Y` et `latest` ne sont déplacés qu'une fois l'image signée et attestée :
+  après un échec, ils désignent toujours la version précédente.
 - **Seule la mise à jour de l'index Krew a échoué** (clé absente ou expirée, dépôt
   inaccessible) : la Release et l'image restent valables. Corriger la cause, puis relancer la
   seule mise à jour **sur le tag** : `gh workflow run krew-index.yml --ref vX.Y.Z`. Sans

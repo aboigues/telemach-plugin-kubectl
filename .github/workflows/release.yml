@@ -148,6 +148,28 @@ jobs:
           subject-digest: ${{ steps.image.outputs.digest }}
           push-to-registry: true
           create-storage-record: false
+      - name: Ajouter les tags X.Y et latest (versions stables)
+        # Après signature et attestation seulement : un échec plus haut laisse X.Y et latest sur
+        # la version précédente, signée. Une seule source : copie à l'identique (même digest).
+        env:
+          DIGEST: ${{ steps.image.outputs.digest }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          if [[ "$version" == *-* ]]; then
+            echo "Pré-version ${version} : ni X.Y ni latest."
+            exit 0
+          fi
+          image=docker.io/telemachlearning/telemach-kubectl
+          minor="${version%.*}"
+          docker buildx imagetools create -t "${image}:${minor}" -t "${image}:latest" "${image}@${DIGEST}"
+          for t in "$minor" latest; do
+            got="$(docker buildx imagetools inspect "${image}:${t}" --format '{{json .Manifest}}' | jq -r .digest)"
+            if [[ "$got" != "$DIGEST" ]]; then
+              echo "::error::${image}:${t} désigne « ${got} » au lieu de ${DIGEST}."
+              exit 1
+            fi
+          done
       - name: Publier la Release (immuable une fois publiée)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
