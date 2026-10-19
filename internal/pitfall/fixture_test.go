@@ -112,3 +112,35 @@ func timeOf(t *testing.T, dir string) time.Time {
 }
 
 func goDump(v any) string { return fmt.Sprintf("%#v", v) }
+
+// variant copie un cas relevé dans un dossier temporaire en remplaçant certains fichiers : un
+// contenu vide supprime le fichier (lecture « introuvable »). Il sert aux cas qu'un cluster
+// kind ne produit pas (annotation dépréciée, plus de 10 backends).
+func variant(t *testing.T, base string, files map[string]string) string {
+	t.Helper()
+	dir := t.TempDir()
+	entries, err := os.ReadDir(filepath.Join(objectsCorpus, base))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range entries {
+		data, err := os.ReadFile(filepath.Join(objectsCorpus, base, e.Name())) //nolint:gosec // corpus du dépôt
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, e.Name()), data, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for name, content := range files {
+		path := filepath.Join(dir, name)
+		if content == "" {
+			_ = os.Remove(path)
+			continue
+		}
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return dir
+}

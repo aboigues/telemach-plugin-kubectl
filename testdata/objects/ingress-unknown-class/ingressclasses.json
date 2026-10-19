@@ -8,11 +8,11 @@
         "annotations": {
           "kubectl.kubernetes.io/last-applied-configuration": "••••••"
         },
-        "creationTimestamp": "2026-10-17T19:26:28Z",
+        "creationTimestamp": "2026-10-19T07:16:49Z",
         "generation": 1,
         "name": "demo",
-        "resourceVersion": "1004",
-        "uid": "f3ae7124-44d8-42dd-88ec-ffe3af881e7e"
+        "resourceVersion": "1035",
+        "uid": "ab1ab684-1337-4005-86c8-a1072b33bcde"
       },
       "spec": {
         "controller": "example.com/telemach-demo"

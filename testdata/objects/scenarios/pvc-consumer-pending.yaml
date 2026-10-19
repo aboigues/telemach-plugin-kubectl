@@ -1,0 +1,36 @@
+# Scénario W9 bis : PVC de la classe par défaut (WaitForFirstConsumer) dont le pod consommateur
+# ne peut pas être planifié (aucun nœud ne porte le label demandé) : le PVC attend un pod qui
+# n'arrive pas (feature 002, research.md S7). Manifestes seulement : les attentes sont dans
+# testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cache-data
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: {storage: 16Mi}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cache-user
+spec:
+  nodeSelector:
+    telemach.example/disk: ssd
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+  containers:
+  - name: app
+    image: busybox:1.38
+    command: ["sh", "-c", "sleep 3600"]
+    securityContext: {allowPrivilegeEscalation: false}
+    resources:
+      requests: {cpu: 10m, memory: 16Mi}
+      limits: {cpu: 100m, memory: 64Mi}
+    volumeMounts:
+    - {name: cache, mountPath: /cache}
+  volumes:
+  - name: cache
+    persistentVolumeClaim: {claimName: cache-data}

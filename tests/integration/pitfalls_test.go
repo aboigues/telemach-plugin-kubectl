@@ -64,6 +64,9 @@ func runScenario(t *testing.T, shell, id string) (stdout, stderr, ns string) {
 
 func expect(t *testing.T, id, out string, want ...string) {
 	t.Helper()
+	// Le rendu colle les guillemets à leur contenu par une espace insécable (typographie
+	// française) dans les paragraphes coupés : on compare le texte, pas la typographie.
+	out = strings.ReplaceAll(out, "\u00a0", " ")
 	for _, w := range want {
 		if !strings.Contains(out, w) {
 			t.Errorf("%s : sortie sans %q :\n%s", id, w, out)
@@ -101,7 +104,11 @@ func TestPitfallsDeployment(t *testing.T) {
 	for _, shell := range shells {
 		t.Run(shell+"/W5", func(t *testing.T) {
 			_, stderr, ns := runScenario(t, shell, "W5")
-			expect(t, "W5", stderr, "est bloqué", "1.30-alpine", "ImagePullBackOff", "kubectl rollout undo deployment/stalled -n "+ns)
+			expect(t, "W5", stderr, "est bloqué", "1.30-alpine", "kubectl rollout undo deployment/stalled -n "+ns)
+			// Le pod alterne entre ErrImagePull et ImagePullBackOff au fil des nouvelles tentatives.
+			if !strings.Contains(stderr, "ImagePullBackOff") && !strings.Contains(stderr, "ErrImagePull") {
+				t.Errorf("W5 : sortie sans l'état du pull d'image :\n%s", stderr)
+			}
 		})
 		t.Run(shell+"/W6", func(t *testing.T) {
 			_, stderr, _ := runScenario(t, shell, "W6")

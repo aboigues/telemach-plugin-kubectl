@@ -1,0 +1,41 @@
+{
+  "apiVersion": "networking.k8s.io/v1",
+  "kind": "Ingress",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "••••••"
+    },
+    "creationTimestamp": "2026-10-19T07:17:01Z",
+    "generation": 1,
+    "name": "hello-web",
+    "namespace": "demo",
+    "resourceVersion": "1057",
+    "uid": "33f10ecc-21b3-4867-abad-b85f977ee34a"
+  },
+  "spec": {
+    "ingressClassName": "demo",
+    "rules": [
+      {
+        "http": {
+          "paths": [
+            {
+              "backend": {
+                "service": {
+                  "name": "hello",
+                  "port": {
+                    "number": 80
+                  }
+                }
+              },
+              "path": "/",
+              "pathType": "Prefix"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "status": {
+    "loadBalancer": {}
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "apiVersion": "networking.k8s.io/v1",
+  "kind": "Ingress",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "••••••"
+    },
+    "creationTimestamp": "2026-10-19T07:16:44Z",
+    "generation": 1,
+    "name": "web",
+    "namespace": "demo",
+    "resourceVersion": "1027",
+    "uid": "3cb7e4c7-37bc-412f-9481-500352b734d4"
+  },
+  "spec": {
+    "rules": [
+      {
+        "http": {
+          "paths": [
+            {
+              "backend": {
+                "service": {
+                  "name": "hello",
+                  "port": {
+                    "number": 80
+                  }
+                }
+              },
+              "path": "/",
+              "pathType": "Prefix"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "status": {
+    "loadBalancer": {}
+  }
+}

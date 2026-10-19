@@ -164,6 +164,15 @@ var cases = []objectCase{
 	{id: "pvc-empty-class", steps: []step{apply("pvc-empty-class.yaml"), pause(5 * time.Second)}, reads: []read{
 		r("pvc.json", kuberead.PVCArgs("static-data")),
 		r("storageclasses.json", kuberead.StorageClassesArgs()),
+		r("pods.json", kuberead.PodsArgs()),
+	}},
+	// Pod consommateur impossible à planifier : le PVC (WaitForFirstConsumer) attend un pod qui
+	// n'arrive pas ; le diagnostic passe à ce pod (feature 001).
+	{id: "pvc-consumer-pending", steps: []step{apply("pvc-consumer-pending.yaml"), pause(10 * time.Second)}, reads: []read{
+		r("pvc.json", kuberead.PVCArgs("cache-data")),
+		r("storageclasses.json", kuberead.StorageClassesArgs()),
+		r("pods.json", kuberead.PodsArgs()),
+		r("events-cache-user.json", kuberead.PodEventsArgs("cache-user")),
 	}},
 	// Sans classe par défaut (annotation retirée de « standard », dans ce cluster jetable
 	// seulement, puis remise) : un PVC sans classe n'en reçoit aucune.
@@ -173,6 +182,7 @@ var cases = []objectCase{
 	}, reads: []read{
 		r("pvc.json", kuberead.PVCArgs("nodefault-data")),
 		r("storageclasses.json", kuberead.StorageClassesArgs()),
+		r("pods.json", kuberead.PodsArgs()),
 	}, after: []step{
 		{args: []string{"annotate", "storageclass", "standard", "storageclass.kubernetes.io/is-default-class=true", "--overwrite"}, cluster: true},
 	}},
