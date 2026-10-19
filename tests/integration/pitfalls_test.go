@@ -221,8 +221,10 @@ func TestPitfallsNewErrors(t *testing.T) {
 			stdout, stderr, ns := runScenario(t, shell, "W12")
 			out := stdout + stderr
 			expect(t, "W12", out,
-				"n'a pas de conteneur « helo »", "-c hello",
-				"n'a pas de conteneur « trois »", "Ses conteneurs s'appellent : app, sidecar",
+				// kubectl 1.35 ne cite pas les conteneurs du pod (pas de « out of: … ») : la leçon
+				// propose alors la commande qui les liste, présente dans les trois versions.
+				"n'a pas de conteneur « helo »", "n'a pas de conteneur « trois »",
+				"kubectl get pod two-containers -n "+ns+" -o jsonpath='{.spec.containers[*].name}'",
 				"Le port 18080 de ta machine est déjà utilisé", "port-forward -n "+ns+" service/hello :80",
 				"Le déploiement de « stalled » est bloqué", "kubectl telemach diagnose deployment/stalled -n "+ns,
 				"Le champ spec.selector de « hello » (Deployment) ne peut pas être modifié", "Seconde voie")
