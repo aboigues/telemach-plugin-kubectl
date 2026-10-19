@@ -108,9 +108,13 @@ func snapshot(t *testing.T, ns string) string {
 	var lines []string
 	for _, it := range list.Items {
 		switch it.Kind {
-		case "Pod", "ReplicaSet", "Deployment", "EndpointSlice", "PersistentVolumeClaim":
-			// Leur statut change seul (sondes, redémarrages, pods prêts, liaison d'un volume) :
-			// seuls leur présence et leur génération comptent.
+		case "EndpointSlice", "PersistentVolumeClaim":
+			// Réécrits par les contrôleurs (endpoints d'un pod qui devient prêt, liaison d'un
+			// volume), génération comprise : seule leur présence compte.
+			lines = append(lines, it.Kind+"/"+it.Metadata.Name)
+		case "Pod", "ReplicaSet", "Deployment":
+			// Leur statut change seul (sondes, redémarrages) : seuls leur présence et leur
+			// génération comptent.
 			lines = append(lines, it.Kind+"/"+it.Metadata.Name+"#"+itoa(it.Metadata.Generation))
 		default:
 			lines = append(lines, it.Kind+"/"+it.Metadata.Name+"@"+it.Metadata.ResourceVersion)
