@@ -178,8 +178,14 @@ dans le registre d'origine ; seule la règle préventive, transposée à kubectl
   cause : il tournait en même temps que la mesure de SC-004, qui lance des processus pendant
   20 s. Les mesures de latence s'exécutent paquet par paquet (`go test -p 1`), jamais en
   parallèle d'une autre charge.
-- **Suivi** : `internal/diagnose/race_on_test.go` et étape « Objectifs de latence » de
-  `.github/workflows/ci.yml`.
+- **Complément 2 (2026-10-19)** : `TestWatchLatency` a de nouveau dépassé 50 ms en CI, avec
+  `-p 1` (78 ms sur `main`, puis 103 et 130 ms sur la PR #5), contre 3 à 19 ms en local et à la
+  relance. Cause : sur 20 mesures, l'indice du « p95 » (`20*95/100`) désignait le **maximum** ;
+  un seul pic du runner suffisait. La mesure porte désormais sur 100 itérations, dont le p95
+  écarte les 5 plus lentes ; le seuil est inchangé. Règle : un percentile se calcule sur assez
+  d'échantillons pour ne pas se confondre avec le maximum (au moins 100 pour un p95).
+- **Suivi** : `internal/diagnose/race_on_test.go`, `latencyRuns` dans
+  `tests/shell/watch_test.go` et étape « Objectifs de latence » de `.github/workflows/ci.yml`.
 
 ### LL-005 — Dossier de scénarios appliqué en entier avec son fichier d'attentes
 

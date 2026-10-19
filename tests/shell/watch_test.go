@@ -169,7 +169,8 @@ func TestPromptHook(t *testing.T) {
 
 // SC-010 : l'intégration retarde l'invite de moins de 50 ms au p95 après une création réussie
 // (watch dort 3 s en arrière-plan sans être attendu), et le crochet sans signal est immédiat.
-// Mesure faite sans le détecteur de courses (LL-006).
+// Mesure faite sans le détecteur de courses (LL-006), sur assez d'itérations pour que le p95
+// écarte vraiment les pics du runner : sur 20, il désignait le maximum.
 func TestWatchLatency(t *testing.T) {
 	if raceEnabled {
 		t.Skip("latence mesurée sans le détecteur de courses (étape dédiée de la CI, LL-006)")
@@ -182,7 +183,7 @@ func TestWatchLatency(t *testing.T) {
 		if shell == "zsh" {
 			body = "zmodload zsh/datetime\n"
 		}
-		body += `for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do` + "\n" +
+		body += `i=0; while (( i < ` + strconv.Itoa(latencyRuns) + ` )); do (( i++ ))` + "\n" +
 			`  t0=` + now + `; command kubectl apply -f x.yaml >/dev/null 2>&1; t1=` + now + "\n" +
 			`  kubectl apply -f x.yaml >/dev/null 2>&1; t2=` + now + "\n" +
 			`  __telemach_prompt; t3=` + now + "\n" +
@@ -205,7 +206,7 @@ func TestWatchLatency(t *testing.T) {
 			added = append(added, (v[2]-v[1])-(v[1]-v[0]))
 			hook = append(hook, v[3]-v[2])
 		}
-		if len(added) < 20 {
+		if len(added) < latencyRuns {
 			t.Fatalf("mesures incomplètes (D-LL-009) : %q", stdout)
 		}
 		if p := p95(added); p > 0.050 {
@@ -218,6 +219,9 @@ func TestWatchLatency(t *testing.T) {
 		}
 	})
 }
+
+// latencyRuns est le nombre de mesures : le p95 en écarte les 5 plus lentes.
+const latencyRuns = 100
 
 func p95(values []float64) float64 {
 	s := append([]float64(nil), values...)
