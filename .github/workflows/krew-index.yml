@@ -1,0 +1,100 @@
+# Mise à jour de l'index Krew du projet (feature 003, research.md R9) : après la publication
+# d'une version stable, écrit plugins/telemach.yaml dans le dépôt aboigues/telemach-krew-index.
+# Appelé par release.yml, ou relancé seul SUR le tag, sans republier la Release :
+#   gh workflow run krew-index.yml --ref vX.Y.Z
+# L'écriture passe par une clé de déploiement limitée à ce seul dépôt (secret
+# KREW_INDEX_DEPLOY_KEY de l'environnement « release ») ; jamais de push --force.
+# Toutes les actions tierces sont épinglées par SHA de commit complet (vérifiés le 2026-10-19).
+name: krew-index
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+    steps:
+      - name: Vérifier le tag et ignorer une pré-version
+        id: tag
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          if [[ "$REF" =~ ^refs/tags/v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "version=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+            echo "stable=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$REF" =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+-[0-9A-Za-z.-]+$ ]]; then
+            echo "Pré-version : l'index Krew n'est pas modifié (FR-008)."
+            echo "stable=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::« $REF » n'est pas un tag de version vX.Y.Z : lance la mise à jour sur un tag (gh workflow run krew-index.yml --ref vX.Y.Z)."
+            exit 1
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.tag.outputs.stable == 'true'
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: steps.tag.outputs.stable == 'true'
+        with:
+          go-version-file: go.mod
+      - name: Générer le manifeste depuis la Release publiée
+        if: steps.tag.outputs.stable == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern checksums.txt --dir "$RUNNER_TEMP"
+          go run ./scripts/krew-manifest -checksums "$RUNNER_TEMP/checksums.txt" -version "$VERSION" -out "$RUNNER_TEMP/telemach.yaml"
+          cat "$RUNNER_TEMP/telemach.yaml"
+      - name: Valider le manifeste et installer chaque plateforme depuis la Release
+        if: steps.tag.outputs.stable == 'true'
+        run: |
+          go install sigs.k8s.io/krew/cmd/krew@v0.5.0
+          go install sigs.k8s.io/krew/cmd/validate-krew-manifest@v0.5.0
+          validate-krew-manifest -skip-install -manifest "$RUNNER_TEMP/telemach.yaml"
+          # Téléchargement réel des archives publiées : Krew vérifie leur somme.
+          for platform in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
+            root="$(mktemp -d)"
+            KREW_ROOT="$root" KREW_OS="${platform%/*}" KREW_ARCH="${platform#*/}" \
+              krew install --manifest="$RUNNER_TEMP/telemach.yaml"
+            echo "$platform : installé par Krew depuis la Release"
+          done
+      - name: Écrire le manifeste dans l'index
+        if: steps.tag.outputs.stable == 'true'
+        env:
+          DEPLOY_KEY: ${{ secrets.KREW_INDEX_DEPLOY_KEY }}
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          if [ -z "$DEPLOY_KEY" ]; then
+            echo "::error::Secret KREW_INDEX_DEPLOY_KEY absent de l'environnement « release » (voir CONTRIBUTING.md)."
+            exit 1
+          fi
+          ssh_dir="$RUNNER_TEMP/ssh"
+          install -d -m 700 "$ssh_dir"
+          ( umask 077 && printf '%s\n' "$DEPLOY_KEY" > "$ssh_dir/key" )
+          # Clé publiée par GitHub (gh api meta, vérifiée le 2026-10-19) : aucune confiance au
+          # premier contact.
+          echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" > "$ssh_dir/known_hosts"
+          export GIT_SSH_COMMAND="ssh -i $ssh_dir/key -o IdentitiesOnly=yes -o UserKnownHostsFile=$ssh_dir/known_hosts -o StrictHostKeyChecking=yes"
+          git clone --depth 1 git@github.com:aboigues/telemach-krew-index.git "$RUNNER_TEMP/index"
+          mkdir -p "$RUNNER_TEMP/index/plugins"
+          cp "$RUNNER_TEMP/telemach.yaml" "$RUNNER_TEMP/index/plugins/telemach.yaml"
+          cd "$RUNNER_TEMP/index"
+          if git diff --quiet -- plugins/telemach.yaml && git ls-files --error-unmatch plugins/telemach.yaml > /dev/null 2>&1; then
+            echo "Manifeste déjà à jour : aucun commit."
+          else
+            git add plugins/telemach.yaml
+            git -c user.name="TELEMACH release" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -m "Index : telemach v${VERSION}"
+            git push origin HEAD:main
+          fi
+      - name: Effacer la clé de déploiement
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/ssh"

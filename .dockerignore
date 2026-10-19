@@ -1,0 +1,5 @@
+# Le contexte réel de l'image est préparé par GoReleaser (dockers_v2) : seuls les binaires
+# copiés par le Dockerfile y figurent. Ce fichier protège une construction locale.
+*
+!linux/
+!dist/kubectl-telemach_darwin_*/

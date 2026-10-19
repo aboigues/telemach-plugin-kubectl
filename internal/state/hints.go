@@ -32,6 +32,9 @@ func (s Store) ShouldHint(image string, now time.Time) bool {
 
 // RememberHint enregistre l'affichage de l'information et purge les entrées périmées.
 func (s Store) RememberHint(image string, now time.Time) error {
+	if s.Dir == "" {
+		return ErrNoStateDir
+	}
 	m := s.loadHints()
 	for k, t := range m.Seen {
 		if now.Sub(t) >= HintWindow {
@@ -51,6 +54,9 @@ func (s Store) RememberHint(image string, now time.Time) error {
 // mémoire vide.
 func (s Store) loadHints() HintMemory {
 	m := HintMemory{Seen: map[string]time.Time{}}
+	if s.Dir == "" {
+		return m
+	}
 	data, err := os.ReadFile(filepath.Join(s.Dir, hintsFile))
 	if err != nil {
 		return m

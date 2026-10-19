@@ -1,0 +1,9 @@
+✖ Le dossier de destination appartient à root : TELEMACH ne peut pas y écrire.
+
+📘 Concept — dossier créé par Docker
+   Quand le dossier monté n'existe pas, Docker le crée lui-même, avec le compte root.
+   C'est pour cela que la commande commence par mkdir -p : le dossier t'appartient.
+
+💡 Correction
+   sudo chown "$(id -u):$(id -g)" ~/.local/bin
+   docker run --rm --user "$(id -u):$(id -g)" -v ~/.local/bin:/sortie telemachlearning/telemach-kubectl:0.2.0 install

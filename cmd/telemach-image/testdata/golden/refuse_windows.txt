@@ -1,0 +1,9 @@
+✖ Windows n'est pas pris en charge (HOST_OS=windows).
+
+📘 Concept — WSL2
+   Le plugin fonctionne sous Linux et macOS. Sous Windows, utilise-le dans WSL2 :
+   lance la commande d'installation depuis ton terminal WSL2, sans HOST_OS.
+
+💡 Correction
+   mkdir -p ~/.local/bin
+   docker run --rm --user "$(id -u):$(id -g)" -v ~/.local/bin:/sortie telemachlearning/telemach-kubectl:0.2.0 install

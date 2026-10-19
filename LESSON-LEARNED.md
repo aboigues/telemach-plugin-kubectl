@@ -71,6 +71,29 @@ dans le registre d'origine ; seule la règle préventive, transposée à kubectl
 
 ## Incidents
 
+### LL-010 — Dossier d'état relatif au dossier courant sans HOME
+
+- **Date** : 2026-10-19
+- **Catégorie** : bug
+- **Contexte** : feature 003, vérification de `check` dans l'image `scratch` (T043) : le
+  plugin y tourne sans `HOME` ni `XDG_STATE_HOME`.
+- **Cause racine** : depuis la feature 001, `state.DefaultDir` construisait
+  `filepath.Join(HOME, ".local", "state", …)` sans vérifier que `HOME` était défini et absolu :
+  sans `HOME`, le chemin devenait relatif et `last.json` (ou `hints.json`) s'écrivait dans le
+  dossier courant. Dans l'image, ce dossier est celui des manifestes de l'apprenant : monté
+  sans `:ro`, il aurait reçu un dossier `.local/state/`.
+- **Impact** : aucun en production (détecté avant la première version publiée) ; écriture
+  inattendue dans un dossier de l'apprenant, contraire à « `check` n'écrit rien ».
+- **Correctif** : `DefaultDir` ne retient qu'un chemin absolu (sinon aucun dossier) ; un
+  `Store` sans dossier ne lit ni n'écrit rien (`ErrNoStateDir`) ; l'image lance le plugin sans
+  `HOME` ni `XDG_STATE_HOME`.
+- **Règle préventive** : tout chemin construit à partir d'une variable d'environnement est
+  vérifié absolu avant usage ; un programme qui peut tourner dans un conteneur est testé sans
+  `HOME`.
+- **Suivi** : `TestNoStateDir` (`internal/state/state_test.go`, dossier courant vérifié vide)
+  et `TestPassThrough` (`cmd/telemach-image/main_test.go`, environnement du plugin sans
+  `HOME`).
+
 ### LL-009 — Code de sortie perdu par zsh après un trap
 
 - **Date** : 2026-10-19

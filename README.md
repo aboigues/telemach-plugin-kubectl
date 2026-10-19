@@ -248,33 +248,154 @@ signale aussi, à l'invite suivante, les pièges durables des objets créés :
 |-------|---------|--------------|
 | kubectl | 1.35, 1.36 ou 1.37 (les autres versions fonctionnent avec les règles 1.37) | `kubectl version --client` |
 | Shell | bash ou zsh (Linux, macOS, WSL2) | `echo $SHELL` |
-| Go | 1.27 ou plus récent (la version exacte, 1.27.2, est téléchargée automatiquement) | `go version` |
 
-Windows natif (PowerShell) n'est pas pris en charge ; sous Windows, utilise WSL2.
+Go n'est nécessaire que pour compiler le plugin toi-même. Windows natif (PowerShell) n'est
+pas pris en charge ; sous Windows, utilise WSL2.
 
-### 1. Compiler et installer le plugin
+### 1. Installer le plugin
 
 kubectl découvre tout seul les programmes nommés `kubectl-<nom>` présents dans ton `PATH` :
-`kubectl-telemach` devient ainsi la commande `kubectl telemach`.
+`kubectl-telemach` devient ainsi la commande `kubectl telemach`. Choisis **une** des voies
+ci-dessous ; les commandes indiquent toujours une version précise (ici `0.1.0`).
+
+#### Depuis une Release (recommandé)
+
+Chaque version est publiée sur la [page des Releases](https://github.com/aboigues/telemach-plugin-kubectl/releases),
+avec un binaire par système et par processeur, un fichier de sommes de contrôle et une
+signature. Télécharge-les **en ligne de commande** (sous macOS, un binaire téléchargé par un
+navigateur peut être bloqué par le système).
+
+Linux et WSL2 :
+
+```bash
+VERSION=0.1.0
+ARCH=$(uname -m); case "$ARCH" in x86_64) ARCH=amd64 ;; aarch64|arm64) ARCH=arm64 ;; esac
+FICHIER=kubectl-telemach_${VERSION}_linux_${ARCH}
+curl -fsSLO "https://github.com/aboigues/telemach-plugin-kubectl/releases/download/v${VERSION}/${FICHIER}"
+curl -fsSLO "https://github.com/aboigues/telemach-plugin-kubectl/releases/download/v${VERSION}/checksums.txt"
+sha256sum --check --ignore-missing checksums.txt
+mkdir -p ~/.local/bin
+install -m 0755 "$FICHIER" ~/.local/bin/kubectl-telemach
+kubectl telemach version
+```
+
+macOS : mêmes commandes avec `_darwin_` à la place de `_linux_`, et
+`shasum -a 256 --check --ignore-missing checksums.txt` pour la vérification.
+
+- `uname -m` donne ton processeur (`x86_64` ou `arm64`), traduit dans le nom du fichier.
+- La ligne `sha256sum --check` compare le fichier téléchargé à sa somme publiée : elle doit
+  afficher `OK`. **Si elle affiche `FAILED`, n'installe pas ce fichier** : il a été altéré ou
+  mal téléchargé ; supprime-le et recommence.
+- `install -m 0755` copie le binaire sous le nom `kubectl-telemach` et le rend exécutable.
+
+Vérifier aussi la **signature** (facultatif, avec [cosign](https://docs.sigstore.dev/cosign/system_config/installation/)) :
+elle prouve que `checksums.txt` a été produit par le workflow officiel du dépôt.
+
+```bash
+curl -fsSLO "https://github.com/aboigues/telemach-plugin-kubectl/releases/download/v${VERSION}/checksums.txt.sigstore.json"
+cosign verify-blob \
+  --bundle checksums.txt.sigstore.json \
+  --certificate-identity-regexp '^https://github\.com/aboigues/telemach-plugin-kubectl/\.github/workflows/release\.yml@refs/tags/v' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  checksums.txt
+```
+
+Si `~/.local/bin` n'est pas dans ton `PATH`, ajoute-le dans ton `~/.zshrc` ou `~/.bashrc`,
+puis vérifie que kubectl trouve le plugin :
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+kubectl plugin list         # doit lister …/kubectl-telemach
+```
+
+#### Avec Krew
+
+[Krew](https://krew.sigs.k8s.io/docs/user-guide/setup/install/) est le gestionnaire de
+plugins de kubectl : il choisit l'archive de ton système, vérifie sa somme de contrôle et
+place le plugin dans ton `PATH`. TELEMACH est publié dans un index propre au projet, à ajouter
+une seule fois :
+
+```bash
+kubectl krew index add telemach https://github.com/aboigues/telemach-krew-index.git
+kubectl krew install telemach/telemach
+kubectl telemach version
+```
+
+Mettre à jour vers la dernière version publiée : `kubectl krew upgrade telemach`. Seules les
+versions stables sont proposées par l'index.
+
+> **Une seule installation à la fois.** Si tu as aussi installé le plugin à la main (dans
+> `~/.local/bin`), kubectl utilise le premier qu'il trouve dans le `PATH` et
+> `kubectl plugin list` signale l'autre comme masqué (*shadowed*). Garde-en un seul :
+> `kubectl krew uninstall telemach` ou `rm ~/.local/bin/kubectl-telemach`.
+
+#### Avec Docker seulement
+
+Si tu as Docker (souvent déjà présent pour faire tourner un cluster local comme kind), l'image
+officielle copie le bon binaire dans un dossier de ta machine, en une commande :
+
+Linux et WSL2 :
+
+```bash
+mkdir -p ~/.local/bin
+docker run --rm --user "$(id -u):$(id -g)" \
+  -v ~/.local/bin:/sortie \
+  telemachlearning/telemach-kubectl:0.1.0 install
+```
+
+macOS (Docker Desktop) :
+
+```bash
+mkdir -p ~/.local/bin
+docker run --rm --user "$(id -u):$(id -g)" -e HOST_OS=darwin \
+  -v ~/.local/bin:/sortie \
+  telemachlearning/telemach-kubectl:0.1.0 install
+```
+
+- `mkdir -p` d'abord : sinon Docker crée lui-même le dossier, qui appartient alors à root.
+- `-v ~/.local/bin:/sortie` (montage, *bind mount*) donne au conteneur accès à ce seul dossier
+  de ta machine ; il doit faire partie de ton `PATH` (voir plus haut).
+- `--user "$(id -u):$(id -g)"` fait écrire le conteneur avec ton identité : le fichier
+  installé t'appartient.
+- `-e HOST_OS=darwin` installe le binaire macOS (le conteneur, lui, tourne sous Linux).
+- La version est toujours explicite (`:0.1.0`) : `latest` existe, mais change sans prévenir
+  et ne dit pas ce que tu as installé.
+
+L'image ne remplace jamais un fichier qu'elle ne reconnaît pas (lien symbolique, autre
+programme) et explique pourquoi. Signature et provenance de l'image : voir
+[`docs/dockerhub.md`](docs/dockerhub.md).
+
+#### Essayer sans rien installer
+
+Pour voir ce que TELEMACH dit de tes manifestes sans rien installer ni contacter de cluster,
+lance l'image depuis le dossier de tes manifestes :
+
+```bash
+docker run --rm -it -v "$PWD":/manifestes:ro telemachlearning/telemach-kubectl:0.1.0 check
+```
+
+- `:ro` monte le dossier en lecture seule : l'image ne peut rien y modifier.
+- `-it` active les couleurs : le conteneur sait qu'il écrit dans un terminal et peut lui
+  demander sa couleur de fond (avec `-t` seul, la réponse du terminal n'arrive jamais au
+  conteneur : l'affichage attend deux secondes et la réponse s'imprime ensuite dans ton shell).
+- Tous les fichiers `.yaml`, `.yml` et `.json` du dossier et de ses sous-dossiers sont vérifiés, comme
+  avec `kubectl telemach check -f . -R`. L'image ne contient ni kubectl ni configuration de
+  cluster : elle applique les règles de la version la plus récente prise en charge et le dit
+  en première ligne.
+
+L'explication automatique des erreurs de `kubectl` et le diagnostic d'un cluster
+(`diagnose`) demandent, eux, le plugin installé.
+
+#### Compiler depuis les sources
+
+Avec Go 1.27 ou plus récent (la version exacte, 1.27.2, est téléchargée automatiquement) :
 
 ```bash
 git clone https://github.com/aboigues/telemach-plugin-kubectl.git
 cd telemach-plugin-kubectl
 mkdir -p ~/.local/bin
 go build -o ~/.local/bin/kubectl-telemach ./cmd/kubectl-telemach
-```
-
-Si `~/.local/bin` n'est pas dans ton `PATH`, ajoute-le dans ton `~/.zshrc` ou `~/.bashrc` :
-
-```bash
-export PATH="$HOME/.local/bin:$PATH"
-```
-
-Vérifie :
-
-```bash
-kubectl plugin list         # doit lister …/kubectl-telemach
-kubectl telemach version    # version, licence et règles Kubernetes embarquées
+kubectl telemach version
 ```
 
 ### 2. Activer l'explication automatique
@@ -324,6 +445,9 @@ kubectl telemach diagnose -n demo   # correct : les options se placent après la
 
 ### Mettre à jour
 
+Refais l'installation par la même voie avec la nouvelle version (`VERSION=…` pour une
+Release, `kubectl krew upgrade telemach` avec Krew) ; depuis les sources :
+
 ```bash
 cd telemach-plugin-kubectl && git pull
 go build -o ~/.local/bin/kubectl-telemach ./cmd/kubectl-telemach
@@ -338,7 +462,8 @@ la fonction `kubectl` de l'ancienne version. `kubectl telemach last` te le signa
 2. Supprime le plugin et son état local :
 
    ```bash
-   rm ~/.local/bin/kubectl-telemach
+   rm ~/.local/bin/kubectl-telemach          # installation par une Release, l'image ou les sources
+   kubectl krew uninstall telemach           # installation par Krew
    rm -rf ~/.local/state/telemach-kubectl
    ```
 

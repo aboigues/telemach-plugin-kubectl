@@ -1,0 +1,181 @@
+# Configuration GoReleaser OSS v2.18.3 — publication d'une version (feature 003).
+# Contrats : specs/003-distribution/contracts/release-assets.md et image-tags.md.
+version: 2
+
+project_name: telemach-plugin-kubectl
+
+builds:
+  # Plugin kubectl, publié dans la Release (binaire et archive) et embarqué dans l'image.
+  - id: kubectl-telemach
+    main: ./cmd/kubectl-telemach
+    binary: kubectl-telemach
+    goos: [linux, darwin]
+    goarch: [amd64, arm64]
+    env: [CGO_ENABLED=0]
+    flags: [-trimpath]
+    # Mêmes options que la vérification de reproductibilité (tests/release).
+    ldflags: ["-s -w -buildid= -X main.version={{ .Version }}"]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+  # Point d'entrée de l'image ; jamais publié dans la Release.
+  - id: telemach-image
+    main: ./cmd/telemach-image
+    binary: telemach-image
+    goos: [linux]
+    goarch: [amd64, arm64]
+    env: [CGO_ENABLED=0]
+    flags: [-trimpath]
+    ldflags: ["-s -w -buildid= -X main.version={{ .Version }}"]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  # Binaires bruts, sans archive : un seul fichier à télécharger et à vérifier (voie manuelle).
+  - id: kubectl-telemach
+    ids: [kubectl-telemach]
+    formats: [binary]
+    name_template: "kubectl-telemach_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+  # Archives pour Krew, qui n'installe que des archives (research R2).
+  - id: kubectl-telemach-krew
+    ids: [kubectl-telemach]
+    formats: [tar.gz]
+    name_template: "kubectl-telemach_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    wrap_in_directory: false
+    files:
+      - LICENSE
+      - NOTICE
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+sboms:
+  - id: kubectl-telemach
+    artifacts: binary
+    ids: [kubectl-telemach]
+    documents: ["{{ .ArtifactName }}.sbom.json"]
+
+signs:
+  # Signature keyless (Sigstore) du fichier de sommes : identité OIDC du workflow release.yml.
+  - id: checksums
+    cmd: cosign
+    artifacts: checksum
+    signature: "${artifact}.sigstore.json"
+    args: ["sign-blob", "--bundle=${signature}", "${artifact}", "--yes"]
+
+dockers_v2:
+  - id: telemach-kubectl
+    ids: [kubectl-telemach, telemach-image]
+    dockerfile: Dockerfile
+    # dockers_v2 ne place dans le contexte que les binaires linux de la plateforme visée :
+    # les binaires darwin (mêmes fichiers que dans la Release) y sont ajoutés depuis dist/.
+    extra_files:
+      - dist/kubectl-telemach_darwin_amd64_v1
+      - dist/kubectl-telemach_darwin_arm64_v8.0
+    images: [docker.io/telemachlearning/telemach-kubectl]
+    platforms: [linux/amd64, linux/arm64]
+    # X.Y.Z seulement : release.yml ajoute X.Y et latest (versions stables) au même digest,
+    # une fois l'image signée et attestée (contracts/image-tags.md).
+    tags:
+      - "{{ .Version }}"
+    sbom: true
+    labels:
+      org.opencontainers.image.title: TELEMACH kubectl
+      org.opencontainers.image.description: Explique en français les erreurs kubectl et ce qui ne marche pas ; installe le plugin kubectl telemach.
+      org.opencontainers.image.source: https://github.com/aboigues/telemach-plugin-kubectl
+      org.opencontainers.image.url: https://www.telemach-learning.fr
+      org.opencontainers.image.licenses: Apache-2.0
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.created: "{{ .CommitDate }}"
+
+release:
+  # Brouillon : release.yml ajoute les attestations puis publie (releases immuables).
+  draft: true
+  replace_existing_draft: false
+  prerelease: auto
+  name_template: "TELEMACH {{ .Version }}"
+  header: |
+    ## Installer TELEMACH {{ .Version }}
+
+    **Linux et WSL2**
+
+    ```bash
+    VERSION={{ .Version }}
+    ARCH=$(uname -m); case "$ARCH" in x86_64) ARCH=amd64 ;; aarch64|arm64) ARCH=arm64 ;; esac
+    FICHIER=kubectl-telemach_${VERSION}_linux_${ARCH}
+    curl -fsSLO "https://github.com/aboigues/telemach-plugin-kubectl/releases/download/v${VERSION}/${FICHIER}"
+    curl -fsSLO "https://github.com/aboigues/telemach-plugin-kubectl/releases/download/v${VERSION}/checksums.txt"
+    sha256sum --check --ignore-missing checksums.txt
+    mkdir -p ~/.local/bin
+    install -m 0755 "$FICHIER" ~/.local/bin/kubectl-telemach
+    kubectl telemach version
+    ```
+
+    **macOS**
+
+    ```bash
+    VERSION={{ .Version }}
+    ARCH=$(uname -m); case "$ARCH" in x86_64) ARCH=amd64 ;; aarch64|arm64) ARCH=arm64 ;; esac
+    FICHIER=kubectl-telemach_${VERSION}_darwin_${ARCH}
+    curl -fsSLO "https://github.com/aboigues/telemach-plugin-kubectl/releases/download/v${VERSION}/${FICHIER}"
+    curl -fsSLO "https://github.com/aboigues/telemach-plugin-kubectl/releases/download/v${VERSION}/checksums.txt"
+    shasum -a 256 --check --ignore-missing checksums.txt
+    mkdir -p ~/.local/bin
+    install -m 0755 "$FICHIER" ~/.local/bin/kubectl-telemach
+    kubectl telemach version
+    ```
+
+    **Avec Krew** (versions stables) :
+
+    ```bash
+    kubectl krew index add telemach https://github.com/aboigues/telemach-krew-index.git
+    kubectl krew install telemach/telemach
+    kubectl telemach version
+    ```
+
+    **Avec Docker seulement** (Linux et WSL2 ; sur macOS, ajoute `-e HOST_OS=darwin`)
+
+    ```bash
+    mkdir -p ~/.local/bin
+    docker run --rm --user "$(id -u):$(id -g)" -v ~/.local/bin:/sortie telemachlearning/telemach-kubectl:{{ .Version }} install
+    ```
+
+    kubectl trouve le plugin par son nom dans les dossiers du `PATH` : si `kubectl plugin list`
+    ne le cite pas, ajoute `~/.local/bin` à ton `PATH`. Active ensuite l'explication
+    automatique des erreurs : `eval "$(kubectl-telemach shell-init zsh)"` (ou `bash`) dans ton
+    fichier de configuration du shell. Guide complet : [README](https://github.com/aboigues/telemach-plugin-kubectl#installation).
+  footer: |
+    ## Vérifier l'authenticité
+
+    Signature du fichier de sommes (cosign v3) :
+
+    ```bash
+    curl -fsSLO "https://github.com/aboigues/telemach-plugin-kubectl/releases/download/v{{ .Version }}/checksums.txt.sigstore.json"
+    cosign verify-blob \
+      --bundle checksums.txt.sigstore.json \
+      --certificate-identity-regexp '^https://github\.com/aboigues/telemach-plugin-kubectl/\.github/workflows/release\.yml@refs/tags/v' \
+      --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+      checksums.txt
+    ```
+
+    Provenance (SLSA) d'un binaire ou d'une archive : `gh attestation verify <fichier> --repo aboigues/telemach-plugin-kubectl`
+
+    TELEMACH est un logiciel libre sous licence Apache 2.0 — https://www.telemach-learning.fr
+
+changelog:
+  use: git
+  sort: asc
+  filters:
+    exclude:
+      - "^docs"
+      - "^ci"
+      - "^test"
+  groups:
+    - title: Nouveautés
+      regexp: "^feat"
+      order: 0
+    - title: Corrections
+      regexp: "^fix"
+      order: 1
+    - title: Autres changements
+      order: 999
