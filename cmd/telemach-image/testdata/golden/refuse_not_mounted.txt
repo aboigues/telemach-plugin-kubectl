@@ -1,0 +1,9 @@
+✖ Aucun dossier de destination : /sortie n'est pas monté.
+
+📘 Concept — montage (bind mount)
+   Un conteneur ne voit pas les fichiers de ta machine. L'option -v DOSSIER_MACHINE:/sortie
+   lui donne accès à un dossier précis, ici un dossier de ton PATH (~/.local/bin).
+
+💡 Correction
+   mkdir -p ~/.local/bin
+   docker run --rm --user "$(id -u):$(id -g)" -v ~/.local/bin:/sortie telemachlearning/telemach-kubectl:0.2.0 install

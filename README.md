@@ -329,6 +329,61 @@ versions stables sont proposées par l'index.
 > `kubectl plugin list` signale l'autre comme masqué (*shadowed*). Garde-en un seul :
 > `kubectl krew uninstall telemach` ou `rm ~/.local/bin/kubectl-telemach`.
 
+#### Avec Docker seulement
+
+Si tu as Docker (souvent déjà présent pour faire tourner un cluster local comme kind), l'image
+officielle copie le bon binaire dans un dossier de ta machine, en une commande :
+
+Linux et WSL2 :
+
+```bash
+mkdir -p ~/.local/bin
+docker run --rm --user "$(id -u):$(id -g)" \
+  -v ~/.local/bin:/sortie \
+  telemachlearning/telemach-kubectl:0.1.0 install
+```
+
+macOS (Docker Desktop) :
+
+```bash
+mkdir -p ~/.local/bin
+docker run --rm --user "$(id -u):$(id -g)" -e HOST_OS=darwin \
+  -v ~/.local/bin:/sortie \
+  telemachlearning/telemach-kubectl:0.1.0 install
+```
+
+- `mkdir -p` d'abord : sinon Docker crée lui-même le dossier, qui appartient alors à root.
+- `-v ~/.local/bin:/sortie` (montage, *bind mount*) donne au conteneur accès à ce seul dossier
+  de ta machine ; il doit faire partie de ton `PATH` (voir plus haut).
+- `--user "$(id -u):$(id -g)"` fait écrire le conteneur avec ton identité : le fichier
+  installé t'appartient.
+- `-e HOST_OS=darwin` installe le binaire macOS (le conteneur, lui, tourne sous Linux).
+- La version est toujours explicite (`:0.1.0`) : `latest` existe, mais change sans prévenir
+  et ne dit pas ce que tu as installé.
+
+L'image ne remplace jamais un fichier qu'elle ne reconnaît pas (lien symbolique, autre
+programme) et explique pourquoi. Signature et provenance de l'image : voir
+[`docs/dockerhub.md`](docs/dockerhub.md).
+
+#### Essayer sans rien installer
+
+Pour voir ce que TELEMACH dit de tes manifestes sans rien installer ni contacter de cluster,
+lance l'image depuis le dossier de tes manifestes :
+
+```bash
+docker run --rm -t -v "$PWD":/manifestes:ro telemachlearning/telemach-kubectl:0.1.0 check
+```
+
+- `:ro` monte le dossier en lecture seule : l'image ne peut rien y modifier.
+- `-t` active les couleurs (le conteneur sait alors qu'il écrit dans un terminal).
+- Tous les fichiers `.yaml` et `.yml` du dossier et de ses sous-dossiers sont vérifiés, comme
+  avec `kubectl telemach check -f . -R`. L'image ne contient ni kubectl ni configuration de
+  cluster : elle applique les règles de la version la plus récente prise en charge et le dit
+  en première ligne.
+
+L'explication automatique des erreurs de `kubectl` et le diagnostic d'un cluster
+(`diagnose`) demandent, eux, le plugin installé.
+
 #### Compiler depuis les sources
 
 Avec Go 1.27 ou plus récent (la version exacte, 1.27.2, est téléchargée automatiquement) :

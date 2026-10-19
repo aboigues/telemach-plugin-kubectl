@@ -134,6 +134,13 @@ release:
     kubectl telemach version
     ```
 
+    **Avec Docker seulement** (Linux et WSL2 ; sur macOS, ajoute `-e HOST_OS=darwin`)
+
+    ```bash
+    mkdir -p ~/.local/bin
+    docker run --rm --user "$(id -u):$(id -g)" -v ~/.local/bin:/sortie telemachlearning/telemach-kubectl:{{ .Version }} install
+    ```
+
     kubectl trouve le plugin par son nom dans les dossiers du `PATH` : si `kubectl plugin list`
     ne le cite pas, ajoute `~/.local/bin` à ton `PATH`. Active ensuite l'explication
     automatique des erreurs : `eval "$(kubectl-telemach shell-init zsh)"` (ou `bash`) dans ton

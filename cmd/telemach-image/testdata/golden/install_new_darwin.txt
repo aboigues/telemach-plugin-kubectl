@@ -1,0 +1,17 @@
+✔ TELEMACH 0.2.0 installé dans ~/.local/bin (macOS, Apple Silicon — darwin/arm64).
+
+📘 Ce qui vient de se passer
+   Le conteneur a écrit dans un dossier de ta machine grâce au montage
+   « -v ~/.local/bin:/sortie » (bind mount), avec ton identité (--user).
+   kubectl trouve un plugin par son nom (kubectl-telemach) dans les dossiers du PATH.
+
+➜ Étapes suivantes
+   1. Vérifie que kubectl trouve le plugin : kubectl plugin list
+      s'il n'y figure pas, ajoute ~/.local/bin à ton PATH :
+      echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+      s'il signale un plugin masqué (installé aussi avec Krew), n'en garde qu'un :
+      kubectl krew uninstall telemach
+   2. Active l'explication automatique des erreurs :
+      echo 'eval "$(kubectl-telemach shell-init zsh)"' >> ~/.zshrc
+      (bash : mêmes lignes dans ~/.bashrc, avec shell-init bash)
+   puis ouvre un nouveau terminal et vérifie : kubectl telemach version

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 
 	"github.com/aboigues/telemach-plugin-kubectl/internal/render"
@@ -90,11 +91,25 @@ func run(a *app, args []string) int {
 // et code de sortie sont ceux du plugin installé (FR-016).
 func (a *app) passThrough(args []string) int {
 	argv := append([]string{pluginName}, args...)
-	if err := a.exec(linuxPlugin(a.root), argv, a.environ()); err != nil {
+	if err := a.exec(linuxPlugin(a.root), argv, pluginEnv(a.environ())); err != nil {
 		fmt.Fprintf(a.stderr, "telemach : impossible de lancer le plugin : %v\n", err)
 		return exitUsage
 	}
 	return 0
+}
+
+// pluginEnv retire HOME et XDG_STATE_HOME de l'environnement du plugin : sans eux, il ne
+// tente aucune écriture d'état (last.json, hints.json), ni dans l'image ni dans un dossier
+// monté (contracts/image-cli.md : « check » n'écrit rien).
+func pluginEnv(env []string) []string {
+	out := make([]string, 0, len(env))
+	for _, kv := range env {
+		if strings.HasPrefix(kv, "HOME=") || strings.HasPrefix(kv, "XDG_STATE_HOME=") {
+			continue
+		}
+		out = append(out, kv)
+	}
+	return out
 }
 
 // linuxPlugin renvoie le chemin du plugin linux embarqué.

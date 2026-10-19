@@ -134,9 +134,10 @@ bibliothèque standard et `internal/render` ; `validate-krew-manifest` n'est ins
      systématique, sans affirmer que le dossier en est absent ;
   3. **Fichier existant** : remplacé seulement s'il s'agit d'un fichier ordinaire dont les
      informations de build Go désignent le module `github.com/aboigues/telemach-plugin-kubectl`.
-     Un **lien symbolique** est refusé : c'est notamment ce que crée Krew dans
-     `~/.krew/bin` ; le message explique qu'une installation Krew existe et comment n'en
-     garder qu'une.
+     Un **lien symbolique** est refusé (Krew, lui, crée ses liens dans `~/.krew/bin`, un autre
+     dossier : la double installation ne se voit pas depuis l'image). Le message de succès
+     rappelle donc que `kubectl plugin list` signale un plugin masqué par une seconde
+     installation, et comment n'en garder qu'une.
 - Inchangé : `HOST_OS` = `linux` (défaut) ou `darwin`, `windows` → renvoi vers WSL2 ; refus si
   `/sortie` n'est pas monté, n'est pas accessible en écriture, ou appartient à root alors que
   le processus ne l'est pas ; écriture atomique (fichier temporaire, `0755`, renommage) ;

@@ -2,6 +2,7 @@ package state
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"time"
@@ -58,22 +59,34 @@ type LastDiagnosis struct {
 	Object json.RawMessage `json:",omitempty"`
 }
 
-// Store lit et écrit l'état dans un répertoire privé.
+// Store lit et écrit l'état dans un répertoire privé. Sans répertoire (Dir vide), il ne lit
+// ni n'écrit rien : c'est le cas sans HOME, par exemple dans l'image Docker (feature 003).
 type Store struct {
 	Dir string
 }
 
-// DefaultDir renvoie $XDG_STATE_HOME/telemach-kubectl, ou ~/.local/state/telemach-kubectl.
+// ErrNoStateDir signale un état désactivé, faute de répertoire.
+var ErrNoStateDir = errors.New("aucun répertoire d'état")
+
+// DefaultDir renvoie $XDG_STATE_HOME/telemach-kubectl, ou ~/.local/state/telemach-kubectl ;
+// une chaîne vide si aucun des deux n'est un chemin absolu (jamais de chemin relatif au
+// dossier courant).
 func DefaultDir(env func(string) string) string {
-	if d := env("XDG_STATE_HOME"); d != "" {
+	if d := env("XDG_STATE_HOME"); filepath.IsAbs(d) {
 		return filepath.Join(d, dirName)
 	}
-	return filepath.Join(env("HOME"), ".local", "state", dirName)
+	if h := env("HOME"); filepath.IsAbs(h) {
+		return filepath.Join(h, ".local", "state", dirName)
+	}
+	return ""
 }
 
 // Load lit le dernier diagnostic. Un fichier absent, illisible ou d'un schéma inconnu est
 // ignoré sans erreur.
 func (s Store) Load() (LastDiagnosis, bool) {
+	if s.Dir == "" {
+		return LastDiagnosis{}, false
+	}
 	data, err := os.ReadFile(filepath.Join(s.Dir, fileName))
 	if err != nil {
 		return LastDiagnosis{}, false
@@ -88,6 +101,9 @@ func (s Store) Load() (LastDiagnosis, bool) {
 // Save écrit le diagnostic de façon atomique, avec les droits 0700 pour le répertoire et
 // 0600 pour le fichier.
 func (s Store) Save(d LastDiagnosis) error {
+	if s.Dir == "" {
+		return ErrNoStateDir
+	}
 	d.SchemaVersion = SchemaVersion
 	if len(d.Stderr) > MaxStderr {
 		d.Stderr = d.Stderr[len(d.Stderr)-MaxStderr:]

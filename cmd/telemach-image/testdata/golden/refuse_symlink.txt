@@ -1,0 +1,12 @@
+✖ ~/.local/bin/kubectl-telemach existe déjà sous forme de lien symbolique.
+
+📘 Concept — une seule installation à la fois
+   Ce lien pointe vers un autre fichier (une compilation, un autre gestionnaire de
+   plugins…). Par sécurité, TELEMACH ne remplace pas un lien. Deux installations du même
+   plugin se masquent l'une l'autre dans le PATH : garde-en une seule.
+
+💡 Correction
+   ls -l ~/.local/bin/kubectl-telemach
+   kubectl plugin list
+   # s'il n'est plus utile : rm ~/.local/bin/kubectl-telemach
+   docker run --rm --user "$(id -u):$(id -g)" -v ~/.local/bin:/sortie telemachlearning/telemach-kubectl:0.2.0 install

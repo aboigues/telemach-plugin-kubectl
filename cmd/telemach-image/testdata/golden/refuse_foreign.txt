@@ -1,0 +1,9 @@
+✖ ~/.local/bin/kubectl-telemach existe déjà et n'est pas un binaire TELEMACH.
+
+📘 Concept — fichier existant
+   Par sécurité, TELEMACH ne remplace pas un fichier qu'il ne reconnaît pas.
+
+💡 Correction
+   ls -l ~/.local/bin/kubectl-telemach
+   # s'il n'est plus utile : rm ~/.local/bin/kubectl-telemach
+   docker run --rm --user "$(id -u):$(id -g)" -v ~/.local/bin:/sortie telemachlearning/telemach-kubectl:0.2.0 install

@@ -1,6 +1,7 @@
 package state
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,6 +24,35 @@ func TestDirFromEnv(t *testing.T) {
 	delete(env, "XDG_STATE_HOME")
 	if got := DefaultDir(func(k string) string { return env[k] }); got != "/home/x/.local/state/telemach-kubectl" {
 		t.Errorf("DefaultDir sans XDG_STATE_HOME = %q", got)
+	}
+}
+
+// Sans HOME ni XDG_STATE_HOME absolus (image Docker, feature 003), aucun dossier d'état
+// n'est retenu, et un Store sans dossier ne lit ni n'écrit rien : jamais de chemin relatif au
+// dossier courant.
+func TestNoStateDir(t *testing.T) {
+	for _, env := range []map[string]string{{}, {"HOME": ""}, {"HOME": "relatif"}, {"XDG_STATE_HOME": "relatif"}} {
+		if got := DefaultDir(func(k string) string { return env[k] }); got != "" {
+			t.Errorf("DefaultDir(%v) = %q, attendu vide", env, got)
+		}
+	}
+	cwd := t.TempDir()
+	t.Chdir(cwd)
+	s := Store{}
+	if err := s.Save(LastDiagnosis{Fingerprint: "x"}); !errors.Is(err, ErrNoStateDir) {
+		t.Errorf("Save sans dossier : %v", err)
+	}
+	if err := s.RememberHint("nginx", time.Now()); !errors.Is(err, ErrNoStateDir) {
+		t.Errorf("RememberHint sans dossier : %v", err)
+	}
+	if _, ok := s.Load(); ok {
+		t.Error("Load sans dossier ne doit rien lire")
+	}
+	if !s.ShouldHint("nginx", time.Now()) {
+		t.Error("ShouldHint sans dossier : information affichée (aucune mémoire)")
+	}
+	if entries, _ := os.ReadDir(cwd); len(entries) != 0 {
+		t.Errorf("rien ne doit être écrit dans le dossier courant : %v", entries)
 	}
 }
 

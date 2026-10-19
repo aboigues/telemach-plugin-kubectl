@@ -1,0 +1,14 @@
+install — copie le plugin TELEMACH dans un dossier du PATH de ta machine
+
+Linux et WSL2
+   mkdir -p ~/.local/bin
+   docker run --rm --user "$(id -u):$(id -g)" -v ~/.local/bin:/sortie telemachlearning/telemach-kubectl:0.2.0 install
+
+macOS (Docker Desktop)
+   mkdir -p ~/.local/bin
+   docker run --rm --user "$(id -u):$(id -g)" -e HOST_OS=darwin -v ~/.local/bin:/sortie telemachlearning/telemach-kubectl:0.2.0 install
+
+Options
+   -v ~/.local/bin:/sortie       dossier de ta machine où copier le plugin (obligatoire, dans le PATH)
+   --user "$(id -u):$(id -g)"    le conteneur écrit avec ton identité
+   -e HOST_OS=darwin             installe le binaire macOS (linux par défaut)

@@ -77,9 +77,10 @@ Le chemin affiché côté hôte est générique (`~/.local/bin`) : le conteneur 
 
 Refus obligatoires (FR-018), chacun avec concept et correction : dossier non monté ; dossier
 appartenant à root ; dossier non accessible en écriture ; fichier existant qui n'est pas un
-binaire TELEMACH ; **lien symbolique** (installation Krew probable : le message explique
-comment la repérer avec `kubectl krew list` et n'en garder qu'une) ; `HOST_OS` non pris en
-charge (`windows` → WSL2).
+binaire TELEMACH ; **lien symbolique** (jamais remplacé ; le message propose `ls -l` et
+`kubectl plugin list` pour repérer les installations) ; `HOST_OS` non pris en charge
+(`windows` → WSL2). Le message de succès rappelle qu'une seconde installation (Krew, dans
+`~/.krew/bin`) serait signalée comme masquée par `kubectl plugin list`.
 
 ## Codes de sortie de `install`
 
@@ -93,5 +94,7 @@ charge (`windows` → WSL2).
 
 - `install` n'écrit que `/sortie/kubectl-telemach` (et un fichier temporaire dans `/sortie`,
   renommé ou supprimé avant la fin) ; jamais ailleurs.
-- `check` lit le dossier monté en lecture seule, n'écrit rien et ne contacte aucun cluster.
+- `check` lit le dossier monté en lecture seule, n'écrit rien et ne contacte aucun cluster ;
+  le plugin est lancé sans `HOME` ni `XDG_STATE_HOME`, donc sans dossier d'état : il
+  n'enregistre ni `last.json` ni `hints.json` (pas même dans un dossier monté sans `:ro`).
 - Aucun accès réseau, aucune élévation de privilèges, aucun shell dans l'image.

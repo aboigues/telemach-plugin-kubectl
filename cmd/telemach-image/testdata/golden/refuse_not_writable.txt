@@ -1,0 +1,9 @@
+✖ Le dossier de destination n'est pas accessible en écriture pour le conteneur.
+
+📘 Concept — identité du processus (--user)
+   Le conteneur s'exécute sans privilèges, avec un utilisateur qui n'est pas toi.
+   L'option --user "$(id -u):$(id -g)" lui donne ton identité : il peut alors écrire
+   dans ton dossier, et le fichier installé t'appartient.
+
+💡 Correction
+   docker run --rm --user "$(id -u):$(id -g)" -v ~/.local/bin:/sortie telemachlearning/telemach-kubectl:0.2.0 install
