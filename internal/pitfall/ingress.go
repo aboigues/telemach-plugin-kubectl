@@ -147,8 +147,10 @@ func ingressSummaries(ctx Context, _ []kuberead.Pod) ([]ObjectSummary, error) {
 	var out []ObjectSummary
 	for _, ing := range ings.Items {
 		if id, requested, _, _ := ingressClass(ing, classes.Items); id != "" {
-			out = append(out, ObjectSummary{Kind: KindIngress, Name: ing.Metadata.Name, Pitfall: id,
-				Captures: map[string]string{"class": requested}})
+			out = append(out, ObjectSummary{
+				Kind: KindIngress, Name: ing.Metadata.Name, Pitfall: id,
+				Captures: map[string]string{"class": requested},
+			})
 		}
 	}
 	return out, nil

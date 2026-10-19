@@ -158,10 +158,10 @@ __telemach_run() (
 )
 
 # Après une création réussie, la vérification différée est lancée ; c'est « watch » qui écarte
-# les commandes non concernées (--dry-run, -f -, URL, -k).
+# les commandes non concernées (--dry-run, -f -, URL, -k). « expose » crée un Service.
 __telemach_after_success() {
 	case "$__telemach_verb" in
-	apply | create | run) __telemach_watch "$@" ;;
+	apply | create | run | expose) __telemach_watch "$@" ;;
 	esac
 }
 

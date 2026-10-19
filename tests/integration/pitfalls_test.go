@@ -181,3 +181,35 @@ func TestPitfallsIngressPVC(t *testing.T) {
 		})
 	}
 }
+
+// W11 : signal à l'invite suivante après une création réussie (US4) : Service sans pod,
+// targetPort nommé introuvable après expose ; rien pour un Service créé avec ses pods
+// (transitoire) ni avec TELEMACH_WATCH=0.
+func TestPitfallsWatch(t *testing.T) {
+	for _, shell := range shells {
+		t.Run(shell+"/W11", func(t *testing.T) {
+			ns := namespace(t, "w11-"+shell)
+			testdata, _ := filepath.Abs("../../testdata")
+			runtime := t.TempDir()
+			body := `eval "$(kubectl-telemach shell-init ` + shell + `)"` + "\n" +
+				// Le Deployment « hello » qu'exposera le scénario.
+				"kubectl apply -n " + ns + " -f " + testdata + "/objects/scenarios/healthy.yaml >/dev/null\n" +
+				"kubectl wait -n " + ns + " --for=condition=Available deployment/hello --timeout=90s >/dev/null\n" +
+				"__telemach_prompt 2>/dev/null\n" +
+				quickstartBlock(t, "W11", ns) + "\n" +
+				"sleep 15\n__telemach_prompt\necho fin"
+			stdout, stderr := shellRunInteractiveEnv(t, shell, body, "XDG_RUNTIME_DIR="+runtime)
+			if !strings.Contains(stdout, "fin") {
+				t.Fatalf("scénario interrompu :\n%s\n%s", stdout, stderr)
+			}
+			expect(t, "W11", stderr,
+				"⚠ Le Service orphan ne désigne aucun pod : kubectl telemach diagnose service/orphan -n "+ns,
+				"⚠ Le Service hello-typo vise le port nommé « web », qu'aucun pod ne déclare : kubectl telemach diagnose service/hello-typo -n "+ns)
+			for _, absent := range []string{"together", "orphan-2"} {
+				if strings.Contains(stderr, "Service "+absent+" ") {
+					t.Errorf("W11 : signal inattendu pour %s :\n%s", absent, stderr)
+				}
+			}
+		})
+	}
+}

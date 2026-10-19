@@ -91,6 +91,23 @@ func TestWatchLaunched(t *testing.T) {
 	})
 }
 
+// T049 : « expose » crée un Service et lance la vérification, comme apply, create et run
+// (feature 002, research.md S9).
+func TestWatchLaunchedByExpose(t *testing.T) {
+	forEachShell(t, func(t *testing.T, shell string) {
+		e := setupWatch(t)
+		waitWatchers(t, e)
+		if _, stderr, err := runShell(t, shell, interactiveFlags(shell), e, nil, "",
+			`kubectl expose deployment hello --name=hello-typo --port=80 -n demo; true`); err != nil {
+			t.Fatalf("%v\n%s", err, stderr)
+		}
+		time.Sleep(200 * time.Millisecond)
+		if log := readLog(t, e); !strings.Contains(log, "-- expose deployment hello --name=hello-typo --port=80 -n demo") {
+			t.Fatalf("watch non lancé après expose :\n%s", log)
+		}
+	})
+}
+
 // Désactivation (FR-031), shell non interactif, commande non concernée : aucun appel.
 func TestWatchNotLaunched(t *testing.T) {
 	forEachShell(t, func(t *testing.T, shell string) {
@@ -102,6 +119,8 @@ func TestWatchNotLaunched(t *testing.T) {
 		}{
 			{"TELEMACH_WATCH=0", interactiveFlags(shell), []string{"TELEMACH_WATCH=0"}, "kubectl apply -f x.yaml"},
 			{"TELEMACH_DISABLE=1", interactiveFlags(shell), []string{"TELEMACH_DISABLE=1"}, "kubectl apply -f x.yaml"},
+			{"expose, TELEMACH_WATCH=0", interactiveFlags(shell), []string{"TELEMACH_WATCH=0"}, "kubectl expose deployment hello --port=80"},
+			{"expose, TELEMACH_DISABLE=1", interactiveFlags(shell), []string{"TELEMACH_DISABLE=1"}, "kubectl expose deployment hello --port=80"},
 			{"non interactif", nil, nil, "kubectl apply -f x.yaml"},
 			{"get", interactiveFlags(shell), nil, "kubectl get pods"},
 			{"échec", interactiveFlags(shell), []string{"FAKE_RC=1"}, "kubectl apply -f x.yaml"},

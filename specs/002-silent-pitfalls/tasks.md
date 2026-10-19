@@ -163,7 +163,7 @@ configuration figée, puis diagnostique le pod en échec de la nouvelle version.
 - [X] T043 [P] [US3] Rédiger `internal/catalog/data/ingress.yaml` (`ingress.no-class`, `ingress.unknown-class`, `ingress.no-controller`, `ingress.no-address`, `ingress.backend-missing`, `ingress.backend-port` ; concepts *Ingress* et *IngressClass*, contrôleur ; mention de Gateway API dans l'approfondissement) et `internal/catalog/data/storage.yaml` (`pvc.unknown-class`, `pvc.no-default-class`, `pvc.empty-class`, `pvc.waiting-first-consumer` ; concepts *StorageClass*, provisionnement dynamique, *volumeBindingMode*)
 - [X] T044 [US3] Implémenter `internal/pitfall/ingress.go` (research.md S6) et `internal/pitfall/pvc.go` (research.md S7). Faire passer T040, T041 (dépend de T016, T017, T043)
 - [X] T045 [US3] Brancher `ingress`/`ing` et `pvc`/`persistentvolumeclaim` dans `cmd/kubectl-telemach/diagnose.go`, ajouter Ingress et PVC en attente anormale à `diagnose` sans argument, et mesurer `diagnose` sans argument < 5 s au p95 avec toutes les lectures parallèles (SC-004, D-LL-012) dans `cmd/kubectl-telemach/diagnose_perf_test.go` (dépend de T038, T044)
-- [ ] T046 [US3] Valider W8, W9 et W10 sur kind via la CI et faire passer T042 ; ajouter W10 (sans argument, nom ambigu) à `tests/integration/pitfalls_test.go` (dépend de T045)
+- [X] T046 [US3] Valider W8, W9 et W10 sur kind via la CI et faire passer T042 ; ajouter W10 (sans argument, nom ambigu) à `tests/integration/pitfalls_test.go` (dépend de T045)
 
 **Checkpoint**: les quatre types d'objets sont diagnostiqués, y compris sans argument.
 
@@ -179,16 +179,16 @@ interactif bash et zsh.
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T047 [P] [US4] Étendre `internal/workload/targets_test.go` : cibles `service`, `ingress`, `pvc` des manifestes locaux, `create service clusterip web`, `expose deployment hello --name=hello-typo` (nom de `--name`, sinon de la ressource), images des manifestes ; `CoveredBySameApply` vrai quand la même commande applique un Pod ou Deployment dont les labels satisfont le selector du Service ; aucune cible pour `--dry-run`, `-f -`, URL, `-k`
-- [ ] T048 [P] [US4] Étendre `cmd/kubectl-telemach/watch_test.go` (faux kubectl) : une ligne par piège non transitoire au format de `contracts/cli.md` § watch ; rien pour un piège `Transient` (FR-024) ni pour un objet dont une lecture a échoué ; au plus 12 lectures ; ligne ℹ du tag mutable au plus une fois par image et par 24 h, **sans aucune lecture** (FR-023) ; 0 signal sur `healthy` et `watch-together` (SC-002)
-- [ ] T049 [P] [US4] Étendre `tests/shell/watch_test.go` (pseudo-terminal, bash et zsh) : `expose` déclenche la vérification ; invite retardée < 50 ms au p95 (SC-007) ; `TELEMACH_WATCH=0` et `TELEMACH_DISABLE=1` → aucun appel
-- [ ] T050 [P] [US4] Écrire le scénario W11 dans `tests/integration/pitfalls_test.go`
+- [X] T047 [P] [US4] Étendre `internal/workload/targets_test.go` : cibles `service`, `ingress`, `pvc` des manifestes locaux, `create service clusterip web`, `expose deployment hello --name=hello-typo` (nom de `--name`, sinon de la ressource), images des manifestes ; `CoveredBySameApply` vrai quand la même commande applique un Pod ou Deployment dont les labels satisfont le selector du Service ; aucune cible pour `--dry-run`, `-f -`, URL, `-k`
+- [X] T048 [P] [US4] Étendre `cmd/kubectl-telemach/watch_test.go` (faux kubectl) : une ligne par piège non transitoire au format de `contracts/cli.md` § watch ; rien pour un piège `Transient` (FR-024) ni pour un objet dont une lecture a échoué ; au plus 12 lectures ; ligne ℹ du tag mutable au plus une fois par image et par 24 h, **sans aucune lecture** (FR-023) ; 0 signal sur `healthy` et `watch-together` (SC-002)
+- [X] T049 [P] [US4] Étendre `tests/shell/watch_test.go` (pseudo-terminal, bash et zsh) : `expose` déclenche la vérification ; invite retardée < 50 ms au p95 (SC-007) ; `TELEMACH_WATCH=0` et `TELEMACH_DISABLE=1` → aucun appel
+- [X] T050 [P] [US4] Écrire le scénario W11 dans `tests/integration/pitfalls_test.go`
 
 ### Implementation for User Story 4
 
-- [ ] T051 [US4] Étendre `internal/workload/targets.go` : `ObjectTarget` (data-model.md), cibles d'objets et d'images, `expose` et `create service`, `CoveredBySameApply`. Faire passer T047
-- [ ] T052 [US4] Étendre `cmd/kubectl-telemach/watch.go` : détections non transitoires de research.md S9 par les fonctions de `internal/pitfall`, budget de 12 lectures, ligne ℹ par `internal/state/hints.go`. Faire passer T048 (dépend de T028, T044, T051, T019)
-- [ ] T053 [US4] Ajouter `expose` aux commandes qui lancent la vérification dans `internal/shellinit/scripts/bash.sh` et `internal/shellinit/scripts/zsh.sh` (`__telemach_after_success`). Faire passer T049 (dépend de T052)
+- [X] T051 [US4] Étendre `internal/workload/targets.go` : `ObjectTarget` (data-model.md), cibles d'objets et d'images, `expose` et `create service`, `CoveredBySameApply`. Faire passer T047
+- [X] T052 [US4] Étendre `cmd/kubectl-telemach/watch.go` : détections non transitoires de research.md S9 par les fonctions de `internal/pitfall`, budget de 12 lectures, ligne ℹ par `internal/state/hints.go`. Faire passer T048 (dépend de T028, T044, T051, T019)
+- [X] T053 [US4] Ajouter `expose` aux commandes qui lancent la vérification dans `internal/shellinit/scripts/bash.sh` et `internal/shellinit/scripts/zsh.sh` (`__telemach_after_success`). Faire passer T049 (dépend de T052)
 - [ ] T054 [US4] Valider W11 sur kind via la CI et faire passer T050 (dépend de T053)
 
 **Checkpoint**: les pièges deviennent visibles sans que l'apprenant ait à les chercher.

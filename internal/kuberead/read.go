@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aboigues/telemach-plugin-kubectl/internal/redact"
@@ -40,6 +41,45 @@ type Reader struct {
 	// découpée en mots ; vide : « kubectl » du PATH.
 	Command []string
 	Scope   Scope
+	// Budget limite les lectures (vérification différée, research.md S9) ; nil : aucune limite.
+	Budget *Budget
+}
+
+// Budget compte les lectures permises, éventuellement partagées entre plusieurs lecteurs, et
+// les lectures échouées.
+type Budget struct {
+	mu           sync.Mutex
+	left, failed int
+}
+
+// NewBudget permet n lectures.
+func NewBudget(n int) *Budget { return &Budget{left: n} }
+
+// ErrBudget signale une lecture non faite : le budget est épuisé.
+var ErrBudget = errors.New("budget de lectures épuisé")
+
+func (b *Budget) take() bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.left == 0 {
+		return false
+	}
+	b.left--
+	return true
+}
+
+func (b *Budget) fail() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.failed++
+}
+
+// Failed renvoie le nombre de lectures échouées ou refusées faute de budget ; une ressource
+// introuvable n'en est pas une, c'est un résultat.
+func (b *Budget) Failed() int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.failed
 }
 
 // New construit un lecteur à partir de la variable TELEMACH_KUBECTL exportée par
@@ -243,6 +283,17 @@ var forbidden = regexp.MustCompile(`\(Forbidden\)|is forbidden`)
 // run exécute la commande kubectl de l'apprenant avec une liste d'arguments (jamais de shell)
 // suivie de ses options de portée et d'un délai maximal.
 func (r *Reader) run(what string, args ...string) (string, error) {
+	out, err := r.exec(what, args...)
+	if err != nil && r.Budget != nil && !IsNotFound(err) {
+		r.Budget.fail()
+	}
+	return out, err
+}
+
+func (r *Reader) exec(what string, args ...string) (string, error) {
+	if r.Budget != nil && !r.Budget.take() {
+		return "", ErrBudget
+	}
 	full := append(append([]string(nil), r.Command[1:]...), args...)
 	full = append(full, r.Scope.flags()...)
 	full = append(full, "--request-timeout="+Timeout.String())
