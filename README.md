@@ -97,8 +97,10 @@ flowchart LR
 1. **Capture.** `shell-init` définit une fonction `kubectl` dans ton shell. Elle lance le vrai
    `kubectl` sans toucher à son entrée ni à sa sortie standard, et garde une copie de la sortie
    d'erreur dans un fichier temporaire privé (`0600`), supprimé juste après, même après un
-   Ctrl-C. Les commandes interactives ou longues (`exec -it`, `logs -f`, `get -w`,
-   `port-forward`…) ne sont pas redirigées : leur explication repose sur le code de sortie.
+   Ctrl-C. `exec -it`, `attach`, `debug` et `port-forward` gardent leur terminal : seule leur
+   sortie d'erreur est copiée, et un Ctrl-C n'est expliqué que s'il suit une erreur reconnue.
+   Les autres commandes longues (`logs -f`, `get -w`, `edit`, `proxy`, `run -it`) ne sont pas
+   redirigées : leur explication repose sur le code de sortie.
 2. **Nettoyage.** Le texte capturé est traité comme non fiable : les séquences de contrôle du
    terminal sont neutralisées et les secrets (jetons, mots de passe, certificats, données d'un
    `Secret`, `user:motdepasse@`) sont masqués avant tout usage.
@@ -116,11 +118,13 @@ flowchart LR
 |---------|----------|
 | Ligne de commande | type de ressource mal orthographié, sous-commande ou option inconnue, option placée avant `telemach` |
 | Connexion | kubeconfig absent, contexte inexistant ou non défini, serveur API injoignable, certificat inconnu |
-| Namespace et ressources | namespace inexistant, ressource, conteneur ou fichier introuvable, objet déjà existant ou modifié entre-temps |
+| Namespace et ressources | namespace inexistant, ressource, conteneur ou fichier introuvable, conteneur inconnu pour `exec` ou `logs`, objet déjà existant ou modifié entre-temps, champ immuable refusé à l'`apply` |
+| Transfert de port | port de ta machine déjà utilisé, pod arrêté, rien n'écoute sur le port du pod |
+| Rollout | échéance de progression dépassée (`rollout status`) |
 | Droits | identité non reconnue (`Unauthorized`), action refusée par RBAC (`Forbidden`) |
 | Manifestes | tabulation, syntaxe YAML, champ inconnu ou mal placé, type de valeur, champ obligatoire, version d'API retirée, selector et labels incohérents, secret écrit en clair |
 | Pods | `ImagePullBackOff`, nom d'image invalide, `CrashLoopBackOff`, `OOMKilled`, `Secret` ou `ConfigMap` absent, pod `Pending` (ressources, PVC, `nodeSelector`), sondes de disponibilité et de vie |
-| Programme du conteneur | commande introuvable, code de sortie de l'application (`kubectl exec`) |
+| Programme du conteneur | commande introuvable, code de sortie de l'application (`kubectl exec`), nom court d'un Service d'un autre namespace dans le journal |
 
 ### Vérifier des manifestes avant de les appliquer
 
@@ -190,8 +194,51 @@ $ kubectl telemach diagnose pod/crash -n demo
 ```
 
 Sans argument, `diagnose` explique le pod en difficulté le plus récent du namespace, puis liste
-les autres (au plus 10). Il accepte aussi `deployment/<nom>`. Si une lecture t'est refusée par
-RBAC, le diagnostic est marqué **partiel** et la lecture refusée est nommée.
+les autres pods et objets en difficulté (au plus 10). Si une lecture t'est refusée par RBAC, le
+diagnostic est marqué **partiel**, la lecture refusée est nommée et aucune cause n'est affirmée
+sur ce qui n'a pas pu être lu.
+
+### Ce qui réussit sans marcher
+
+Un Service sans pod, un Ingress qu'aucun contrôleur ne prend, un rollout bloqué derrière une
+ancienne version qui répond encore : kubectl dit « created » et rien ne marche.
+`kubectl telemach diagnose <type>/<nom>` suit alors le chemin du trafic, maillon par maillon,
+et s'arrête sur le premier qui casse :
+
+```text
+$ kubectl telemach diagnose service/web -n demo
+✖ Le Service « web » ne désigne aucun pod, son selector ne correspond aux labels d'aucun pod.
+   service web · namespace demo · ClusterIP · ports 80 → 8080
+
+   ✔ type               ClusterIP
+   ✖ selector           app=web : aucun pod
+   · pods prêts         non vérifié
+   ✔ endpoints          0 prêt(s)
+   · ports              non vérifié
+
+📘 Concept — label selector
+   …
+🔎 Cause probable
+   Aucun pod du namespace demo ne porte les labels « app=web ». Les pods les
+   plus proches portent « app=frontend » : le selector du Service ou les labels
+   du modèle de pod ne sont sans doute pas écrits pareil.
+```
+
+| Type | Ce qui est vérifié |
+|------|--------------------|
+| `service/<nom>` | selector et pods désignés, pods prêts, EndpointSlices, `targetPort` (numéro ou nom) |
+| `deployment/<nom>` | rollout (en cours, bloqué, en pause, et le pod en difficulté de la nouvelle version), tag d'image mutable, ConfigMap modifiée après le démarrage des pods |
+| `ingress/<nom>` | classe effective et contrôleur, Services et ports visés, adresse attribuée |
+| `pvc/<nom>` | classe de stockage, classe par défaut, mode de liaison, pod qui l'utilise |
+
+Les états normaux sont présentés comme tels (PVC qui attend son premier pod, Service sans
+selector). Après un `apply`, `create`, `run` ou `expose` réussi, la vérification différée
+signale aussi, à l'invite suivante, les pièges durables des objets créés :
+
+```text
+⚠ Le Service web ne désigne aucun pod : kubectl telemach diagnose service/web -n demo
+ℹ L'image nginx n'a pas de tag explicite : un nouvel apply ne la mettra pas à jour (kubectl telemach deepen)
+```
 
 ## Installation
 
@@ -302,7 +349,7 @@ la fonction `kubectl` de l'ancienne version. `kubectl telemach last` te le signa
 | `error: unknown command "telemach" for "kubectl"` | `kubectl-telemach` n'est pas dans ton `PATH` ou n'est pas exécutable : vérifie avec `kubectl plugin list`. |
 | Aucune explication après une erreur | Vérifie avec `type kubectl` que l'intégration est active et que `TELEMACH_DISABLE` n'est pas à `1`. Un terminal ouvert **avant** l'ajout de la ligne `eval` ou avant une mise à jour garde l'ancien état : relance-le. `kubectl telemach last` signale ce cas par un ⚠ en tête. |
 | `kubectl telemach last` réaffiche une vieille erreur | L'en-tête donne sa date ; si l'erreur que tu viens de faire n'y est pas, l'intégration n'était pas active dans ce terminal. |
-| Pas de signal après un `apply` | La vérification n'a lieu que dans un shell interactif, pour les pods créés à partir de fichiers locaux ou par `create`/`run` ; elle ignore `--dry-run`, `-f -`, les URL et `-k`. Vérifie aussi `TELEMACH_WATCH`. |
+| Pas de signal après un `apply` | La vérification n'a lieu que dans un shell interactif, pour les pods et objets créés à partir de fichiers locaux ou par `create`, `run` ou `expose` ; elle ignore `--dry-run`, `-f -`, les URL et `-k`, ainsi que les états transitoires (pods qui démarrent). Vérifie aussi `TELEMACH_WATCH`. |
 | Pas de couleurs | La sortie n'est pas un terminal, ou `NO_COLOR` est défini. Force avec `--color=always`. |
 
 ## Commandes
@@ -310,7 +357,7 @@ la fonction `kubectl` de l'ancienne version. `kubectl telemach last` te le signa
 | Commande | Rôle |
 |----------|------|
 | `kubectl telemach check -f <fichier\|dossier> [-f …] [-R]` | Vérifie des manifestes **sans contacter le cluster** (code 0 : aucun problème, 1 : problème trouvé, 2 : usage invalide, dont l'absence de `-f`, ou fichier introuvable) |
-| `kubectl telemach diagnose [pod/<nom> \| deployment/<nom> \| <nom>] [-n <ns>] [--context <ctx>] [--kubeconfig <chemin>] [--as <identité>]` | Diagnostique, en lecture seule, les pods qui ne démarrent pas (code 0 : diagnostic ou rien à signaler, 1 : cluster injoignable, 2 : usage invalide ou ressource introuvable, avec les noms proches) |
+| `kubectl telemach diagnose [pod/<nom> \| service/<nom> \| deployment/<nom> \| ingress/<nom> \| pvc/<nom> \| <nom>] [-n <ns>] [--context <ctx>] [--kubeconfig <chemin>] [--as <identité>]` | Diagnostique, en lecture seule, les pods qui ne démarrent pas et les objets qui ne marchent pas (code 0 : diagnostic ou rien à signaler, 1 : cluster injoignable, 2 : usage invalide, ressource introuvable ou nom ambigu, avec les objets à préciser) |
 | `kubectl telemach last` | Réaffiche l'explication complète de la dernière erreur ou du dernier diagnostic, sans relire le cluster |
 | `kubectl telemach deepen [--exercise]` | Approfondit le concept du dernier diagnostic ; `--exercise` ajoute un exercice à faire dans un namespace que tu crées toi-même |
 | `kubectl telemach version` | Version du plugin, licence et versions de règles Kubernetes embarquées |
@@ -327,20 +374,28 @@ Options communes : `--color=auto|always|never` et `--width <colonnes>` (40 minim
   kubeconfig, même contexte) :
   - `kubectl version --client -o json`, une fois à l'activation de l'intégration (aucun
     contact avec le serveur API) ;
-  - pour `kubectl telemach diagnose` : `get pods`, `get pod <nom>`, `get deployment <nom>`,
-    `get events` (filtrés sur un pod) au format JSON, et `logs --tail=20` d'un conteneur en
-    échec, avec un délai de 10 s ; l'identité `--as` n'est utilisée que si tu la donnes ;
-  - après un `apply`, `create` ou `run` réussi : uniquement le statut des pods concernés.
+  - pour `kubectl telemach diagnose` : `get pods`, `get pod <nom>`, `get deployment(s)`,
+    `get replicasets -l`, `get service(s)`, `get endpointslices`, `get ingress(es)`,
+    `get ingressclasses`, `get pvc`, `get storageclasses`, `get events` (filtrés sur un pod),
+    tous au format JSON, `logs --tail=20` d'un conteneur en échec, et les seules **dates** de
+    modification d'une ConfigMap (`--show-managed-fields`, jamais ses valeurs), avec un délai
+    de 10 s ; l'identité `--as` n'est utilisée que si tu la donnes ;
+  - après un `apply`, `create`, `run` ou `expose` réussi : le statut des pods concernés et les
+    objets créés (Service, Ingress, PVC), au plus 12 lectures.
 
   Jamais `apply`, `delete`, `exec`, `edit` ni `scale` ; jamais de lecture d'un objet `Secret`.
 - `explain`, `check`, `last` et `deepen` fonctionnent **sans aucun accès réseau**.
-- Les **valeurs des variables d'environnement** d'un pod et ses annotations ne sont jamais
-  lues au-delà du nom de la variable : elles sont écartées dès la réception, jamais affichées
-  ni conservées.
+- Les **valeurs des variables d'environnement** d'un pod et des ConfigMap ne sont jamais
+  lues au-delà de leur nom : elles sont écartées dès la réception, jamais affichées ni
+  conservées. Des annotations, seules quatre clés publiques posées par Kubernetes sont lues
+  (classe d'Ingress et classe de stockage par défaut, ancienne classe d'un Ingress, révision
+  d'un ReplicaSet) ; `last-applied-configuration`, qui recopie le manifeste, ne l'est jamais.
 - **Masque les secrets** (jetons, mots de passe, certificats, contenu de kubeconfig, données
   d'un `Secret`) partout où il affiche ou enregistre quelque chose.
 - Le dernier diagnostic, déjà masqué, est conservé dans `~/.local/state/telemach-kubectl/`
-  (`last.json`, droits `0600`) pour les commandes `last` et `deepen`. Les signaux de la
+  (`last.json`, droits `0600`) pour les commandes `last` et `deepen`. `hints.json` (même
+  dossier, `0600`) retient l'empreinte des images déjà signalées pour leur tag mutable, jamais
+  la commande ni le fichier. Les signaux de la
   vérification différée passent par un fichier privé de `$XDG_RUNTIME_DIR/telemach-kubectl/`,
   supprimé dès leur affichage.
 
@@ -358,7 +413,7 @@ La sortie est colorée dans un terminal ; chaque bloc garde aussi un symbole et 
 
 ```bash
 TELEMACH_DISABLE=1 kubectl …   # ni explication ni vérification : kubectl seul
-TELEMACH_WATCH=0 kubectl …     # sans vérification après un apply/create/run ; les erreurs restent expliquées
+TELEMACH_WATCH=0 kubectl …     # sans vérification après un apply/create/run/expose ; les erreurs restent expliquées
 ```
 
 Pour toute une session (une démonstration, par exemple) : `export TELEMACH_WATCH=0`.

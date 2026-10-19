@@ -243,3 +243,39 @@ func TestPitfallsNewErrors(t *testing.T) {
 		})
 	}
 }
+
+// W14 : lecture refusée par RBAC → diagnostic partiel, sans cause affirmée sur ce qui n'a pas
+// été lu (FR-020). L'identité empruntée ne peut lire que les Services : le Service est trouvé,
+// ses pods et EndpointSlices non. L'état du namespace avant et après chaque diagnose et watch
+// est vérifié par les tests de W1 à W13 (runScenario, SC-005).
+func TestPitfallsDenied(t *testing.T) {
+	for _, shell := range shells {
+		t.Run(shell+"/W14", func(t *testing.T) {
+			ns := namespace(t, "w14-"+shell)
+			testdata, _ := filepath.Abs("../../testdata")
+			// Préparation du test (pas une commande de l'apprenant) : droits de lecture des seuls
+			// Services pour le compte de service par défaut.
+			for _, args := range [][]string{
+				{"apply", "-n", ns, "-f", testdata + "/objects/scenarios/healthy.yaml"},
+				{"create", "role", "services-only", "--verb=get", "--resource=services", "-n", ns},
+				{"create", "rolebinding", "services-only", "--role=services-only", "--serviceaccount=" + ns + ":default", "-n", ns},
+				{"wait", "-n", ns, "--for=condition=Available", "deployment/hello", "--timeout=90s"},
+			} {
+				if err := cluster.Must(args...); err != nil {
+					t.Fatal(err)
+				}
+			}
+			before := snapshot(t, ns)
+			_, stderr := shellRun(t, shell, "kubectl telemach diagnose service/hello -n "+ns+" --as=system:serviceaccount:"+ns+":default")
+			expect(t, "W14", stderr, "◐ Diagnostic partiel", "Lecture refusée par RBAC")
+			for _, claim := range []string{"ne désigne aucun pod", "aucun n'est prêt"} {
+				if strings.Contains(stderr, claim) {
+					t.Errorf("W14 : cause affirmée sur une information non lue (%q) :\n%s", claim, stderr)
+				}
+			}
+			if after := snapshot(t, ns); after != before {
+				t.Errorf("W14 : le namespace a été modifié par diagnose (SC-005)")
+			}
+		})
+	}
+}

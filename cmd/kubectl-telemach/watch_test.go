@@ -31,6 +31,9 @@ case "$1 $2" in
 "get ingressclasses") serve ingressclasses.json ;;
 "get pvc") serve pvc.json ;;
 "get storageclasses") serve storageclasses.json ;;
+"get deployment") serve deployment.json ;;
+"get replicasets") serve replicasets.json ;;
+"get configmap") serve configmap-dates.txt ;;
 "get events") echo '{"items":[]}' ;;
 "logs "*) ;;
 *) echo "appel inattendu : $*" >&2; exit 99 ;;
@@ -39,9 +42,9 @@ esac
 
 const objectsCorpus = "../../testdata/objects"
 
-// watchEnv installe le faux kubectl sur un cas du corpus d'objets ; il renvoie l'application,
-// le journal des appels et une fonction qui lit les signaux déposés.
-func watchEnv(t *testing.T, corpus, main string) (*app, string, func() string) {
+// objectEnv installe le faux kubectl sur un cas du corpus d'objets ; il renvoie l'application,
+// le journal des appels et une fonction qui lit les signaux déposés par watch.
+func objectEnv(t *testing.T, corpus, main string) (*app, string, func() string) {
 	t.Helper()
 	dir := t.TempDir()
 	bin := filepath.Join(dir, "kubectl")
@@ -55,19 +58,27 @@ func watchEnv(t *testing.T, corpus, main string) (*app, string, func() string) {
 	t.Setenv("FAKE_MAIN", main)
 	runtime := t.TempDir()
 	env := map[string]string{"TELEMACH_KUBECTL": bin, "XDG_RUNTIME_DIR": runtime}
-	a, out, errb := newTestApp(t, env)
+	a, _, _ := newTestApp(t, env)
 	at, _ := os.ReadFile(filepath.Join(abs, "captured-at.txt")) //nolint:gosec // corpus du dépôt
 	when, _ := time.Parse(time.RFC3339, strings.TrimSpace(string(at)))
 	a.now = func() time.Time { return when }
-	t.Cleanup(func() {
-		if out.Len() != 0 || errb.Len() != 0 {
-			t.Errorf("watch ne doit rien écrire sur le terminal : %q %q", out, errb)
-		}
-	})
 	signals := func() string {
 		data, _ := os.ReadFile(state.PendingFile(filepath.Join(runtime, "telemach-kubectl"), os.Getpid())) //nolint:gosec // fichier de test
 		return string(data)
 	}
+	return a, log, signals
+}
+
+// watchEnv est objectEnv pour watch, qui ne doit jamais rien écrire sur le terminal.
+func watchEnv(t *testing.T, corpus, main string) (*app, string, func() string) {
+	t.Helper()
+	a, log, signals := objectEnv(t, corpus, main)
+	t.Cleanup(func() {
+		out, errb := a.stdout.(interface{ Len() int }), a.stderr.(interface{ Len() int })
+		if out.Len() != 0 || errb.Len() != 0 {
+			t.Errorf("watch ne doit rien écrire sur le terminal : %q %q", a.stdout, a.stderr)
+		}
+	})
 	return a, log, signals
 }
 

@@ -1,5 +1,6 @@
-# Fuzzing hebdomadaire (T086) : nettoyage, masquage, localisation dans les manifestes et
-# reconnaissance des erreurs. Toutes les actions sont épinglées par SHA de commit complet.
+# Fuzzing hebdomadaire (T086, T067) : nettoyage, masquage, localisation dans les manifestes,
+# reconnaissance des erreurs et références d'image. Toutes les actions sont épinglées par SHA
+# de commit complet.
 name: fuzz
 
 on:
@@ -26,3 +27,4 @@ jobs:
           go test -run='^$' -fuzz=FuzzRedact -fuzztime=60s ./internal/redact
           go test -run='^$' -fuzz=FuzzLocate -fuzztime=60s ./internal/manifest
           go test -run='^$' -fuzz=FuzzMatch -fuzztime=60s ./internal/diagnose
+          go test -run='^$' -fuzz=FuzzImageRef -fuzztime=60s ./internal/pitfall
