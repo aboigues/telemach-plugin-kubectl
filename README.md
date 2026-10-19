@@ -460,7 +460,8 @@ la fonction `kubectl` de l'ancienne version. `kubectl telemach last` te le signa
 2. Supprime le plugin et son état local :
 
    ```bash
-   rm ~/.local/bin/kubectl-telemach
+   rm ~/.local/bin/kubectl-telemach          # installation par une Release, l'image ou les sources
+   kubectl krew uninstall telemach           # installation par Krew
    rm -rf ~/.local/state/telemach-kubectl
    ```
 
