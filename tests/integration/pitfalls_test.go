@@ -213,3 +213,33 @@ func TestPitfallsWatch(t *testing.T) {
 		})
 	}
 }
+
+// W12 et W13 : nouvelles erreurs du catalogue et DNS d'un nom court (US5).
+func TestPitfallsNewErrors(t *testing.T) {
+	for _, shell := range shells {
+		t.Run(shell+"/W12", func(t *testing.T) {
+			stdout, stderr, ns := runScenario(t, shell, "W12")
+			out := stdout + stderr
+			expect(t, "W12", out,
+				"n'a pas de conteneur « helo »", "-c hello",
+				"n'a pas de conteneur « trois »", "Ses conteneurs s'appellent : app, sidecar",
+				"Le port 18080 de ta machine est déjà utilisé", "port-forward -n "+ns+" service/hello :80",
+				"Le déploiement de « stalled » est bloqué", "kubectl telemach diagnose deployment/stalled -n "+ns,
+				"Le champ spec.selector de « hello » (Deployment) ne peut pas être modifié", "Seconde voie")
+			if n := strings.Count(out, "code: 1"); n < 4 {
+				t.Errorf("W12 : codes de sortie d'origine non préservés (%d « code: 1 ») :\n%s", n, stdout)
+			}
+			// Aucune suppression n'est exécutée : le Deployment existe toujours.
+			if r := cluster.Kubectl("get", "deployment", "hello", "-n", ns); r.ExitCode != 0 {
+				t.Errorf("W12 : le Deployment hello a disparu : %s", r.Stderr)
+			}
+		})
+		t.Run(shell+"/W13", func(t *testing.T) {
+			_, stderr, _ := runScenario(t, shell, "W13")
+			expect(t, "W13", stderr,
+				"Le programme du pod « dns-client » n'a pas pu résoudre le nom « kubernetes »",
+				"kubernetes.NAMESPACE.svc.cluster.local",
+				"kubectl get services -A --field-selector metadata.name=kubernetes")
+		})
+	}
+}

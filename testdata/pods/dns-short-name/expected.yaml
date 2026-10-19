@@ -1,0 +1,3 @@
+state: failing
+reason: Error
+entry: runtime.dns-short-name

@@ -104,8 +104,8 @@ func validate(e *Entry) []error {
 	if !Categories[e.Category] {
 		fail("catégorie inconnue %q", e.Category)
 	}
-	if len(e.Patterns) == 0 && len(e.ExitCodes) == 0 && len(e.PodReasons) == 0 && len(e.Pitfalls) == 0 && e.Fallback == "" {
-		fail("au moins un motif est requis (ou pod_reasons, exit_codes, pitfalls, ou fallback)")
+	if len(e.Patterns) == 0 && len(e.ExitCodes) == 0 && len(e.PodReasons) == 0 && len(e.LogPatterns) == 0 && len(e.Pitfalls) == 0 && e.Fallback == "" {
+		fail("au moins un motif est requis (ou pod_reasons, log_patterns, exit_codes, pitfalls, ou fallback)")
 	}
 	if e.Fallback != "" && e.Fallback != FallbackApplication && e.Fallback != FallbackManifestIssue {
 		fail("fallback inconnu %q (valeurs possibles : application, manifest-issue)", e.Fallback)
@@ -121,6 +121,15 @@ func validate(e *Entry) []error {
 			continue
 		}
 		e.compiled = append(e.compiled, re)
+	}
+	e.compiledLog = nil
+	for _, p := range e.LogPatterns {
+		re, err := regexp.Compile(p)
+		if err != nil {
+			fail("motif de journal invalide %q : %v", p, err)
+			continue
+		}
+		e.compiledLog = append(e.compiledLog, re)
 	}
 	if e.Concept.Name == "" || e.Concept.Definition == "" {
 		fail("concept incomplet (nom et définition obligatoires)")
@@ -208,6 +217,28 @@ func (c *Catalog) ByIssueKind(kind string) (*Entry, bool) {
 		}
 	}
 	return nil, false
+}
+
+// ByLogLines renvoie l'entrée dont un motif de journal reconnaît une ligne du journal d'un
+// pod en échec, avec les valeurs nommées du motif (la dernière ligne reconnue l'emporte : elle
+// est la plus proche de l'arrêt du programme).
+func (c *Catalog) ByLogLines(lines []string) (*Entry, map[string]string, bool) {
+	for i := len(lines) - 1; i >= 0; i-- {
+		for _, e := range c.Entries {
+			for _, re := range e.compiledLog {
+				if m := re.FindStringSubmatch(lines[i]); m != nil {
+					captures := map[string]string{}
+					for j, name := range re.SubexpNames() {
+						if name != "" && m[j] != "" {
+							captures[name] = m[j]
+						}
+					}
+					return e, captures, true
+				}
+			}
+		}
+	}
+	return nil, nil, false
 }
 
 // ByPodReason renvoie l'entrée qui explique un état de pod (CrashLoopBackOff…).

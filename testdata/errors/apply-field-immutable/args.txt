@@ -1,0 +1,5 @@
+apply
+-f
+/tmp/telemach/web-immutable.yaml
+-n
+demo

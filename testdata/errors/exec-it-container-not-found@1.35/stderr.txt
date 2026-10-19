@@ -1,0 +1,2 @@
+Unable to use a TTY - input is not a terminal or the right kind of file
+Error from server (BadRequest): container helo is not valid for pod web-7874649fd-qmhg7

@@ -288,12 +288,29 @@ func TestDisabledOrMissing(t *testing.T) {
 }
 
 // Garantie 6 : commande interactive ou longue → stderr non capturé, --interactive transmis.
+// exec, attach, debug et port-forward font exception : leur stderr est capté (feature 002,
+// research.md S10).
 func TestInteractive(t *testing.T) {
 	forEachShell(t, func(t *testing.T, shell string) {
 		for _, body := range []string{
 			`kubectl exec -it web -- sh`, `kubectl exec -ti web -- sh`, `kubectl -n demo exec -i -t web -- sh`,
-			`kubectl run -it debug --image=busybox:1.37 --rm -- sh`, `kubectl attach web`, `kubectl edit deploy web`,
-			`kubectl port-forward svc/web 8080:80`, `kubectl logs -f web`, `kubectl get pods -w`,
+			`kubectl attach web`, `kubectl port-forward svc/web 8080:80`, `kubectl debug -it web --image=busybox:1.38`,
+		} {
+			e := setup(t, true)
+			stdout, _, err := run(t, shell, e, []string{"FAKE_RC=127"}, body+`; echo "rc=$?"`)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.HasSuffix(stdout, "rc=127\n") {
+				t.Errorf("%s : code de sortie non préservé : %q", body, stdout)
+			}
+			if log := readLog(t, e); strings.Contains(log, "--interactive") || !strings.Contains(log, "--stderr-file") {
+				t.Errorf("%s : explain doit recevoir le stderr capté :\n%s", body, log)
+			}
+		}
+		for _, body := range []string{
+			`kubectl run -it debug --image=busybox:1.37 --rm -- sh`, `kubectl edit deploy web`, `kubectl proxy`,
+			`kubectl logs -f web`, `kubectl get pods -w`,
 		} {
 			e := setup(t, true)
 			stdout, _, err := run(t, shell, e, []string{"FAKE_RC=127"}, body+`; echo "rc=$?"`)

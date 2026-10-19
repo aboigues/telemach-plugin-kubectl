@@ -110,3 +110,42 @@
       ensuite.
   doc_url: https://kubernetes.io/docs/tasks/manage-kubernetes-objects/declarative-config/
   tests: [apply-missing-file, diff-missing-file]
+
+- id: notfound.container-exec
+  category: notfound
+  patterns:
+    - 'container (?P<container>[a-z0-9][a-z0-9-]*) is not valid for pod (?P<pod>[a-z0-9][a-z0-9.-]*)(?: out of: (?P<containers>[a-z0-9-]+(?:, [a-z0-9-]+)*))?'
+  concept:
+    name: conteneurs d'un pod
+    definition: >-
+      Un pod peut contenir plusieurs conteneurs, chacun avec son nom (spec.containers[].name).
+      exec, logs, attach et debug visent l'un d'eux : avec -c, le nom doit être exactement
+      celui d'un conteneur du pod, pas celui de l'image.
+  summary: Le pod « {{.pod}} » n'a pas de conteneur « {{.container}} ».
+  cause: >-
+    {{if .containers}}Ses conteneurs s'appellent : {{.containers}}.{{else}}Le nom donné avec -c
+    ne correspond à aucun conteneur de ce pod.{{end}} Le nom d'un conteneur vient du
+    manifeste ; kubectl create deployment le déduit de l'image (« nginx-unprivileged » pour
+    nginxinc/nginx-unprivileged).
+  fixes:
+    - description: Lister les conteneurs du pod.
+      command: '{{.kubectl}} get pod {{.pod}}{{if .scope}} {{.scope}}{{end}} -o jsonpath=''{.spec.containers[*].name}'''
+      safe: true
+    - description: Relancer la commande avec le bon nom de conteneur.
+      command: '{{.kubectl}} {{.fixed_command}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Sans -c, kubectl choisit le conteneur désigné par l'annotation
+      kubectl.kubernetes.io/default-container, sinon le premier, et le signale. Les conteneurs
+      d'initialisation (initContainers) et éphémères (créés par kubectl debug) ont aussi un nom.
+    example: |-
+      kubectl get pod web -o jsonpath='{.spec.containers[*].name}'
+      kubectl logs web -c nginx-unprivileged
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-conteneur », crée un
+      deployment avec « kubectl create deployment web --image=nginxinc/nginx-unprivileged:1.30-alpine
+      -n exo-conteneur », puis lis le journal de son pod avec -c et le nom de l'image, puis avec
+      le vrai nom du conteneur. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_exec/
+  tests: [exec-container-not-found, exec-it-container-not-found, logs-container-not-found]

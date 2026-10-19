@@ -27,10 +27,11 @@ type Entry struct {
 	Category    Category         `yaml:"category"`
 	Applies     []string         `yaml:"applies"`
 	Patterns    []string         `yaml:"patterns"`
-	PodReasons  []string         `yaml:"pod_reasons"` // états de pod couverts (diagnose)
-	ExitCodes   []int            `yaml:"exit_codes"`  // codes de sortie de conteneur couverts
-	IssueKinds  []string         `yaml:"issue_kinds"` // types de ManifestIssue couverts (manifest-issue)
-	Pitfalls    []string         `yaml:"pitfalls"`    // pièges silencieux couverts (feature 002, diagnose d'un objet)
+	PodReasons  []string         `yaml:"pod_reasons"`  // états de pod couverts (diagnose)
+	LogPatterns []string         `yaml:"log_patterns"` // motifs du journal d'un pod en échec (diagnose, feature 002)
+	ExitCodes   []int            `yaml:"exit_codes"`   // codes de sortie de conteneur couverts
+	IssueKinds  []string         `yaml:"issue_kinds"`  // types de ManifestIssue couverts (manifest-issue)
+	Pitfalls    []string         `yaml:"pitfalls"`     // pièges silencieux couverts (feature 002, diagnose d'un objet)
 	Fallback    string           `yaml:"fallback"`
 	Concept     ConceptRef       `yaml:"concept"`
 	Summary     string           `yaml:"summary"`
@@ -41,7 +42,8 @@ type Entry struct {
 	DocURL      string           `yaml:"doc_url"`
 	Tests       []string         `yaml:"tests"`
 
-	compiled []*regexp.Regexp
+	compiled    []*regexp.Regexp
+	compiledLog []*regexp.Regexp
 }
 
 // Fix est une action corrective. Command est un gabarit facultatif ; Manifest est un extrait

@@ -62,6 +62,14 @@ func suggest(in Input, d *Diagnosis) {
 			d.Captures["suggested_name"] = dnsName(name)
 		case "notfound.resource":
 			fixed = withoutNamespace(args)
+		case "notfound.container-exec":
+			name := "CONTENEUR"
+			if first, _, _ := strings.Cut(d.Captures["containers"], ", "); first != "" {
+				name = first
+			}
+			fixed = replaceContainer(args, name)
+		case "portforward.local-port-in-use":
+			fixed = freeLocalPort(args, d.Captures["localPort"])
 		}
 	}
 	d.Captures["fixed_command"] = joinArgs(fixed)
@@ -225,4 +233,34 @@ func quote(a string) string {
 		return a
 	}
 	return "'" + strings.ReplaceAll(a, "'", `'\''`) + "'"
+}
+
+// replaceContainer remplace le nom de conteneur donné par -c ou --container.
+func replaceContainer(args []string, name string) []string {
+	out := append([]string(nil), args...)
+	for i, a := range out {
+		switch {
+		case (a == "-c" || a == "--container") && i+1 < len(out):
+			out[i+1] = name
+			return out
+		case strings.HasPrefix(a, "-c="), strings.HasPrefix(a, "--container="):
+			flag, _, _ := strings.Cut(a, "=")
+			out[i] = flag + "=" + name
+			return out
+		}
+	}
+	return out
+}
+
+// freeLocalPort retire le port local occupé d'un transfert (« 18081:8080 » devient « :8080 ») :
+// kubectl choisit alors lui-même un port libre de la machine.
+func freeLocalPort(args []string, local string) []string {
+	out := append([]string(nil), args...)
+	for i, a := range out {
+		if rest, ok := strings.CutPrefix(a, local+":"); ok && local != "" {
+			out[i] = ":" + rest
+			return out
+		}
+	}
+	return out
 }

@@ -71,3 +71,48 @@
       nouvelle resourceVersion. Supprime le namespace ensuite.
   doc_url: https://kubernetes.io/docs/reference/using-api/api-concepts/#resource-versions
   tests: [replace-conflict]
+
+- id: conflict.field-immutable
+  category: conflict
+  patterns:
+    - 'The (?P<kind>[A-Za-z]+) "(?P<name>[^"]+)" is invalid: (?P<field>[A-Za-z0-9.\[\]]+): Invalid value: .*: field is immutable'
+  concept:
+    name: champ immuable
+    definition: >-
+      Certains champs ne peuvent plus changer après la création d'un objet : le selector d'un
+      Deployment, la classe d'un PVC, le type de certains Services… Les modifier changerait
+      l'identité de l'objet ou romprait le lien avec ce qu'il gère déjà.
+  summary: Le champ {{.field}} de « {{.name}} » ({{.kind}}) ne peut pas être modifié.
+  cause: >-
+    Ton manifeste donne une autre valeur à {{.field}}, qui est fixé depuis la création de
+    l'objet. Pour un Deployment, changer le selector lui ferait perdre ses pods actuels :
+    Kubernetes le refuse.
+  fixes:
+    - description: Première voie, sans coupure — remettre dans le manifeste la valeur actuelle du champ, puis réappliquer.
+      command: '{{.kubectl}} get {{.kind}} {{.name}}{{if .scope}} {{.scope}}{{end}} -o yaml'
+      safe: true
+    - description: Seconde voie, avec une coupure de service — supprimer l'objet puis le recréer avec la nouvelle valeur. TELEMACH n'exécute jamais cette suppression.
+      command: '{{.kubectl}} delete {{.kind}} {{.name}}{{if .scope}} {{.scope}}{{end}}'
+      safe: false
+  anti_pattern:
+    description: >-
+      Supprimer puis recréer arrête tous les pods de l'objet jusqu'à la recréation : choisis un
+      moment où la coupure est acceptable. N'ajoute jamais --force --grace-period=0 pour aller
+      plus vite : les pods sont retirés de Kubernetes sans attendre leur arrêt réel, au risque de
+      données corrompues et, pour un StatefulSet, de deux pods de même identité. Si la suppression
+      bloque, cherche d'abord ce qui la retient (finalizers, nœud injoignable, volume encore
+      attaché).
+  deepen:
+    explanation: >-
+      Pour changer le selector sans coupure, on crée un nouveau Deployment (autre nom, nouveau
+      selector) à côté de l'ancien, on bascule le Service vers ses pods, puis on supprime
+      l'ancien. Les messages d'erreur indiquent le champ exact refusé.
+    example: |-
+      kubectl get deployment web -o jsonpath='{.spec.selector}'
+      kubectl apply -f web.yaml --dry-run=server
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-immuable », crée un
+      Deployment, modifie son selector dans le manifeste, vérifie le refus avec « kubectl apply
+      --dry-run=server », puis remets l'ancien selector. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#label-selector-updates
+  tests: [apply-field-immutable]
