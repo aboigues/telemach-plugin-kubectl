@@ -71,6 +71,28 @@ dans le registre d'origine ; seule la règle préventive, transposée à kubectl
 
 ## Incidents
 
+### LL-013 — Index Krew non mis à jour : secret d'environnement non transmis au workflow appelé
+
+- **Date** : 2026-10-22
+- **Catégorie** : CI/gates
+- **Contexte** : feature 003, publication de `v0.1.0` (T049), run 39814782519.
+- **Cause racine** : `krew-index.yml` est appelé par `release.yml` (`workflow_call`) et déclare
+  l'environnement `release`, mais GitHub ne donne au workflow appelé que les secrets que
+  l'appelant lui transmet, même pour un secret d'environnement (documentation « Reuse
+  workflows »). `KREW_INDEX_DEPLOY_KEY` est donc arrivé vide. La pré-version, qui n'écrit pas
+  dans l'index, ne pouvait pas le révéler ; la relance directe (`workflow_dispatch`), seule
+  testée à la conception, lit bien le secret.
+- **Impact** : Release `v0.1.0` et images `0.1.0`, `0.1`, `latest` publiées et signées, mais
+  index Krew non mis à jour ; run marqué en échec. Le contrôle explicite du secret vide a
+  arrêté le job avant toute écriture.
+- **Correctif** : `secrets: KREW_INDEX_DEPLOY_KEY` transmis nommément par `release.yml` et
+  déclaré dans `on.workflow_call.secrets` de `krew-index.yml` ; index mis à jour par la
+  relance directe documentée (quickstart P3).
+- **Règle préventive** : un chemin qui ne s'exécute qu'à la première version stable est testé
+  sous sa forme réelle d'appel (ici `workflow_call`), pas seulement par une forme voisine ; tout
+  secret lu par un workflow appelé est transmis par son nom.
+- **Suivi** : `TestCalledWorkflowsReceiveTheirSecrets` dans `tests/manifests/hygiene_test.go`.
+
 ### LL-012 — Image signée d'une pré-version écrasée par la publication de la version stable
 
 - **Date** : 2026-10-22
