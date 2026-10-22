@@ -48,10 +48,13 @@ func TestNoBinaryCommitted(t *testing.T) {
 type workflow struct {
 	Permissions any `yaml:"permissions"`
 	Jobs        map[string]struct {
-		Permissions any `yaml:"permissions"`
+		Permissions any    `yaml:"permissions"`
+		RunsOn      any    `yaml:"runs-on"`
+		Timeout     int    `yaml:"timeout-minutes"`
 		Steps       []struct {
-			Name string `yaml:"name"`
-			Run  string `yaml:"run"`
+			Name    string `yaml:"name"`
+			Run     string `yaml:"run"`
+			Timeout int    `yaml:"timeout-minutes"`
 		} `yaml:"steps"`
 	} `yaml:"jobs"`
 }
@@ -113,5 +116,31 @@ func TestWorkflowsLeastPrivilege(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// LL-011 : chaque job exécuté sur un runner a un délai maximal (sinon GitHub attend 6 heures),
+// et chaque étape apt-get, qui dépend d'un miroir externe, a le sien. Les jobs qui appellent
+// un workflow réutilisable (uses:) héritent des délais de ses jobs.
+func TestWorkflowsTimeouts(t *testing.T) {
+	jobs := 0
+	for name, w := range readWorkflows(t) {
+		for job, j := range w.Jobs {
+			if j.RunsOn == nil {
+				continue
+			}
+			jobs++
+			if j.Timeout <= 0 {
+				t.Errorf("%s, job %s : timeout-minutes absent", name, job)
+			}
+			for _, st := range j.Steps {
+				if strings.Contains(st.Run, "apt-get") && st.Timeout <= 0 {
+					t.Errorf("%s, job %s, étape « %s » : apt-get sans timeout-minutes", name, job, st.Name)
+				}
+			}
+		}
+	}
+	if jobs < 15 {
+		t.Fatalf("seulement %d jobs lus : analyse des workflows suspecte (D-LL-009)", jobs)
 	}
 }

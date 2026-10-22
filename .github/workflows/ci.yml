@@ -16,6 +16,7 @@ permissions:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -31,6 +32,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -39,6 +41,8 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Installer zsh (tests de l'intégration shell)
+        # Un miroir apt bloqué a figé un job plus d'une heure (LL-011) : échec rapide et explicite.
+        timeout-minutes: 5
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends zsh
       - name: Tests unitaires et de régression
         run: go test -race -cover ./...
@@ -51,6 +55,7 @@ jobs:
   build:
     # Version injectée à la compilation (research R12).
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -81,6 +86,7 @@ jobs:
   goreleaser-check:
     # Configuration de publication valide et snapshot complet : binaires, archives, sommes, SBOM.
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -118,6 +124,7 @@ jobs:
     # analysée par Grype (principe IV). Trivy est écarté depuis la compromission de
     # trivy-action (research R8).
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -182,6 +189,7 @@ jobs:
     # Le manifeste Krew généré depuis un snapshot est valide et s'installe sur les quatre
     # plateformes depuis les archives (research R9, FR-011) ; sans réseau ni kubectl.
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -222,6 +230,7 @@ jobs:
 
   dockerfile-lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -245,6 +254,7 @@ jobs:
     # Manifestes Kubernetes du dépôt : validation par les règles embarquées et règles de
     # sécurité (principe IV). Réussit tant qu'aucun manifeste n'existe.
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -259,6 +269,7 @@ jobs:
     # Cluster kind jetable, une version de Kubernetes par entrée de la matrice (D-LL-015 :
     # jamais d'autre cluster que celui créé par le test).
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -277,6 +288,8 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Installer zsh
+        # Un miroir apt bloqué a figé un job plus d'une heure (LL-011) : échec rapide et explicite.
+        timeout-minutes: 5
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends zsh
       - name: Installer kind v0.33.0 (module vérifié par la base de sommes Go)
         run: go install sigs.k8s.io/kind@v0.33.0
@@ -301,6 +314,7 @@ jobs:
     if: always()
     needs: integration-kind
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Résultat des trois versions de Kubernetes
         env:
@@ -311,6 +325,7 @@ jobs:
 
   vuln:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -321,11 +336,12 @@ jobs:
       - name: govulncheck
         # Compilé avec la chaîne d'outils du projet (D-LL-001).
         env:
-          GOTOOLCHAIN: go1.27.2
+          GOTOOLCHAIN: go1.27.3
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 
   secrets:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -343,6 +359,7 @@ jobs:
   dependency-review:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

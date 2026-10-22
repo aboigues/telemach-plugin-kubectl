@@ -388,7 +388,7 @@ L'explication automatique des erreurs de `kubectl` et le diagnostic d'un cluster
 
 #### Compiler depuis les sources
 
-Avec Go 1.27 ou plus récent (la version exacte, 1.27.2, est téléchargée automatiquement) :
+Avec Go 1.27 ou plus récent (la version exacte, 1.27.3, est téléchargée automatiquement) :
 
 ```bash
 git clone https://github.com/aboigues/telemach-plugin-kubectl.git

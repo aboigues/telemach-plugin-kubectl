@@ -20,6 +20,7 @@ jobs:
   verify:
     # Contrôles préalables, en lecture seule, sans aucun secret.
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
     steps:
@@ -66,6 +67,7 @@ jobs:
   release:
     needs: [verify, gates]
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     # Seul job qui écrit, et seul à pouvoir lire les secrets de publication (environnement
     # protégé, réservé aux tags v*).
     environment: release

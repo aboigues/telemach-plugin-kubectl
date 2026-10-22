@@ -71,6 +71,26 @@ dans le registre d'origine ; seule la règle préventive, transposée à kubectl
 
 ## Incidents
 
+### LL-011 — Publication figée plus d'une heure par un job sans délai maximal
+
+- **Date** : 2026-10-22
+- **Catégorie** : CI/gates
+- **Contexte** : feature 003, pré-version de répétition `v0.1.0-rc.1` (T048).
+- **Cause racine** : aucun job des workflows ne déclarait `timeout-minutes` ; GitHub attend
+  alors jusqu'à 6 heures. Le job `integration-kind (v1.37.1)` est resté bloqué sur
+  `apt-get install zsh` (miroir apt sans réponse) alors que les deux autres versions avaient
+  fini en 9 minutes. Dans le même run, la gate `vuln` a échoué sur GO-2026-6809
+  (`crypto/x509` de Go 1.27.2), publiée après la dernière CI verte de `main` : ce refus-là
+  était le comportement attendu.
+- **Impact** : publication en attente plus d'une heure pour un run déjà condamné par `vuln` ;
+  rien n'a été publié (ni Release ni image). Run annulé, tag `v0.1.0-rc.1` sans effet.
+- **Correctif** : `timeout-minutes` sur chaque job (environ trois fois la durée habituelle),
+  5 minutes sur les étapes `apt-get` ; Go 1.27.3.
+- **Règle préventive** : tout job et toute étape qui dépend du réseau (apt, téléchargements)
+  déclare un délai maximal ; avant de poser un tag, relancer `govulncheck` sur `main` (la base
+  de vulnérabilités évolue sans commit).
+- **Suivi** : `TestWorkflowsTimeouts` dans `tests/manifests/hygiene_test.go`.
+
 ### LL-010 — Dossier d'état relatif au dossier courant sans HOME
 
 - **Date** : 2026-10-19
