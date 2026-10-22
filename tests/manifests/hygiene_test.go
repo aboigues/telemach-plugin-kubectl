@@ -48,9 +48,9 @@ func TestNoBinaryCommitted(t *testing.T) {
 type workflow struct {
 	Permissions any `yaml:"permissions"`
 	Jobs        map[string]struct {
-		Permissions any    `yaml:"permissions"`
-		RunsOn      any    `yaml:"runs-on"`
-		Timeout     int    `yaml:"timeout-minutes"`
+		Permissions any `yaml:"permissions"`
+		RunsOn      any `yaml:"runs-on"`
+		Timeout     int `yaml:"timeout-minutes"`
 		Steps       []struct {
 			Name    string `yaml:"name"`
 			Run     string `yaml:"run"`
