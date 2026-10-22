@@ -52,9 +52,11 @@ type workflow struct {
 		RunsOn      any `yaml:"runs-on"`
 		Timeout     int `yaml:"timeout-minutes"`
 		Steps       []struct {
-			Name    string `yaml:"name"`
-			Run     string `yaml:"run"`
-			Timeout int    `yaml:"timeout-minutes"`
+			Name    string            `yaml:"name"`
+			Run     string            `yaml:"run"`
+			Uses    string            `yaml:"uses"`
+			Env     map[string]string `yaml:"env"`
+			Timeout int               `yaml:"timeout-minutes"`
 		} `yaml:"steps"`
 	} `yaml:"jobs"`
 }
@@ -142,5 +144,28 @@ func TestWorkflowsTimeouts(t *testing.T) {
 	}
 	if jobs < 15 {
 		t.Fatalf("seulement %d jobs lus : analyse des workflows suspecte (D-LL-009)", jobs)
+	}
+}
+
+// LL-012 : GoReleaser reçoit le tag qui a déclenché la publication. Sans cela, il choisit parmi
+// les tags du commit (v0.1.0 et v0.1.0-rc.2 sur le même commit) et a republié une pré-version,
+// en écrasant son image signée, alors que verify avait contrôlé l'autre version.
+func TestReleaseUsesTriggeringTag(t *testing.T) {
+	w, ok := readWorkflows(t)["release.yml"]
+	if !ok {
+		t.Fatal("release.yml introuvable")
+	}
+	found := 0
+	for _, st := range w.Jobs["release"].Steps {
+		if !strings.HasPrefix(st.Uses, "goreleaser/goreleaser-action@") {
+			continue
+		}
+		found++
+		if got := st.Env["GORELEASER_CURRENT_TAG"]; got != "${{ github.ref_name }}" {
+			t.Errorf("étape « %s » : GORELEASER_CURRENT_TAG = %q, attendu ${{ github.ref_name }}", st.Name, got)
+		}
+	}
+	if found != 1 {
+		t.Fatalf("%d étape(s) GoReleaser dans le job release, 1 attendue (D-LL-009)", found)
 	}
 }
