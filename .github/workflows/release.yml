@@ -121,6 +121,9 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Version imposée : sans elle, GoReleaser choisit lui-même parmi les tags du commit et a
+          # publié 0.1.0-rc.2 au lieu de 0.1.0 (même commit), en écrasant l'image signée (LL-012).
+          GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
       - name: Attester la provenance des fichiers publiés (SLSA)
         # Sujets = chaque ligne de checksums.txt (nom publié + somme) : binaires, archives et
         # SBOM ; sur le disque, les binaires portent le nom de compilation « kubectl-telemach ».

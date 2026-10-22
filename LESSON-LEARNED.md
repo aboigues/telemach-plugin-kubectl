@@ -71,6 +71,27 @@ dans le registre d'origine ; seule la règle préventive, transposée à kubectl
 
 ## Incidents
 
+### LL-012 — Image signée d'une pré-version écrasée par la publication de la version stable
+
+- **Date** : 2026-10-22
+- **Catégorie** : sécurité
+- **Contexte** : feature 003, publication de `v0.1.0` (T049) sur le commit déjà tagué
+  `v0.1.0-rc.2` (pré-version de répétition réussie et vérifiée).
+- **Cause racine** : GoReleaser détermine lui-même la version parmi les tags du commit ; il a
+  retenu `v0.1.0-rc.2` au lieu du tag `v0.1.0` qui avait déclenché le workflow. Le job
+  `verify`, lui, avait contrôlé l'absence de l'image `0.1.0` (`github.ref_name`) : le contrôle
+  et la publication ne portaient pas sur la même version.
+- **Impact** : l'image `telemachlearning/telemach-kubectl:0.1.0-rc.2` a été repoussée
+  (14:24:59 UTC) vers un digest non signé et non attesté (`sha256:bd389f…`) au lieu de
+  `sha256:4a2030…` ; `cosign verify` échoue sur ce tag. La Release `v0.1.0-rc.2`, immuable, a
+  bloqué la suite : ni Release `v0.1.0`, ni image `0.1.0`, ni index Krew modifié.
+- **Correctif** : `GORELEASER_CURRENT_TAG: ${{ github.ref_name }}` sur l'étape GoReleaser de
+  `release.yml` ; tag `0.1.0-rc.2` remis sur le digest signé par le mainteneur.
+- **Règle préventive** : chaque outil de publication reçoit explicitement la version contrôlée
+  par `verify` ; ne jamais le laisser la déduire de l'état du dépôt (plusieurs tags sur un
+  commit est un cas normal : pré-version puis version stable).
+- **Suivi** : `TestReleaseUsesTriggeringTag` dans `tests/manifests/hygiene_test.go`.
+
 ### LL-011 — Publication figée plus d'une heure par un job sans délai maximal
 
 - **Date** : 2026-10-22
