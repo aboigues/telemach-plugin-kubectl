@@ -183,9 +183,11 @@ jobs:
 
   krew-index:
     # Après la publication seulement : les adresses d'un brouillon ne sont pas téléchargeables.
-    # Le job appelé déclare lui-même l'environnement « release » et lit la clé de déploiement ;
-    # aucun secret du dépôt n'est transmis.
+    # Le job appelé déclare l'environnement « release » ; GitHub exige pourtant que l'appelant
+    # transmette le secret, nommément (jamais « secrets: inherit ») : LL-013.
     needs: release
     permissions:
       contents: read
     uses: ./.github/workflows/krew-index.yml
+    secrets:
+      KREW_INDEX_DEPLOY_KEY: ${{ secrets.KREW_INDEX_DEPLOY_KEY }}

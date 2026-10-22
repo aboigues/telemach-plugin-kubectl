@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -48,9 +49,11 @@ func TestNoBinaryCommitted(t *testing.T) {
 type workflow struct {
 	Permissions any `yaml:"permissions"`
 	Jobs        map[string]struct {
-		Permissions any `yaml:"permissions"`
-		RunsOn      any `yaml:"runs-on"`
-		Timeout     int `yaml:"timeout-minutes"`
+		Permissions any    `yaml:"permissions"`
+		RunsOn      any    `yaml:"runs-on"`
+		Timeout     int    `yaml:"timeout-minutes"`
+		Uses        string `yaml:"uses"`
+		Secrets     any    `yaml:"secrets"`
 		Steps       []struct {
 			Name    string            `yaml:"name"`
 			Run     string            `yaml:"run"`
@@ -167,5 +170,44 @@ func TestReleaseUsesTriggeringTag(t *testing.T) {
 	}
 	if found != 1 {
 		t.Fatalf("%d étape(s) GoReleaser dans le job release, 1 attendue (D-LL-009)", found)
+	}
+}
+
+// secretRef repère un secret lu par un workflow (GITHUB_TOKEN est fourni à tout workflow).
+var secretRef = regexp.MustCompile(`secrets\.([A-Z][A-Z0-9_]*)`)
+
+// LL-013 : un workflow appelé (uses: ./…) ne lit un secret, même d'environnement, que si
+// l'appelant le lui transmet ; la transmission est nominative (jamais « secrets: inherit »).
+func TestCalledWorkflowsReceiveTheirSecrets(t *testing.T) {
+	workflows := readWorkflows(t)
+	calls := 0
+	for name, w := range workflows {
+		for job, j := range w.Jobs {
+			called, ok := strings.CutPrefix(j.Uses, "./.github/workflows/")
+			if !ok {
+				continue
+			}
+			calls++
+			if j.Secrets == "inherit" {
+				t.Errorf("%s, job %s : secrets: inherit (transmettre chaque secret par son nom)", name, job)
+				continue
+			}
+			passed, _ := j.Secrets.(map[string]any)
+			data, err := os.ReadFile(filepath.Join("../../.github/workflows", called)) //nolint:gosec // fichier du dépôt
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, m := range secretRef.FindAllStringSubmatch(string(data), -1) {
+				if m[1] == "GITHUB_TOKEN" {
+					continue
+				}
+				if _, ok := passed[m[1]]; !ok {
+					t.Errorf("%s, job %s : %s lit secrets.%s, que l'appelant ne transmet pas", name, job, called, m[1])
+				}
+			}
+		}
+	}
+	if calls < 2 {
+		t.Fatalf("seulement %d appel(s) de workflow lu(s) : analyse suspecte (D-LL-009)", calls)
 	}
 }

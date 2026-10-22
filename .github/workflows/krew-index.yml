@@ -9,6 +9,11 @@ name: krew-index
 
 on:
   workflow_call:
+    # Un workflow appelé ne lit un secret, même d'environnement, que si l'appelant le transmet
+    # (LL-013). Facultatif : une relance directe (workflow_dispatch) le lit dans l'environnement.
+    secrets:
+      KREW_INDEX_DEPLOY_KEY:
+        required: false
   workflow_dispatch:
 
 permissions: {}
