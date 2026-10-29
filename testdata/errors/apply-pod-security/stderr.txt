@@ -1,0 +1,1 @@
+Error from server (Forbidden): error when creating "testdata/objects/scenarios/pss-violation.yaml": pods "web" is forbidden: violates PodSecurity "restricted:latest": unrestricted capabilities (container "web" must set securityContext.capabilities.drop=["ALL"]), seccompProfile (pod or container "web" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost")

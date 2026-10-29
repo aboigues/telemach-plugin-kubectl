@@ -1,0 +1,1 @@
+Error from server (Forbidden): error when creating "testdata/objects/scenarios/limitrange-pod.yaml": pods "gourmand" is forbidden: maximum cpu usage per Container is 500m, but limit is 2

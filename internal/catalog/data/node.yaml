@@ -1,0 +1,168 @@
+# Maintenance des nœuds (feature 004, US2, research.md F7) : arrêts de « kubectl drain ».
+# Motifs écrits d'après les relevés kind (testdata/errors/drain-*). kubectl liste toutes les
+# causes dans un même message ; l'ordre de ce fichier décide de la leçon donnée en premier.
+- id: drain.daemonset-pods
+  category: node
+  applies: [drain]
+  patterns:
+    - 'cannot delete DaemonSet-managed Pods \(use --ignore-daemonsets to ignore\): (?P<pods>[^\n\]]+?)(?:\]|, continuing command|\n|$)'
+  concept:
+    name: DaemonSet
+    definition: >-
+      Un DaemonSet fait tourner un pod sur chaque nœud (agent réseau, collecte de journaux,
+      kube-proxy). Ses pods sont liés à leur nœud : les évincer ne sert à rien, le DaemonSet
+      les recréerait aussitôt au même endroit.
+  summary: Le drain s'arrête sur des pods de DaemonSet, qu'il ne peut pas déplacer.
+  cause: >-
+    Des pods de DaemonSet tournent sur le nœud ({{.pods}}). Par prudence, kubectl refuse de
+    continuer sans ton accord explicite. S'il cite d'autres causes dans le même message,
+    traite-les ensuite une à une.
+  fixes:
+    - description: Relancer le drain en ignorant les pods de DaemonSet, qui restent sur le nœud (comportement normal).
+      command: '{{.kubectl}} drain {{if .node}}{{.node}}{{else}}NŒUD{{end}} --ignore-daemonsets'
+      safe: true
+  deepen:
+    explanation: >-
+      drain enchaîne deux actions : cordon (plus aucun nouveau pod sur le nœud), puis éviction
+      des pods existants, que leurs contrôleurs recréent ailleurs. Les pods de DaemonSet ne
+      peuvent pas aller ailleurs : --ignore-daemonsets les laisse en place pendant la
+      maintenance. Après la maintenance, « kubectl uncordon » rend le nœud de nouveau
+      planifiable.
+    example: |-
+      kubectl get pods -A -o wide --field-selector spec.nodeName=NŒUD
+      kubectl drain NŒUD --ignore-daemonsets
+      kubectl uncordon NŒUD
+    exercise: >-
+      Avec un cluster de test à plusieurs nœuds, crée un namespace d'exercice avec « kubectl
+      create namespace exo-drain », lance-y un Deployment de deux répliques, vide un worker
+      avec drain --ignore-daemonsets, observe où vont les pods, puis fais uncordon. Supprime
+      le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/administer-cluster/safely-drain-node/
+  tests: [drain-daemonset-pods]
+
+- id: drain.unmanaged-pods
+  category: node
+  applies: [drain]
+  patterns:
+    - 'cannot delete Pods that declare no controller \(use --force to override\): (?P<pods>[^\n\]]+?)(?:\]|, continuing command|\n|$)'
+  concept:
+    name: controller
+    definition: >-
+      Un pod créé seul (kubectl run, manifeste de type Pod) n'a pas de contrôleur : si on le
+      supprime, rien ne le recrée. Un pod géré par un Deployment, un StatefulSet ou un Job est
+      recréé ailleurs après une éviction.
+  summary: Le drain s'arrête sur des pods sans contrôleur, qui seraient perdus.
+  cause: >-
+    Ces pods ne sont gérés par aucun contrôleur ({{.pods}}) : les évincer les supprimerait
+    définitivement. kubectl refuse de le faire sans ton accord.
+  fixes:
+    - description: Recréer ces pods sous un contrôleur (Deployment), puis supprimer les pods isolés avant de relancer le drain.
+      command: '{{.kubectl}} create deployment NOM --image=IMAGE'
+      safe: true
+    - description: Option forcée, qui supprime définitivement ces pods. TELEMACH ne l'exécute jamais.
+      command: '{{.kubectl}} drain {{if .node}}{{.node}}{{else}}NŒUD{{end}} --ignore-daemonsets --force'
+      safe: false
+  anti_pattern:
+    description: >-
+      --force supprime les pods sans contrôleur au lieu de les déplacer : leur travail et leurs
+      données éventuelles sont perdus. Identifie d'abord ce qui bloque (quels pods, sur quel
+      nœud) et confie-les à un Deployment ; --force n'est acceptable que pour un pod dont tu
+      sais qu'il est jetable.
+  deepen:
+    explanation: >-
+      En production, presque aucun pod n'est créé seul : un contrôleur garantit qu'il revient
+      après une panne ou une maintenance. drain le rappelle en refusant de supprimer ce qui ne
+      reviendrait pas.
+    example: |-
+      kubectl get pods -o custom-columns=NOM:.metadata.name,PROPRIÉTAIRE:.metadata.ownerReferences[0].kind
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-controleur », lance un
+      pod avec kubectl run et un Deployment avec kubectl create deployment, puis compare leurs
+      ownerReferences. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/administer-cluster/safely-drain-node/
+  tests: [drain-unmanaged-pods]
+
+- id: drain.local-storage
+  category: node
+  applies: [drain]
+  patterns:
+    - 'cannot delete Pods with local storage \(use --delete-emptydir-data to override\): (?P<pods>[^\n,\]]+)'
+  concept:
+    name: emptyDir
+    definition: >-
+      Un volume emptyDir est un dossier temporaire créé sur le nœud pour la vie du pod : il
+      disparaît avec le pod. Déplacer le pod sur un autre nœud efface donc ces données.
+  summary: Le drain s'arrête sur un pod dont le volume emptyDir serait effacé.
+  cause: >-
+    Le pod {{.pods}} utilise un volume emptyDir : l'évincer efface définitivement son contenu.
+    kubectl attend ton accord explicite.
+  fixes:
+    - description: Si ces données sont jetables (cache, fichiers temporaires), relancer le drain en acceptant leur perte.
+      command: '{{.kubectl}} drain {{if .node}}{{.node}}{{else}}NŒUD{{end}} --ignore-daemonsets --delete-emptydir-data'
+      safe: false
+    - description: Si elles comptent, les ranger dans un PersistentVolumeClaim, qui survit au déplacement du pod.
+      safe: true
+  anti_pattern:
+    description: >-
+      --delete-emptydir-data efface le contenu du volume emptyDir du pod évincé. Identifie
+      d'abord ce qui bloque et ce que contient ce volume : un cache se reconstruit, des données
+      métier sont perdues.
+  deepen:
+    explanation: >-
+      emptyDir convient aux données temporaires d'un pod. Pour des données à conserver, un
+      PersistentVolumeClaim est lié à un volume qui survit au pod et peut le suivre sur un
+      autre nœud, selon le type de stockage.
+    example: |-
+      kubectl get pod NOM -o jsonpath='{.spec.volumes[*].emptyDir}'
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-emptydir », lance un pod
+      avec un volume emptyDir, écris un fichier dedans, supprime le pod puis recrée-le :
+      vérifie que le fichier a disparu. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/storage/volumes/#emptydir
+  tests: [drain-local-storage]
+
+- id: drain.pdb-blocked
+  category: node
+  origin: cluster
+  patterns:
+    - '(?:error when evicting pods/"(?P<pod>[^"]+)" -n "(?P<pod_ns>[^"]+)" \(will retry after \d+s\): )?Cannot evict pod as it would violate the pod''s disruption budget'
+  concept:
+    name: PodDisruptionBudget
+    definition: >-
+      Un PodDisruptionBudget (PDB) garantit qu'un nombre minimal de pods d'une application
+      reste disponible pendant les interruptions volontaires (drain, mise à jour d'un nœud).
+      Le serveur API refuse une éviction qui le ferait passer sous ce seuil.
+  summary: L'éviction{{if .pod}} du pod {{.pod}}{{end}} est refusée par un PodDisruptionBudget.
+  cause: >-
+    Évincer ce pod ferait passer son application sous le minimum fixé par son PDB (souvent :
+    une seule réplique et minAvailable: 1). drain réessaie toutes les 5 secondes, sans fin
+    sauf --timeout.
+  fixes:
+    - description: Lister les PDB et leur marge (colonne ALLOWED DISRUPTIONS ; 0 bloque toute éviction).
+      command: '{{.kubectl}} get pdb -A'
+      safe: true
+    - description: Ajouter une réplique à l'application pour qu'une éviction reste possible, puis relancer le drain.
+      command: '{{.kubectl}} scale deployment NOM --replicas=2{{if .pod_ns}} -n {{.pod_ns}}{{end}}'
+      safe: true
+  anti_pattern:
+    description: >-
+      --disable-eviction supprime les pods sans passer par l'éviction, et ignore donc le
+      PodDisruptionBudget ; --force supprime aussi les pods sans contrôleur. Les deux
+      contournent la protection choisie par l'équipe de l'application. Identifie d'abord ce
+      qui bloque (quel PDB, sur quel nœud, combien de répliques), puis donne de la marge à
+      l'application.
+  deepen:
+    explanation: >-
+      Un PDB minAvailable: 1 sur une application à une seule réplique interdit tout drain du
+      nœud qui l'héberge : c'est voulu, l'application n'a aucune redondance. Avec deux
+      répliques sur deux nœuds, le drain évince l'une pendant que l'autre sert le trafic.
+    example: |-
+      kubectl get pdb -A
+      kubectl describe pdb NOM -n NAMESPACE
+    exercise: >-
+      Avec un cluster de test à plusieurs nœuds, crée un namespace d'exercice avec « kubectl
+      create namespace exo-pdb », un Deployment d'une réplique et un PDB minAvailable: 1, puis
+      lance drain --timeout=20s sur son nœud ; passe à deux répliques et recommence. Fais
+      uncordon et supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
+  tests: [drain-pdb-blocked]

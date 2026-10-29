@@ -14,4 +14,7 @@
       kubectl get nodes --show-labels
    2. Corriger ou retirer le nodeSelector dans le manifeste.
 
+Nœuds par cause (0/1 disponibles)
+   ✖ 1 nœud    nodeSelector ou affinité de nœud non satisfaits
+
 ➜ Pour aller plus loin : kubectl telemach deepen

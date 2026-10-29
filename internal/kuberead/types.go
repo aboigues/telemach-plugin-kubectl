@@ -41,6 +41,8 @@ type PodSpec struct {
 	Containers     []Container       `json:"containers"`
 	InitContainers []Container       `json:"initContainers"`
 	NodeSelector   map[string]string `json:"nodeSelector"`
+	Tolerations    []Toleration      `json:"tolerations"` // feature 004 : placement
+	Affinity       *struct{}         `json:"affinity"`    // présence seulement (feature 004)
 	RestartPolicy  string            `json:"restartPolicy"`
 	Volumes        []Volume          `json:"volumes"`
 }

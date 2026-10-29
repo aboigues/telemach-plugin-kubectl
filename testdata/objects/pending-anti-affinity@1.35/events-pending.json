@@ -1,0 +1,40 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T17:04:25Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "anti-84467b5d56-6878w",
+        "namespace": "f004-anti",
+        "resourceVersion": "645",
+        "uid": "0227a448-b41f-4c5e-872c-abfdedb905ea"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-29T17:04:25Z",
+      "message": "0/3 nodes are available: 1 node(s) had untolerated taint(s), 2 node(s) didn't match pod anti-affinity rules. no new claims to deallocate, preemption: 0/3 nodes are available: 1 Preemption is not helpful for scheduling, 2 No preemption victims found for incoming pod.",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T17:04:25Z",
+        "name": "anti-84467b5d56-6878w.18e30ee7c00cfc1f",
+        "namespace": "f004-anti",
+        "resourceVersion": "652",
+        "uid": "144e58a0-7346-4b39-ad02-f67ee57f1029"
+      },
+      "reason": "FailedScheduling",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "",
+      "source": {
+        "component": "default-scheduler"
+      },
+      "type": "Warning"
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

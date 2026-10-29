@@ -26,6 +26,10 @@ const (
 	KindToolConfig   = "tool-config"   // configuration de kubeadm, du kubelet… (pas pour kubectl apply)
 	KindHelmTemplate = "helm-template" // template Helm, pas encore du YAML
 	KindHelmValues   = "helm-values"   // fichier de valeurs ou de description d'un chart Helm
+	// Feature 004.
+	KindInvalidCron   = "invalid-cron"   // spec.schedule d'un CronJob refusé par l'analyseur cron
+	KindPodSecurity   = "pod-security"   // securityContext à compléter après un refus PodSecurity (explain seulement)
+	KindMissingLimits = "missing-limits" // conteneur sans resources.limits (information)
 )
 
 // infoKinds ne sont pas des problèmes : check les signale par ℹ, sans changer son code de
@@ -33,6 +37,7 @@ const (
 // partielle.
 var infoKinds = map[string]bool{
 	KindUnknownCRD: true, KindToolConfig: true, KindHelmTemplate: true, KindHelmValues: true,
+	KindMissingLimits: true,
 }
 
 // Info indique une simple information, qui n'est pas un problème du manifeste.
@@ -53,11 +58,13 @@ type Issue struct {
 	Document     int // 1-based ; 0 si sans objet
 	Line, Column int // position dans le FICHIER (1-based) ; 0 si inconnue
 	Resource     string
+	Source       string // template d'origine d'un rendu Helm (feature 004)
 	FieldPath    string
 	Suggestion   string
 	Detail       string // précision en français
 	RelatedLines []int
 	RelatedPaths []string // autres champs concernés (labels du modèle de pod, par exemple)
+	Insert       []string // lignes à ajouter après la ligne désignée (version corrigée)
 	Excerpt      []Line
 	Fixed        []Line
 	Blocking     bool

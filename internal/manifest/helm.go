@@ -73,7 +73,7 @@ func templatesChart(path string) string {
 }
 
 func isChartDir(dir string) bool {
-	_, err := os.Stat(filepath.Join(dir, "Chart.yaml"))
+	_, err := os.Stat(filepath.Join(dir, "Chart.yaml")) //nolint:gosec // dossier désigné par -f, simple test d'existence en lecture seule
 	return err == nil
 }
 

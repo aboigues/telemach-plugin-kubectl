@@ -1,0 +1,7 @@
+# Attendu du diagnostic (feature 004), rédigé à la main d'après le relevé kind 1.37.
+# Relevé avant l'installation de metrics-server : l'API de métriques est le premier
+# maillon cassé (FR-016), la cible absente vient ensuite.
+kind: hpa
+name: orphelin
+primary: hpa.metrics-unavailable
+links: {metrics-api: broken, target: broken, requests: skipped, conditions: ok}

@@ -1,0 +1,3 @@
+# L'éviction est refusée par le serveur API, qui applique le PodDisruptionBudget.
+entry: drain.pdb-blocked
+origin: cluster

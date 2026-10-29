@@ -1,0 +1,52 @@
+{
+  "apiVersion": "batch/v1",
+  "kind": "CronJob",
+  "metadata": {
+    "creationTimestamp": "2026-10-29T16:34:55Z",
+    "generation": 1,
+    "name": "annuel",
+    "namespace": "f004-cron-annuel",
+    "resourceVersion": "681",
+    "uid": "30eff8e8-5fdd-426a-bac7-391ec3ff0001"
+  },
+  "spec": {
+    "concurrencyPolicy": "Allow",
+    "failedJobsHistoryLimit": 1,
+    "jobTemplate": {
+      "metadata": {
+        "name": "annuel"
+      },
+      "spec": {
+        "template": {
+          "metadata": {},
+          "spec": {
+            "containers": [
+              {
+                "command": [
+                  "sh",
+                  "-c",
+                  "echo bonne année"
+                ],
+                "image": "busybox:1.38",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "annuel",
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "OnFailure",
+            "schedulerName": "default-scheduler",
+            "securityContext": {},
+            "terminationGracePeriodSeconds": 30
+          }
+        }
+      }
+    },
+    "schedule": "0 0 1 1 *",
+    "successfulJobsHistoryLimit": 3,
+    "suspend": false
+  },
+  "status": {}
+}

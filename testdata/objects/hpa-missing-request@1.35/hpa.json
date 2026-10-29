@@ -1,0 +1,60 @@
+{
+  "apiVersion": "autoscaling/v2",
+  "kind": "HorizontalPodAutoscaler",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "••••••"
+    },
+    "creationTimestamp": "2026-10-29T17:14:04Z",
+    "name": "web",
+    "namespace": "f004-hpa-sans-request",
+    "resourceVersion": "2233",
+    "uid": "986996fa-349a-4ee7-bd0a-2f97138a938d"
+  },
+  "spec": {
+    "maxReplicas": 3,
+    "metrics": [
+      {
+        "resource": {
+          "name": "cpu",
+          "target": {
+            "averageUtilization": 50,
+            "type": "Utilization"
+          }
+        },
+        "type": "Resource"
+      }
+    ],
+    "minReplicas": 1,
+    "scaleTargetRef": {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "name": "web"
+    }
+  },
+  "status": {
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-10-29T17:14:21Z",
+        "message": "the HPA controller was able to get the target's current scale",
+        "reason": "SucceededGetScale",
+        "status": "True",
+        "type": "AbleToScale"
+      },
+      {
+        "lastTransitionTime": "2026-10-29T17:14:21Z",
+        "message": "the HPA was unable to compute the replica count: failed to get cpu utilization: missing request for cpu in container web of Pod web-857b99786b-frpbv",
+        "reason": "FailedGetResourceMetric",
+        "status": "False",
+        "type": "ScalingActive"
+      }
+    ],
+    "currentMetrics": [
+      {
+        "type": ""
+      }
+    ],
+    "currentReplicas": 1,
+    "desiredReplicas": 0
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "apiVersion": "v1",
+  "kind": "Service",
+  "metadata": {
+    "creationTimestamp": "2026-10-29T16:50:50Z",
+    "labels": {
+      "app": "base"
+    },
+    "name": "base",
+    "namespace": "f004-sts-sain",
+    "resourceVersion": "1855",
+    "uid": "475aec05-cb9a-4638-b613-4a886d2eb80d"
+  },
+  "spec": {
+    "clusterIP": "None",
+    "clusterIPs": [
+      "None"
+    ],
+    "internalTrafficPolicy": "Cluster",
+    "ipFamilies": [
+      "IPv4"
+    ],
+    "ipFamilyPolicy": "SingleStack",
+    "ports": [
+      {
+        "name": "8080-8080",
+        "port": 8080,
+        "protocol": "TCP",
+        "targetPort": 8080
+      }
+    ],
+    "selector": {
+      "app": "base"
+    },
+    "sessionAffinity": "None",
+    "type": "ClusterIP"
+  },
+  "status": {
+    "loadBalancer": {}
+  }
+}

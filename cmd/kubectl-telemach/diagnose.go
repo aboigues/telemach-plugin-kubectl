@@ -50,7 +50,7 @@ d'un conteneur en échec, avec ta propre commande kubectl et tes droits ; il ne 
 }
 
 // supportedTypes est rappelé quand un type n'est pas pris en charge.
-const supportedTypes = "pod/NOM, service/NOM, deployment/NOM, ingress/NOM ou pvc/NOM"
+const supportedTypes = "pod/NOM, service/NOM, deployment/NOM, ingress/NOM, pvc/NOM, job/NOM, cronjob/NOM, daemonset/NOM, statefulset/NOM ou hpa/NOM"
 
 // targetKinds normalise les noms de types acceptés par diagnose (noms courts et pluriels
 // compris, comme kubectl).
@@ -60,6 +60,13 @@ var targetKinds = map[string]string{
 	"deployment": "deployment", "deploy": "deployment", "deployments": "deployment", "deployment.apps": "deployment",
 	"ingress": "ingress", "ing": "ingress", "ingresses": "ingress", "ingress.networking.k8s.io": "ingress",
 	"pvc": "pvc", "persistentvolumeclaim": "pvc", "persistentvolumeclaims": "pvc",
+	// Feature 004 (contracts/cli.md § diagnose).
+	"job": "job", "jobs": "job", "job.batch": "job",
+	"cronjob": "cronjob", "cj": "cronjob", "cronjobs": "cronjob", "cronjob.batch": "cronjob",
+	"daemonset": "daemonset", "ds": "daemonset", "daemonsets": "daemonset", "daemonset.apps": "daemonset",
+	"statefulset": "statefulset", "sts": "statefulset", "statefulsets": "statefulset", "statefulset.apps": "statefulset",
+	"hpa": "hpa", "horizontalpodautoscaler": "hpa", "horizontalpodautoscalers": "hpa",
+	"horizontalpodautoscaler.autoscaling": "hpa",
 }
 
 // parseTarget découpe l'argument de diagnose : « type/nom », ou un nom sans type (kind vide).
@@ -92,7 +99,7 @@ func (a *app) diagnose(w io.Writer, r *kuberead.Reader, cat *catalog.Catalog, ta
 		kind = resolved
 	}
 	switch kind {
-	case "service", "deployment", "ingress", "pvc":
+	case "service", "deployment", "ingress", "pvc", "job", "cronjob", "daemonset", "statefulset", "hpa":
 		return a.diagnoseObject(w, r, cat, pitfall.Kind(kind), name, opts)
 	}
 	var candidates []workload.Candidate
@@ -233,7 +240,7 @@ func (a *app) showObject(w io.Writer, snap pitfall.ObjectSnapshot, cat *catalog.
 	}
 	if p := snap.Primary(); p != nil {
 		last.Captures = snap.LessonCaptures(*p)
-		if e, ok := cat.ByPitfall(p.ID); ok {
+		if e, ok := pitfall.LessonEntry(cat, *p); ok {
 			last.EntryID = e.ID
 		}
 	} else if f := snap.Failing; f != nil {

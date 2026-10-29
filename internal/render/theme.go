@@ -34,6 +34,7 @@ const (
 	LabelRules     = "Règles Kubernetes"
 	LabelLog       = "📜 Fin du journal"
 	LabelOthers    = "Autres pods en difficulté"
+	LabelPlacement = "Nœuds par cause"
 )
 
 // Theme applique les styles de chaque rôle. Sans couleur, il renvoie le texte tel quel.

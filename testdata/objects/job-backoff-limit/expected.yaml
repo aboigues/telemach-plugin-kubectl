@@ -1,0 +1,6 @@
+# Attendu du diagnostic (feature 004), rédigé à la main d'après le relevé kind 1.37.
+kind: job
+name: calc
+primary: job.backoff-limit
+links: {status: broken, pods: ok}
+failing: Error

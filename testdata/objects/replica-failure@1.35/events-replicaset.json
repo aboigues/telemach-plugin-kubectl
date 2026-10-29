@@ -1,0 +1,381 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T17:04:48Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "name": "api-795d4dc7d4",
+        "namespace": "f004-quota",
+        "resourceVersion": "719",
+        "uid": "9b750198-ea35-4a90-b29c-749eed75019d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-29T17:04:48Z",
+      "message": "Created pod: api-795d4dc7d4-hqrlx",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T17:04:48Z",
+        "name": "api-795d4dc7d4.18e30eed2135c7b2",
+        "namespace": "f004-quota",
+        "resourceVersion": "724",
+        "uid": "a2bee1e2-bac8-46d0-8554-07f749246ba0"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "replicaset-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T17:04:49Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "name": "api-795d4dc7d4",
+        "namespace": "f004-quota",
+        "resourceVersion": "740",
+        "uid": "9b750198-ea35-4a90-b29c-749eed75019d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-29T17:04:49Z",
+      "message": "Created pod: api-795d4dc7d4-hk4rw",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T17:04:49Z",
+        "name": "api-795d4dc7d4.18e30eed72f54345",
+        "namespace": "f004-quota",
+        "resourceVersion": "746",
+        "uid": "98b71506-4d24-4d87-ab0d-a943721eaa67"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "replicaset-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T17:04:49Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "name": "api-795d4dc7d4",
+        "namespace": "f004-quota",
+        "resourceVersion": "740",
+        "uid": "9b750198-ea35-4a90-b29c-749eed75019d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-29T17:04:49Z",
+      "message": "Error creating: pods \"api-795d4dc7d4-dclx8\" is forbidden: exceeded quota: quota-equipe, requested: limits.cpu=500m, used: limits.cpu=1, limited: limits.cpu=1",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T17:04:49Z",
+        "name": "api-795d4dc7d4.18e30eed732556be",
+        "namespace": "f004-quota",
+        "resourceVersion": "749",
+        "uid": "d34b30e5-eaaa-471a-87cf-defa0ea8644d"
+      },
+      "reason": "FailedCreate",
+      "reportingComponent": "replicaset-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T17:04:49Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "name": "api-795d4dc7d4",
+        "namespace": "f004-quota",
+        "resourceVersion": "740",
+        "uid": "9b750198-ea35-4a90-b29c-749eed75019d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-29T17:04:49Z",
+      "message": "Error creating: pods \"api-795d4dc7d4-mv5j7\" is forbidden: exceeded quota: quota-equipe, requested: limits.cpu=500m, used: limits.cpu=1, limited: limits.cpu=1",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T17:04:49Z",
+        "name": "api-795d4dc7d4.18e30eed73cc387d",
+        "namespace": "f004-quota",
+        "resourceVersion": "752",
+        "uid": "c5391f14-1525-43b6-b599-924d07d524e7"
+      },
+      "reason": "FailedCreate",
+      "reportingComponent": "replicaset-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T17:04:49Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "name": "api-795d4dc7d4",
+        "namespace": "f004-quota",
+        "resourceVersion": "754",
+        "uid": "9b750198-ea35-4a90-b29c-749eed75019d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-29T17:04:49Z",
+      "message": "Error creating: pods \"api-795d4dc7d4-9bn4t\" is forbidden: exceeded quota: quota-equipe, requested: limits.cpu=500m, used: limits.cpu=1, limited: limits.cpu=1",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T17:04:49Z",
+        "name": "api-795d4dc7d4.18e30eed74f683fd",
+        "namespace": "f004-quota",
+        "resourceVersion": "756",
+        "uid": "ce9cb0c5-2bb1-4bf0-b3be-c9cea00d834d"
+      },
+      "reason": "FailedCreate",
+      "reportingComponent": "replicaset-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T17:04:49Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "name": "api-795d4dc7d4",
+        "namespace": "f004-quota",
+        "resourceVersion": "754",
+        "uid": "9b750198-ea35-4a90-b29c-749eed75019d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-29T17:04:49Z",
+      "message": "Error creating: pods \"api-795d4dc7d4-qm95m\" is forbidden: exceeded quota: quota-equipe, requested: limits.cpu=500m, used: limits.cpu=1, limited: limits.cpu=1",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T17:04:49Z",
+        "name": "api-795d4dc7d4.18e30eed75a338dc",
+        "namespace": "f004-quota",
+        "resourceVersion": "757",
+        "uid": "5fe5cc07-74a0-4caa-9275-12d10ef27535"
+      },
+      "reason": "FailedCreate",
+      "reportingComponent": "replicaset-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T17:04:49Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "name": "api-795d4dc7d4",
+        "namespace": "f004-quota",
+        "resourceVersion": "754",
+        "uid": "9b750198-ea35-4a90-b29c-749eed75019d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-29T17:04:49Z",
+      "message": "Error creating: pods \"api-795d4dc7d4-rrhsv\" is forbidden: exceeded quota: quota-equipe, requested: limits.cpu=500m, used: limits.cpu=1, limited: limits.cpu=1",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T17:04:49Z",
+        "name": "api-795d4dc7d4.18e30eed78478ffd",
+        "namespace": "f004-quota",
+        "resourceVersion": "758",
+        "uid": "625f79ee-35be-4718-b55f-ae66c6388d93"
+      },
+      "reason": "FailedCreate",
+      "reportingComponent": "replicaset-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T17:04:49Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "name": "api-795d4dc7d4",
+        "namespace": "f004-quota",
+        "resourceVersion": "754",
+        "uid": "9b750198-ea35-4a90-b29c-749eed75019d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-29T17:04:49Z",
+      "message": "Error creating: pods \"api-795d4dc7d4-6xmc9\" is forbidden: exceeded quota: quota-equipe, requested: limits.cpu=500m, used: limits.cpu=1, limited: limits.cpu=1",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T17:04:49Z",
+        "name": "api-795d4dc7d4.18e30eed7d4da5ca",
+        "namespace": "f004-quota",
+        "resourceVersion": "759",
+        "uid": "3d5b7e9f-3fad-413b-b751-9512ecb34e60"
+      },
+      "reason": "FailedCreate",
+      "reportingComponent": "replicaset-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T17:04:49Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "name": "api-795d4dc7d4",
+        "namespace": "f004-quota",
+        "resourceVersion": "754",
+        "uid": "9b750198-ea35-4a90-b29c-749eed75019d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-29T17:04:49Z",
+      "message": "Error creating: pods \"api-795d4dc7d4-jmpd6\" is forbidden: exceeded quota: quota-equipe, requested: limits.cpu=500m, used: limits.cpu=1, limited: limits.cpu=1",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T17:04:49Z",
+        "name": "api-795d4dc7d4.18e30eed872151d2",
+        "namespace": "f004-quota",
+        "resourceVersion": "760",
+        "uid": "d2ec9649-c598-4849-9458-a139a385d80a"
+      },
+      "reason": "FailedCreate",
+      "reportingComponent": "replicaset-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T17:04:50Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "name": "api-795d4dc7d4",
+        "namespace": "f004-quota",
+        "resourceVersion": "754",
+        "uid": "9b750198-ea35-4a90-b29c-749eed75019d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-29T17:04:50Z",
+      "message": "Error creating: pods \"api-795d4dc7d4-7xdwk\" is forbidden: exceeded quota: quota-equipe, requested: limits.cpu=500m, used: limits.cpu=1, limited: limits.cpu=1",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T17:04:50Z",
+        "name": "api-795d4dc7d4.18e30eed9a74eadb",
+        "namespace": "f004-quota",
+        "resourceVersion": "765",
+        "uid": "bec1f164-df49-4607-a217-ad2fabc2dc77"
+      },
+      "reason": "FailedCreate",
+      "reportingComponent": "replicaset-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T17:04:50Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "name": "api-795d4dc7d4",
+        "namespace": "f004-quota",
+        "resourceVersion": "754",
+        "uid": "9b750198-ea35-4a90-b29c-749eed75019d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-29T17:04:50Z",
+      "message": "Error creating: pods \"api-795d4dc7d4-h7qvw\" is forbidden: exceeded quota: quota-equipe, requested: limits.cpu=500m, used: limits.cpu=1, limited: limits.cpu=1",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T17:04:50Z",
+        "name": "api-795d4dc7d4.18e30eeda2081f56",
+        "namespace": "f004-quota",
+        "resourceVersion": "767",
+        "uid": "7cbab531-181e-44f8-845d-78ef5d0ef6da"
+      },
+      "reason": "FailedCreate",
+      "reportingComponent": "replicaset-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 2,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T17:04:50Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "name": "api-795d4dc7d4",
+        "namespace": "f004-quota",
+        "resourceVersion": "768",
+        "uid": "9b750198-ea35-4a90-b29c-749eed75019d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-29T17:04:50Z",
+      "message": "(combined from similar events): Error creating: pods \"api-795d4dc7d4-454vd\" is forbidden: exceeded quota: quota-equipe, requested: limits.cpu=500m, used: limits.cpu=1, limited: limits.cpu=1",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T17:04:50Z",
+        "name": "api-795d4dc7d4.18e30eeda2a365bc",
+        "namespace": "f004-quota",
+        "resourceVersion": "771",
+        "uid": "9d64e619-90eb-43e0-a338-c0b8f68ce306"
+      },
+      "reason": "FailedCreate",
+      "reportingComponent": "",
+      "reportingInstance": "",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "type": "Warning"
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

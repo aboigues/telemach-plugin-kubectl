@@ -20,6 +20,12 @@ const (
 	KindDeployment Kind = "deployment"
 	KindIngress    Kind = "ingress"
 	KindPVC        Kind = "pvc"
+	// Feature 004.
+	KindJob         Kind = "job"
+	KindCronJob     Kind = "cronjob"
+	KindDaemonSet   Kind = "daemonset"
+	KindStatefulSet Kind = "statefulset"
+	KindHPA         Kind = "hpa"
 )
 
 // Step est un maillon vérifié (data-model.md § Link).
@@ -41,6 +47,21 @@ const (
 	StepStorageClass Step = "storageclass"
 	StepBinding      Step = "binding"
 	StepConsumer     Step = "consumer"
+	// Feature 004 (data-model.md § Step).
+	StepAdmission  Step = "admission"
+	StepStatus     Step = "status"
+	StepPods       Step = "pods"
+	StepSchedule   Step = "schedule"
+	StepHistory    Step = "history"
+	StepLastJob    Step = "last-job"
+	StepNodes      Step = "nodes"
+	StepService    Step = "service"
+	StepOrdinal    Step = "ordinal"
+	StepVolumes    Step = "volumes"
+	StepMetricsAPI Step = "metrics-api"
+	StepTarget     Step = "target"
+	StepRequests   Step = "requests"
+	StepConditions Step = "conditions"
 )
 
 // LinkState est l'état d'un maillon.
@@ -84,6 +105,23 @@ type Pitfall struct {
 	Severity  Severity
 	Transient bool              // état transitoire : jamais signalé par la vérification différée
 	Captures  map[string]string // valeurs insérées dans la leçon, masquées
+	// Lesson désigne une autre entrée du catalogue qui explique mieux ce piège (feature 004 :
+	// refus d'admission vu depuis un Deployment, expliqué par la leçon du quota).
+	Lesson string `json:",omitempty"`
+}
+
+// LessonEntry renvoie l'entrée qui porte la leçon du piège : Lesson si elle existe, sinon
+// l'entrée du piège.
+func LessonEntry(cat *catalog.Catalog, p Pitfall) (*catalog.Entry, bool) {
+	if cat == nil {
+		return nil, false
+	}
+	if p.Lesson != "" {
+		if e, ok := cat.Get(p.Lesson); ok {
+			return e, true
+		}
+	}
+	return cat.ByPitfall(p.ID)
 }
 
 // RolloutState est l'état d'un rollout (data-model.md § RolloutState).
@@ -295,6 +333,16 @@ type Reader interface {
 	ListPVCs() (kuberead.PVCList, error)
 	ListStorageClasses() (kuberead.StorageClassList, error)
 	ConfigMapDates(name string) (kuberead.ConfigMapDates, error)
+	// Feature 004 (research.md F1).
+	GetJob(name string) (kuberead.Job, error)
+	ListJobs() (kuberead.JobList, error)
+	GetCronJob(name string) (kuberead.CronJob, error)
+	GetDaemonSet(name string) (kuberead.DaemonSet, error)
+	GetStatefulSet(name string) (kuberead.StatefulSet, error)
+	GetHPA(name string) (kuberead.HPA, error)
+	ListNodes() (kuberead.NodeList, error)
+	GetMetricsAPIService() (kuberead.APIService, error)
+	ReplicaSetEvents(rs string) (kuberead.EventList, error)
 }
 
 var _ Reader = (*kuberead.Reader)(nil)

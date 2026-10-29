@@ -1,0 +1,40 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T16:42:42Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "place",
+        "namespace": "f004-placement",
+        "resourceVersion": "561",
+        "uid": "28082341-def9-4f3d-940b-8162e3ad791b"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-29T16:42:42Z",
+      "message": "0/3 nodes are available: 1 node(s) were unschedulable, 2 node(s) had untolerated taint(s). no new claims to deallocate, preemption: 0/3 nodes are available: 3 Preemption is not helpful for scheduling.",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T16:42:42Z",
+        "name": "place.18e30db87e4a2a4f",
+        "namespace": "f004-placement",
+        "resourceVersion": "562",
+        "uid": "d1212b58-1653-44d0-bb74-9d284f9dec1d"
+      },
+      "reason": "FailedScheduling",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "",
+      "source": {
+        "component": "default-scheduler"
+      },
+      "type": "Warning"
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

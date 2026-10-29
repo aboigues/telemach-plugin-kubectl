@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -129,4 +131,61 @@ func TestCheckThenLast(t *testing.T) {
 	if code := run(a, []string{"last", "--color=never"}); code != 0 || !strings.Contains(errb.String(), "Always") {
 		t.Errorf("last après check : code %d\n%s", code, errb)
 	}
+}
+
+// Feature 004, US5 (T053) : check -f - lit l'entrée standard.
+func TestCheckStdin(t *testing.T) {
+	rendu, err := os.ReadFile(corpus + "helm-rendered/rendu.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Run("rendu Helm", func(t *testing.T) {
+		a, _, errb := newTestApp(t, map[string]string{"TELEMACH_KUBECTL_VERSION": "v1.37.2"})
+		a.stdin = bytes.NewReader(rendu)
+		code := run(a, []string{"check", "--color=never", "-f", "-"})
+		got := errb.String()
+		if code != 1 || !strings.Contains(got, "<stdin>:36:26 (document 2, Deployment/demo-api, template telemarche/templates/api.yaml)") {
+			t.Errorf("code %d (attendu 1), position et template attendus :\n%s", code, got)
+		}
+		// last et deepen ne relisent jamais l'entrée standard : aucun chemin absolu enregistré.
+		if d, ok := a.store.Load(); !ok || len(d.Files) != 1 || d.Files[0] != "<stdin>" {
+			t.Errorf("last.json : fichiers %v, attendu [<stdin>]", d.Files)
+		}
+		errb.Reset()
+		run(a, []string{"last", "--color=never"})
+		if got := errb.String(); strings.Contains(got, "introuvable") || !strings.Contains(got, "n'est pas conservé") {
+			t.Errorf("last ne doit pas relire <stdin> :\n%s", got)
+		}
+	})
+	t.Run("deux fois", func(t *testing.T) {
+		a, _, errb := newTestApp(t, nil)
+		a.stdin = bytes.NewReader(rendu)
+		if code := run(a, []string{"check", "--color=never", "-f", "-", "-f", "-"}); code != 2 || !strings.Contains(errb.String(), "une seule fois") {
+			t.Errorf("code %d (attendu 2) :\n%s", code, errb)
+		}
+	})
+	t.Run("terminal", func(t *testing.T) {
+		a, _, errb := newTestApp(t, nil)
+		a.stdin = failingReader{t}
+		a.stdinTerminal = func() bool { return true }
+		if code := run(a, []string{"check", "--color=never", "-f", "-"}); code != 2 || !strings.Contains(errb.String(), "helm template") {
+			t.Errorf("code %d (attendu 2), recette attendue :\n%s", code, errb)
+		}
+	})
+	t.Run("vide", func(t *testing.T) {
+		a, _, errb := newTestApp(t, nil)
+		a.stdin = bytes.NewReader(nil)
+		if code := run(a, []string{"check", "--color=never", "-f", "-"}); code != 2 || !strings.Contains(errb.String(), "entrée standard est vide") {
+			t.Errorf("code %d (attendu 2) :\n%s", code, errb)
+		}
+	})
+}
+
+// failingReader fait échouer le test s'il est lu : sur un terminal, check ne doit pas attendre
+// une saisie.
+type failingReader struct{ t *testing.T }
+
+func (f failingReader) Read([]byte) (int, error) {
+	f.t.Error("l'entrée standard ne doit pas être lue quand elle est un terminal")
+	return 0, io.EOF
 }

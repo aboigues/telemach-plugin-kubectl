@@ -1,0 +1,5 @@
+# Attendu du diagnostic (feature 004), rédigé à la main d'après le relevé kind 1.37.
+kind: hpa
+name: web
+primary: hpa.missing-request
+links: {metrics-api: ok, target: ok, requests: broken, conditions: ok}

@@ -1,0 +1,7 @@
+# Attendu du diagnostic (feature 004), rédigé à la main d'après le relevé kind 1.37.
+# Le Deployment est « scaled » mais le ReplicaSet se voit refuser ses pods par le quota.
+kind: deployment
+name: api
+primary: deployment.replica-failure
+phase: progressing
+links: {rollout: ok, admission: broken, image: ok, config: ok}

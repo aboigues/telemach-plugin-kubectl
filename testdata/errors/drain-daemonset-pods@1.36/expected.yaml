@@ -1,0 +1,4 @@
+# kubectl liste toutes les causes : stockage local ET DaemonSet ; la leçon DaemonSet est
+# donnée en premier (cas le plus fréquent au premier drain).
+entry: drain.daemonset-pods
+origin: kubectl

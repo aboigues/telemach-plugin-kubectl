@@ -50,3 +50,257 @@
       Service appelé et la politique d'échec. Supprime le namespace ensuite.
   doc_url: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/
   tests: [apply-webhook-unreachable]
+
+# Feature 004 (US1, research.md F3) : refus de l'étape d'admission par les règles du
+# namespace. Motifs écrits d'après les relevés kind (testdata/errors/run-quota-*,
+# apply-limitrange, apply-pod-security*). Le message suit « is forbidden: » sans « User » :
+# aucun recouvrement avec auth.forbidden.
+- id: admission.quota-exceeded
+  category: admission
+  patterns:
+    - 'exceeded quota: (?P<quota>[^,\s]+), requested: (?P<requested>(?P<resource>[a-z0-9./-]+)=\S+), used: (?P<used>\S+), limited: (?P<limited>\S+)'
+  concept:
+    name: ResourceQuota
+    definition: >-
+      Un ResourceQuota plafonne ce que l'ensemble des objets d'un namespace peut consommer
+      (CPU, mémoire, nombre de pods…). Le serveur API refuse tout nouvel objet qui ferait
+      dépasser le plafond, dès sa création.
+  summary: Le quota « {{.quota}} » du namespace est atteint pour {{.resource}}.
+  cause: >-
+    Le pod demande {{.requested}}, alors que le namespace utilise déjà {{.used}} sur un plafond
+    de {{.limited}}. Le serveur API refuse sa création à l'étape d'admission ; aucun pod n'est
+    créé.
+  fixes:
+    - description: Lire le quota du namespace (colonnes Used et Hard).
+      command: '{{.kubectl}} describe resourcequota{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Voir ce que demandent les pods déjà présents, pour en réduire ou en supprimer un.
+      command: '{{.kubectl}} get pods{{if .scope}} {{.scope}}{{end}} -o custom-columns=NOM:.metadata.name,LIMITS:.spec.containers[*].resources.limits'
+      safe: true
+    - description: Réduire les ressources demandées par le manifeste, si elles sont surdimensionnées, puis l'appliquer de nouveau.
+      safe: true
+  anti_pattern:
+    description: >-
+      Gonfler le quota pour faire passer le pod retire au namespace la protection qu'il
+      apporte : le quota existe pour que ton équipe ne prive pas les autres de ressources.
+      Demande d'abord si la consommation est justifiée.
+  deepen:
+    explanation: >-
+      Après l'authentification et l'autorisation, chaque création passe par les contrôleurs
+      d'admission. Celui des quotas additionne les demandes des objets du namespace et refuse
+      celui qui ferait dépasser un plafond. Un Deployment n'est pas refusé, lui : ce sont ses
+      pods, créés par le ReplicaSet, qui le sont ; « kubectl telemach diagnose deployment/NOM »
+      le montre.
+    example: |-
+      kubectl describe resourcequota -n equipe-a
+      kubectl get resourcequota -n equipe-a -o yaml
+    exercise: >-
+      Avec un cluster de test, crée un namespace d'exercice avec « kubectl create namespace
+      exo-quota », ajoute-lui un quota avec « kubectl create quota mini --hard=pods=1 -n
+      exo-quota », puis lance deux pods : observe le refus du second. Supprime le namespace
+      ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/policy/resource-quotas/
+  tests: [run-quota-exceeded]
+
+- id: admission.quota-must-specify
+  category: admission
+  patterns:
+    - 'failed quota: (?P<quota>[^:\s]+): must specify (?P<missing>(?P<resource>[a-z0-9./-]+)[^\n]*)'
+  concept:
+    name: ResourceQuota
+    definition: >-
+      Un ResourceQuota plafonne ce que consomment les objets d'un namespace. Quand il porte sur
+      requests ou limits, chaque conteneur doit déclarer cette valeur : sans elle, le serveur
+      API ne peut pas faire le compte.
+  summary: Le quota « {{.quota}} » exige que chaque conteneur déclare {{.resource}}.
+  cause: >-
+    Le namespace a un quota sur {{.resource}} : tout conteneur doit alors déclarer cette valeur
+    dans resources. Le serveur API précise ce qui manque, conteneur par conteneur : « must
+    specify {{.missing}} ».
+  fixes:
+    - description: Lire les ressources plafonnées par le quota.
+      command: '{{.kubectl}} describe resourcequota{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Déclarer requests et limits dans chaque conteneur du manifeste, puis l'appliquer de nouveau.
+      manifest: |-
+        resources:
+          requests: {cpu: 50m, memory: 64Mi}
+          limits: {cpu: 200m, memory: 128Mi}
+      safe: true
+    - description: Ou demander à l'administrateur un LimitRange qui donne des valeurs par défaut aux conteneurs de ce namespace.
+      safe: true
+  deepen:
+    explanation: >-
+      Un quota sur limits.cpu ne peut pas compter un conteneur qui n'a pas de limite : le
+      serveur API refuse donc tout conteneur sans cette valeur. Un LimitRange avec des valeurs
+      « default » et « defaultRequest » les ajoute automatiquement aux conteneurs qui n'en
+      déclarent pas. Déclarer resources est de toute façon une bonne pratique : le scheduler
+      place les pods d'après leurs requests.
+    example: |-
+      kubectl describe resourcequota -n equipe-a
+      kubectl describe limitrange -n equipe-a
+    exercise: >-
+      Avec un cluster de test, crée un namespace d'exercice avec « kubectl create namespace
+      exo-limites », ajoute « kubectl create quota cpu --hard=limits.cpu=1 -n exo-limites »,
+      lance un pod sans resources puis le même avec limits : compare. Supprime le namespace
+      ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/policy/resource-quotas/#requests-vs-limits
+  tests: [run-quota-must-specify]
+
+- id: admission.limitrange
+  category: admission
+  patterns:
+    - '(?P<bound>maximum|minimum) (?P<resource>\S+) usage per (?P<scope_kind>Container|Pod) is (?P<value>\S+), but (?P<actual_kind>limit|request) is (?P<actual>\S+)'
+  concept:
+    name: LimitRange
+    definition: >-
+      Un LimitRange fixe, pour chaque conteneur ou pod d'un namespace, des valeurs minimales et
+      maximales de ressources, et des valeurs par défaut. Le serveur API refuse un objet qui
+      sort de ces bornes.
+  summary: 'Le LimitRange du namespace refuse ce {{if eq .scope_kind "Pod"}}pod{{else}}conteneur{{end}} : {{.resource}} hors des bornes.'
+  cause: >-
+    Le {{.bound}} autorisé pour {{.resource}} est {{.value}} par {{.scope_kind}}, mais la
+    valeur demandée ({{.actual_kind}}) est {{.actual}}.
+  fixes:
+    - description: Lire les bornes du namespace (Min, Max, Default).
+      command: '{{.kubectl}} describe limitrange{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Ramener la valeur du manifeste dans les bornes, puis l'appliquer de nouveau.
+      safe: true
+  deepen:
+    explanation: >-
+      Le ResourceQuota plafonne le total d'un namespace ; le LimitRange borne chaque objet pris
+      isolément. Les deux sont vérifiés à l'admission : un pod peut respecter le quota et être
+      refusé par le LimitRange, ou l'inverse.
+    example: |-
+      kubectl describe limitrange -n equipe-a
+      kubectl get limitrange -n equipe-a -o yaml
+    exercise: >-
+      Avec un cluster de test, crée un namespace d'exercice avec « kubectl create namespace
+      exo-limitrange », applique un LimitRange qui fixe max.cpu à 500m par conteneur, puis
+      lance un pod qui demande limits.cpu=1. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/policy/limit-range/
+  tests: [apply-limitrange]
+
+- id: admission.pod-security
+  category: admission
+  patterns:
+    - 'violates PodSecurity "(?P<level>[a-z]+):(?P<version>[^"]+)": (?P<violations>[^\n]+)'
+  concept:
+    name: Pod Security Admission
+    definition: >-
+      Le contrôleur d'admission PodSecurity applique à chaque namespace un niveau de sécurité
+      (privileged, baseline ou restricted), choisi par le label
+      pod-security.kubernetes.io/enforce du namespace. Un pod qui ne le respecte pas est refusé.
+  summary: Le pod ne respecte pas le niveau PodSecurity « {{.level}} » imposé au namespace.
+  cause: >-
+    Le namespace impose le niveau {{.level}} ; le serveur API liste ce qui manque au pod, avec
+    le champ à ajouter pour chaque conteneur : « {{.violations}} ».
+  fixes:
+    - description: Voir le niveau imposé, dans les labels du namespace.
+      command: '{{.kubectl}} get namespace {{if .namespace}}{{.namespace}}{{else}}NAMESPACE{{end}} --show-labels'
+      safe: true
+    - description: Ajouter au manifeste le securityContext du niveau restricted (voir la version corrigée ci-dessous quand le fichier est local).
+      manifest: |-
+        securityContext:
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+          seccompProfile:
+            type: RuntimeDefault
+      safe: true
+  anti_pattern:
+    description: >-
+      Retirer le label pod-security.kubernetes.io/enforce du namespace, ou le passer à
+      privileged, fait accepter le pod, mais supprime la protection pour tous les pods du
+      namespace : un conteneur compromis pourrait alors prendre la main sur le nœud.
+  deepen:
+    explanation: >-
+      restricted est le niveau le plus strict : pas de root, pas d'élévation de privilèges,
+      toutes les capabilities retirées, profil seccomp par défaut. Un namespace peut aussi
+      utiliser les modes warn et audit, qui laissent passer le pod en affichant un
+      avertissement : pratique pour préparer un durcissement.
+    example: |-
+      kubectl get namespace demo --show-labels
+      kubectl label --dry-run=server --overwrite namespace demo pod-security.kubernetes.io/enforce=restricted
+    exercise: >-
+      Avec un cluster de test, crée un namespace d'exercice avec « kubectl create namespace
+      exo-pss », ajoute-lui le label pod-security.kubernetes.io/enforce=restricted, puis lance
+      un pod nginx sans securityContext et lis le refus. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/security/pod-security-admission/
+  tests: [apply-pod-security]
+
+- id: admission.pod-security-warning
+  category: admission
+  patterns:
+    - 'would violate PodSecurity "(?P<level>[a-z]+):(?P<version>[^"]+)": (?P<violations>[^\n]+)'
+  concept:
+    name: Pod Security Admission
+    definition: >-
+      Le contrôleur d'admission PodSecurity peut, dans un namespace, seulement avertir
+      (label pod-security.kubernetes.io/warn) : le pod est créé, mais il ne respecte pas le
+      niveau indiqué et serait refusé si ce niveau devenait obligatoire.
+  summary: 'Créé, mais non conforme au niveau PodSecurity « {{.level}} » : il serait refusé si ce niveau devenait obligatoire.'
+  cause: >-
+    Le namespace avertit au niveau {{.level}} ; le serveur API liste ce qui manque au pod :
+    « {{.violations}} ».
+  fixes:
+    - description: Ajouter au manifeste le securityContext du niveau restricted, puis l'appliquer de nouveau.
+      manifest: |-
+        securityContext:
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+          seccompProfile:
+            type: RuntimeDefault
+      safe: true
+  deepen:
+    explanation: >-
+      Les modes warn et audit servent à préparer un durcissement : on les active d'abord, on
+      corrige les pods qui déclenchent l'avertissement, puis on passe le même niveau en
+      enforce sans rien casser.
+    example: |-
+      kubectl get namespace demo --show-labels
+    exercise: >-
+      Avec un cluster de test, crée un namespace d'exercice avec « kubectl create namespace
+      exo-pss-warn », ajoute le label pod-security.kubernetes.io/warn=restricted, lance un pod
+      sans securityContext et lis l'avertissement. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/security/pod-security-admission/#pod-security-admission-labels-for-namespaces
+  tests: [apply-pod-security-warn]
+
+# Problème localisé par explain après un refus PodSecurity (feature 004, FR-003) : version
+# corrigée du securityContext de chaque conteneur cité par le serveur.
+- id: admission.pod-security-fix
+  category: admission
+  fallback: manifest-issue
+  issue_kinds: [pod-security]
+  concept:
+    name: securityContext
+    definition: >-
+      Le securityContext d'un conteneur règle ses droits sur le nœud : utilisateur, élévation
+      de privilèges, capabilities Linux, profil seccomp. Le niveau PodSecurity restricted en
+      exige les réglages les plus prudents.
+  summary: Le securityContext du {{.detail}} est à compléter pour le niveau PodSecurity du namespace.
+  cause: >-
+    Le serveur API a refusé ce conteneur et a nommé les champs à ajouter ; seuls ceux qui
+    manquent dans ce fichier sont proposés.
+  fixes:
+    - description: Ajouter les lignes de la version corrigée ci-dessous, puis appliquer de nouveau le manifeste.
+      safe: true
+  deepen:
+    explanation: >-
+      Retirer toutes les capabilities (drop ALL) et activer le profil seccomp RuntimeDefault
+      réduit ce qu'un conteneur compromis peut faire sur le nœud. Une application qui a
+      réellement besoin d'une capability la rajoute explicitement (add), ce qui la rend
+      visible à la relecture.
+    example: |-
+      kubectl explain pod.spec.containers.securityContext
+      kubectl explain pod.spec.securityContext.seccompProfile
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-securitycontext »,
+      étiquette-le pod-security.kubernetes.io/enforce=restricted, puis complète un manifeste de
+      pod jusqu'à ce qu'il soit accepté. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  tests: [pod-security]

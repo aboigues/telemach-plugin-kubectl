@@ -181,6 +181,9 @@ func applies(e *catalog.Entry, in Input) bool {
 	if len(e.ExitCodes) > 0 && !slices.Contains(e.ExitCodes, in.ExitCode) {
 		return false
 	}
+	if !e.MatchesFlags(in.Command.Flags) {
+		return false
+	}
 	return e.AppliesTo(in.Command.Verb()) || e.AppliesTo(in.Command.Sub())
 }
 

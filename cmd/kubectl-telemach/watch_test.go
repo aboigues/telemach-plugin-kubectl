@@ -29,12 +29,22 @@ case "$1 $2" in
 "get pod") serve "pod-$3.json" ;;
 "get ingress") serve ingress.json ;;
 "get ingressclasses") serve ingressclasses.json ;;
-"get pvc") serve pvc.json ;;
+"get pvc")
+  if [ "$3" = "-o" ]; then serve pvcs.json; else serve pvc.json; fi ;;
 "get storageclasses") serve storageclasses.json ;;
 "get deployment") serve deployment.json ;;
 "get replicasets") serve replicasets.json ;;
 "get configmap") serve configmap-dates.txt ;;
-"get events") echo '{"items":[]}' ;;
+"get events")
+  case "$*" in *kind=ReplicaSet*) if [ -f "$FAKE_CASE/events-replicaset.json" ]; then cat "$FAKE_CASE/events-replicaset.json"; else echo '{"items":[]}'; fi ;; *) echo '{"items":[]}' ;; esac ;;
+"get job") serve job.json ;;
+"get jobs") serve jobs.json ;;
+"get cronjob") serve cronjob.json ;;
+"get daemonset") serve daemonset.json ;;
+"get statefulset") serve statefulset.json ;;
+"get hpa") serve hpa.json ;;
+"get nodes") serve nodes.json ;;
+"get apiservice") serve apiservice.json ;;
 "logs "*) ;;
 *) echo "appel inattendu : $*" >&2; exit 99 ;;
 esac

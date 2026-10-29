@@ -1,0 +1,5 @@
+drain
+telemach-cluster-worker
+--ignore-daemonsets
+--delete-emptydir-data
+--timeout=20s

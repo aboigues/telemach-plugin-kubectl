@@ -1,0 +1,11 @@
+Warning: ignoring DaemonSet-managed Pods: kube-system/kindnet-tj8tw, kube-system/kube-proxy-8wbxr
+error when evicting pods/"web-6d9f97ddcf-9wwrg" -n "drain-pdb-blocked" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"web-6d9f97ddcf-9wwrg" -n "drain-pdb-blocked" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"web-6d9f97ddcf-9wwrg" -n "drain-pdb-blocked" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"web-6d9f97ddcf-9wwrg" -n "drain-pdb-blocked" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+There are pending pods in node "telemach-cluster-worker" when an error occurred: error when evicting pods/"web-6d9f97ddcf-9wwrg" -n "drain-pdb-blocked": global timeout reached: 20s
+pod/web-6d9f97ddcf-9wwrg
+error: unable to drain node "telemach-cluster-worker" due to error: error when evicting pods/"web-6d9f97ddcf-9wwrg" -n "drain-pdb-blocked": global timeout reached: 20s, continuing command...
+There are pending nodes to be drained:
+ telemach-cluster-worker
+error when evicting pods/"web-6d9f97ddcf-9wwrg" -n "drain-pdb-blocked": global timeout reached: 20s

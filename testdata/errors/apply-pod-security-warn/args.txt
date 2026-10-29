@@ -1,0 +1,5 @@
+apply
+-f
+testdata/objects/scenarios/pss-violation.yaml
+-n
+apply-pod-security-warn

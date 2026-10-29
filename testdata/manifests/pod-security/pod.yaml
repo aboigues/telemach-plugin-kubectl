@@ -1,0 +1,18 @@
+# Pod non conforme au niveau restricted (feature 004, FR-003) : relevé de son refus dans
+# stderr.txt (testdata/errors/apply-pod-security) ; version corrigée produite par explain.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+  containers:
+  - name: web
+    image: nginxinc/nginx-unprivileged:1.30-alpine
+    securityContext:
+      allowPrivilegeEscalation: false
+    resources:
+      requests: {cpu: 10m, memory: 16Mi}
+      limits: {cpu: 100m, memory: 64Mi}

@@ -1,0 +1,39 @@
+{
+  "apiVersion": "apiregistration.k8s.io/v1",
+  "kind": "APIService",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "••••••"
+    },
+    "creationTimestamp": "2026-10-29T16:52:01Z",
+    "labels": {
+      "k8s-app": "metrics-server"
+    },
+    "name": "v1beta1.metrics.k8s.io",
+    "resourceVersion": "2215",
+    "uid": "d2b596d1-a6f7-4e90-b6fd-dab35c2f88a4"
+  },
+  "spec": {
+    "group": "metrics.k8s.io",
+    "groupPriorityMinimum": 100,
+    "insecureSkipTLSVerify": true,
+    "service": {
+      "name": "metrics-server",
+      "namespace": "kube-system",
+      "port": 443
+    },
+    "version": "v1beta1",
+    "versionPriority": 100
+  },
+  "status": {
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-10-29T16:52:33Z",
+        "message": "all checks passed",
+        "reason": "Passed",
+        "status": "True",
+        "type": "Available"
+      }
+    ]
+  }
+}

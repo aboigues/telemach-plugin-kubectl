@@ -152,6 +152,23 @@ Les règles utilisées sont celles de la version mineure de ton client kubectl (
 Sans `-f`, aucun fichier n'est lu : TELEMACH t'explique le rôle de l'option (Kubernetes n'a pas
 de fichier par défaut). `-R` parcourt les sous-dossiers.
 
+Certains fichiers valides ne sont pas des objets de l'API : une ressource personnalisée (CRD),
+dont seule la structure commune est vérifiée, un fichier de configuration de kubeadm, un
+template ou un fichier de valeurs Helm. `check` les signale par une information (ℹ), qui ne
+change pas son code de sortie.
+
+**Vérifier un rendu avant de l'appliquer.** Avec `-f -`, `check` lit le manifeste sur l'entrée
+standard, comme `kubectl apply -f -` : c'est la façon de vérifier ce que produisent Helm,
+Kustomize ou un générateur kubectl. Les positions sont alors désignées par `<stdin>`, et pour
+un rendu Helm chaque problème cite le template d'origine (`# Source:`).
+
+```bash
+helm template demo ./mon-chart | kubectl telemach check -f -
+kubectl kustomize overlays/dev | kubectl telemach check -f -
+kubectl create deployment web --image=nginxinc/nginx-unprivileged:1.30-alpine \
+  --dry-run=client -o yaml | kubectl telemach check -f -
+```
+
 ### Comprendre un pod qui ne démarre pas
 
 Un `kubectl apply` peut réussir alors que le pod ne démarre jamais : l'erreur n'est alors que
@@ -481,7 +498,7 @@ la fonction `kubectl` de l'ancienne version. `kubectl telemach last` te le signa
 
 | Commande | Rôle |
 |----------|------|
-| `kubectl telemach check -f <fichier\|dossier> [-f …] [-R]` | Vérifie des manifestes **sans contacter le cluster** (code 0 : aucun problème, 1 : problème trouvé, 2 : usage invalide, dont l'absence de `-f`, ou fichier introuvable) |
+| `kubectl telemach check -f <fichier\|dossier\|-> [-f …] [-R]` | Vérifie des manifestes **sans contacter le cluster** ; `-f -` lit l'entrée standard (code 0 : aucun problème, informations ℹ comprises, 1 : problème trouvé, 2 : usage invalide, dont l'absence de `-f`, fichier introuvable ou entrée standard vide) |
 | `kubectl telemach diagnose [pod/<nom> \| service/<nom> \| deployment/<nom> \| ingress/<nom> \| pvc/<nom> \| <nom>] [-n <ns>] [--context <ctx>] [--kubeconfig <chemin>] [--as <identité>]` | Diagnostique, en lecture seule, les pods qui ne démarrent pas et les objets qui ne marchent pas (code 0 : diagnostic ou rien à signaler, 1 : cluster injoignable, 2 : usage invalide, ressource introuvable ou nom ambigu, avec les objets à préciser) |
 | `kubectl telemach last` | Réaffiche l'explication complète de la dernière erreur ou du dernier diagnostic, sans relire le cluster |
 | `kubectl telemach deepen [--exercise]` | Approfondit le concept du dernier diagnostic ; `--exercise` ajoute un exercice à faire dans un namespace que tu crées toi-même |

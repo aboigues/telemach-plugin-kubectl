@@ -1,0 +1,2 @@
+entry: wait.timeout
+origin: kubectl

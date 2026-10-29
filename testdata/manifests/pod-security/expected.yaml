@@ -1,0 +1,12 @@
+# Problème produit par explain seulement, après le refus PodSecurity du serveur (check ne
+# connaît pas le niveau du namespace) : TestManifestCorpus l'écarte, TestPodSecurityFix le
+# vérifie.
+explain_only: true
+file: 'pod.yaml'
+document: 1
+line: 14
+column: 5
+resource: 'Pod/web'
+field_path: 'spec.containers[0].securityContext'
+kind: 'pod-security'
+apply: false

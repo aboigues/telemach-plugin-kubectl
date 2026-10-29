@@ -24,7 +24,8 @@
     explanation: >-
       Les images minimales (distroless, scratch, alpine) réduisent la surface d'attaque en
       retirant les outils inutiles en production. Pour les examiner, « kubectl debug » ajoute
-      un conteneur éphémère qui partage les processus du pod, sans modifier l'image.
+      un conteneur éphémère, sans modifier l'image ; avec --target=<conteneur>, il voit les
+      processus de ce conteneur. Sans --target, il ne voit que les siens.
     example: |-
       kubectl exec web -- ls /
       kubectl debug -it web --image=busybox:1.38 --target=web
@@ -146,3 +147,48 @@
       namespaces ensuite.
   doc_url: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/
   tests: [dns-short-name]
+
+# Feature 004 (US6, research.md F14) : conteneurs éphémères refusés par le cluster. Message
+# relevé en formation (issue #19) : non reproductible sur kind 1.35 à 1.37.
+- id: runtime.ephemeral-disabled
+  category: runtime
+  origin: cluster
+  applies: [debug]
+  patterns:
+    - 'ephemeral containers are disabled for this cluster'
+  concept:
+    name: ephemeral container
+    definition: >-
+      Un conteneur éphémère est ajouté à un pod déjà lancé, le temps d'une enquête, avec
+      « kubectl debug » : il apporte ses outils (shell, ping…) sans modifier l'image de
+      l'application. Le serveur API doit prendre en charge cette fonctionnalité.
+  summary: 'Le cluster refuse les conteneurs éphémères : kubectl debug ne peut pas s''attacher au pod.'
+  cause: >-
+    Le serveur API du cluster ne propose pas les conteneurs éphémères : version de Kubernetes
+    ancienne, ou fonctionnalité désactivée par l'administrateur.
+  fixes:
+    - description: Vérifier la version du serveur API (les conteneurs éphémères sont stables depuis Kubernetes 1.25).
+      command: '{{.kubectl}} version'
+      safe: true
+    - description: Enquêter depuis une copie du pod, à laquelle kubectl debug ajoute un conteneur d'outils.
+      command: '{{.kubectl}} debug {{if .name}}{{.name}}{{else}}POD{{end}} -it --image=busybox:1.38 --copy-to=enquete --share-processes{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Ou lancer un pod d'enquête séparé dans le même namespace, puis le supprimer après usage.
+      command: '{{.kubectl}} run enquete -it --rm --image=busybox:1.38 --restart=Never{{if .scope}} {{.scope}}{{end}} -- sh'
+      safe: true
+  deepen:
+    explanation: >-
+      Une copie du pod (--copy-to) reproduit sa configuration avec un conteneur de plus ; elle
+      ne reçoit pas le trafic du Service et ne voit pas l'état mémoire du pod d'origine. Un
+      pod d'enquête séparé teste le réseau et le DNS du namespace, pas l'intérieur de
+      l'application.
+    example: |-
+      kubectl version
+      kubectl debug web -it --image=busybox:1.38 --copy-to=enquete --share-processes
+    exercise: >-
+      Avec un cluster de test, crée un namespace d'exercice avec « kubectl create namespace
+      exo-debug », lance un pod nginx-unprivileged, puis compare « kubectl debug -it POD
+      --image=busybox:1.38 --target=POD » et la même commande sans --target (commande ps).
+      Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/debug/debug-application/debug-running-pod/#ephemeral-container
+  tests: [debug-ephemeral-disabled]

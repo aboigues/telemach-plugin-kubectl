@@ -1,0 +1,6 @@
+wait
+--for=condition=Available
+deployment/api
+--timeout=10s
+-n
+wait-deployment-timeout

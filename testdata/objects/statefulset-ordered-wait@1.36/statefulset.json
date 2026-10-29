@@ -1,0 +1,85 @@
+{
+  "apiVersion": "apps/v1",
+  "kind": "StatefulSet",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "••••••"
+    },
+    "creationTimestamp": "2026-10-29T16:49:55Z",
+    "generation": 1,
+    "name": "ordre",
+    "namespace": "f004-sts-ordre",
+    "resourceVersion": "1657",
+    "uid": "d5ea18cb-6406-46b3-ab5e-35751ae50add"
+  },
+  "spec": {
+    "persistentVolumeClaimRetentionPolicy": {
+      "whenDeleted": "Retain",
+      "whenScaled": "Retain"
+    },
+    "podManagementPolicy": "OrderedReady",
+    "replicas": 2,
+    "revisionHistoryLimit": 10,
+    "selector": {
+      "matchLabels": {
+        "app": "ordre"
+      }
+    },
+    "serviceName": "ordre",
+    "template": {
+      "metadata": {
+        "labels": {
+          "app": "ordre"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "image": "nginxinc/nginx-unprivileged:0.0.0",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "ordre",
+            "resources": {
+              "limits": {
+                "cpu": "100m",
+                "memory": "64Mi"
+              },
+              "requests": {
+                "cpu": "10m",
+                "memory": "16Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File"
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "restartPolicy": "Always",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "runAsNonRoot": true,
+          "runAsUser": 65534
+        },
+        "terminationGracePeriodSeconds": 30
+      }
+    },
+    "updateStrategy": {
+      "rollingUpdate": {
+        "partition": 0
+      },
+      "type": "RollingUpdate"
+    }
+  },
+  "status": {
+    "availableReplicas": 0,
+    "collisionCount": 0,
+    "currentReplicas": 1,
+    "currentRevision": "ordre-86b5cdd89b",
+    "observedGeneration": 1,
+    "replicas": 1,
+    "updateRevision": "ordre-86b5cdd89b",
+    "updatedReplicas": 1
+  }
+}

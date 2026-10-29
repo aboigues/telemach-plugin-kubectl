@@ -234,8 +234,8 @@
     Les directives entre doubles accolades ne sont pas du YAML : ni kubectl ni TELEMACH ne
     peuvent lire ce fichier tel quel. Seul le rendu produit par Helm est un manifeste Kubernetes.
   fixes:
-    - description: Produire le rendu du chart dans un fichier temporaire, puis le vérifier.
-      command: 'helm template demo {{.suggestion}} > /tmp/rendu.yaml && {{.kubectl}} telemach check -f /tmp/rendu.yaml'
+    - description: Vérifier le rendu du chart, transmis par l'entrée standard (-f -).
+      command: 'helm template demo {{.suggestion}} | {{.kubectl}} telemach check -f -'
       safe: true
   deepen:
     explanation: >-
@@ -272,7 +272,7 @@
     « kubectl apply ».
   fixes:
     - description: Vérifier le rendu du chart (avec ces valeurs pour un fichier de valeurs).
-      command: 'helm template demo {{.suggestion}}{{if eq .detail "values"}} -f {{.file}}{{end}} > /tmp/rendu.yaml && {{.kubectl}} telemach check -f /tmp/rendu.yaml'
+      command: 'helm template demo {{.suggestion}}{{if eq .detail "values"}} -f {{.file}}{{end}} | {{.kubectl}} telemach check -f -'
       safe: true
   deepen:
     explanation: >-
@@ -610,3 +610,41 @@
       namespace ensuite.
   doc_url: https://kubernetes.io/docs/reference/using-api/api-concepts/#dry-run
   tests: [invalid-enum]
+
+# Feature 004 (FR-004) : information de check sur un conteneur sans limites. Elle ne change
+# pas le code de sortie (LL-016).
+- id: schema.missing-limits
+  category: schema
+  fallback: manifest-issue
+  issue_kinds: [missing-limits]
+  concept:
+    name: resource limits
+    definition: >-
+      resources.limits plafonne ce qu'un conteneur peut consommer (CPU, mémoire). Un namespace
+      doté d'un ResourceQuota sur les limites refuse tout conteneur qui n'en déclare pas.
+  summary: Le conteneur « {{.detail}} » ne déclare pas resources.limits.
+  cause: >-
+    Sans limites, le conteneur peut consommer toute la mémoire du nœud ; et dans un namespace
+    avec un quota sur limits.cpu ou limits.memory, le serveur API le refusera (« must specify
+    limits »).
+  fixes:
+    - description: Déclarer requests et limits dans le conteneur.
+      manifest: |-
+        resources:
+          requests: {cpu: 50m, memory: 64Mi}
+          limits: {cpu: 200m, memory: 128Mi}
+      safe: true
+  deepen:
+    explanation: >-
+      requests sert au placement (le scheduler réserve cette part du nœud) ; limits est le
+      plafond imposé à l'exécution : un dépassement de mémoire arrête le conteneur
+      (OOMKilled), un dépassement de CPU le ralentit.
+    example: |-
+      kubectl explain pod.spec.containers.resources
+      kubectl describe resourcequota
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-limits », ajoute un quota
+      limits.memory=256Mi, puis compare l'application d'un pod avec et sans limits. Supprime le
+      namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+  tests: [missing-limits]

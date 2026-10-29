@@ -1,0 +1,40 @@
+{
+  "apiVersion": "v1",
+  "kind": "Service",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "••••••"
+    },
+    "creationTimestamp": "2026-10-29T16:25:11Z",
+    "name": "donnees",
+    "namespace": "f004-sts-pvc",
+    "resourceVersion": "1864",
+    "uid": "b2a350b1-7e56-447f-853c-9cf5f727ffcd"
+  },
+  "spec": {
+    "clusterIP": "None",
+    "clusterIPs": [
+      "None"
+    ],
+    "internalTrafficPolicy": "Cluster",
+    "ipFamilies": [
+      "IPv4"
+    ],
+    "ipFamilyPolicy": "SingleStack",
+    "ports": [
+      {
+        "port": 8080,
+        "protocol": "TCP",
+        "targetPort": 8080
+      }
+    ],
+    "selector": {
+      "app": "donnees"
+    },
+    "sessionAffinity": "None",
+    "type": "ClusterIP"
+  },
+  "status": {
+    "loadBalancer": {}
+  }
+}

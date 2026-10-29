@@ -76,17 +76,17 @@ research.md F12.
 
 ### Tests for Foundational ⚠️
 
-- [ ] T009 [P] Étendre `internal/kuberead/allowlist_test.go` : chaque lecture de research.md F1 produit exactement sa commande (`get job|jobs|cronjob|daemonset|statefulset|hpa|nodes`, `get apiservice v1beta1.metrics.k8s.io`, `get events --field-selector involvedObject.kind=ReplicaSet,involvedObject.name=<rs>`, `-o json`), avec la portée de l'apprenant et `--request-timeout=10s` ; `TestNoOtherReads` échoue toujours pour `secret`, `describe`, `exec`, tout verbe d'écriture
-- [ ] T010 [P] Étendre `internal/kuberead/objects_test.go` : décodage des JSON réels de `testdata/objects/*/` pour Job, CronJob, DaemonSet, StatefulSet, HPA, Node, APIService ; test par réflexion : aucun champ `env`, `value`, `addresses`, `annotations` hors liste de la 002 dans les nouveaux types (data-model.md § Types lus) ; valeurs par défaut quand le champ manque : « `backoffLimit` 6, `concurrencyPolicy` Allow, `podManagementPolicy` OrderedReady, `minReplicas` 1 »
-- [ ] T011 [P] Étendre `cmd/kubectl-telemach/diagnose_route_test.go` : `job/`, `jobs/`, `cronjob/`, `cj/`, `daemonset/`, `ds/`, `statefulset/`, `sts/`, `hpa/`, `horizontalpodautoscaler/` routés ; type inconnu → liste de **tous** les types pris en charge, code `2`
-- [ ] T012 [P] Étendre `internal/redact/schema_fields_test.go` (LL-015) : après T014, les schémas embarqués couvrent HPA ; tout nouveau champ au nom sensible est classé
+- [X] T009 [P] Étendre `internal/kuberead/allowlist_test.go` : chaque lecture de research.md F1 produit exactement sa commande (`get job|jobs|cronjob|daemonset|statefulset|hpa|nodes`, `get apiservice v1beta1.metrics.k8s.io`, `get events --field-selector involvedObject.kind=ReplicaSet,involvedObject.name=<rs>`, `-o json`), avec la portée de l'apprenant et `--request-timeout=10s` ; `TestNoOtherReads` échoue toujours pour `secret`, `describe`, `exec`, tout verbe d'écriture
+- [X] T010 [P] Étendre `internal/kuberead/objects_test.go` : décodage des JSON réels de `testdata/objects/*/` pour Job, CronJob, DaemonSet, StatefulSet, HPA, Node, APIService ; test par réflexion : aucun champ `env`, `value`, `addresses`, `annotations` hors liste de la 002 dans les nouveaux types (data-model.md § Types lus) ; valeurs par défaut quand le champ manque : « `backoffLimit` 6, `concurrencyPolicy` Allow, `podManagementPolicy` OrderedReady, `minReplicas` 1 »
+- [X] T011 [P] Étendre `cmd/kubectl-telemach/diagnose_route_test.go` : `job/`, `jobs/`, `cronjob/`, `cj/`, `daemonset/`, `ds/`, `statefulset/`, `sts/`, `hpa/`, `horizontalpodautoscaler/` routés ; type inconnu → liste de **tous** les types pris en charge, code `2`
+- [X] T012 [P] Étendre `internal/redact/schema_fields_test.go` (LL-015) : après T014, les schémas embarqués couvrent HPA ; tout nouveau champ au nom sensible est classé
 
 ### Implementation for Foundational
 
-- [ ] T013 Ajouter à `internal/kuberead/commands.go` et `internal/kuberead/read.go` les lectures de research.md F1 et elles seules (`GetJob`, `ListJobs`, `GetCronJob`, `GetDaemonSet`, `GetStatefulSet`, `GetHPA`, `ListNodes`, `GetMetricsAPIService`, `ReplicaSetEvents`), et à `internal/kuberead/objects.go` les types de data-model.md § Types lus (champs listés seulement ; `Node` sans `status.addresses`) ; étendre le modèle de pod (`tolerations`, `requests`). Faire passer T009, T010 (dépend de T008)
-- [ ] T014 [P] Ajouter `autoscaling/v2/HorizontalPodAutoscaler` à `scripts/gen-schemas/sources.txt` et `scripts/gen-schemas/main.go`, régénérer `internal/schema/data/v1.3{5,6,7}.json.gz`, ajouter `HorizontalPodAutoscaler` à `knownKinds` si besoin dans `internal/manifest/semantic.go`. Faire passer T012
-- [ ] T015 [P] Ajouter les alias de research.md F8 à `internal/kubeterms/kubeterms.go` et les catégories `node`, `metrics`, `batch` à `internal/catalog/schema.go`
-- [ ] T016 Étendre `internal/pitfall/snapshot.go` (`KindJob`, `KindCronJob`, `KindDaemonSet`, `KindStatefulSet`, `KindHPA` ; maillons de data-model.md § Step) et `cmd/kubectl-telemach/diagnose.go` (routage, message des types, enregistrement `LastDiagnosis.Object`) ; tant qu'un diagnostiqueur manque, `pitfall.ErrNotYet` donne un message propre. Faire passer T011 (dépend de T013, T015)
+- [X] T013 Ajouter à `internal/kuberead/commands.go` et `internal/kuberead/read.go` les lectures de research.md F1 et elles seules (`GetJob`, `ListJobs`, `GetCronJob`, `GetDaemonSet`, `GetStatefulSet`, `GetHPA`, `ListNodes`, `GetMetricsAPIService`, `ReplicaSetEvents`), et à `internal/kuberead/objects.go` les types de data-model.md § Types lus (champs listés seulement ; `Node` sans `status.addresses`) ; étendre le modèle de pod (`tolerations`, `requests`). Faire passer T009, T010 (dépend de T008)
+- [X] T014 [P] Ajouter `autoscaling/v2/HorizontalPodAutoscaler` à `scripts/gen-schemas/sources.txt` et `scripts/gen-schemas/main.go`, régénérer `internal/schema/data/v1.3{5,6,7}.json.gz`, ajouter `HorizontalPodAutoscaler` à `knownKinds` si besoin dans `internal/manifest/semantic.go`. Faire passer T012
+- [X] T015 [P] Ajouter les alias de research.md F8 à `internal/kubeterms/kubeterms.go` et les catégories `node`, `metrics`, `batch` à `internal/catalog/schema.go`
+- [X] T016 Étendre `internal/pitfall/snapshot.go` (`KindJob`, `KindCronJob`, `KindDaemonSet`, `KindStatefulSet`, `KindHPA` ; maillons de data-model.md § Step) et `cmd/kubectl-telemach/diagnose.go` (routage, message des types, enregistrement `LastDiagnosis.Object`) ; tant qu'un diagnostiqueur manque, `pitfall.ErrNotYet` donne un message propre. Faire passer T011 (dépend de T013, T015)
 
 **Checkpoint**: `diagnose job/x` répond proprement « pas encore pris en charge » ; les
 lectures et types sont testés sur le corpus réel.
@@ -103,18 +103,18 @@ Deployment, avec version corrigée et avertissement d'une commande réussie.
 ### Tests for User Story 1 ⚠️
 
 - [ ] T017 [P] [US1] Ajouter au corpus `testdata/errors/` les attentes de T008 pour les cas d'admission et un test d'ordre dans `internal/diagnose/diagnose_test.go` : un refus de quota ou PodSecurity n'est jamais reconnu par `auth.forbidden` ni par `connection.*` ; captures `quota`, `resource`, `requested`, `used`, `limited`, `level`, `violations` vérifiées
-- [ ] T018 [P] [US1] Écrire `internal/manifest/podsecurity_test.go` : à partir de la liste de violations d'un relevé réel, un problème `pod-security` par conteneur fautif de `pss-violation.yaml`, avec version corrigée (`allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]`, `runAsNonRoot: true`, `seccompProfile.type: RuntimeDefault`) qui passe `manifest-lint`
+- [X] T018 [P] [US1] Écrire `internal/manifest/podsecurity_test.go` : à partir de la liste de violations d'un relevé réel, un problème `pod-security` par conteneur fautif de `pss-violation.yaml`, avec version corrigée (`allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]`, `runAsNonRoot: true`, `seccompProfile.type: RuntimeDefault`) qui passe `manifest-lint`
 - [ ] T019 [P] [US1] Étendre `cmd/kubectl-telemach/check_test.go` : conteneur sans `resources.limits` → information `missing-limits`, code de sortie inchangé ; mettre à jour les golden files de `check` concernés et relire leur différence
-- [ ] T020 [P] [US1] Écrire `internal/pitfall/rollout_admission_test.go` sur le corpus `replica-failure` : maillon `admission` en échec, leçon `admission.quota-exceeded` ; condition absente → événement `FailedCreate` lu ; lecture refusée → maillon `unknown`
+- [X] T020 [P] [US1] Écrire `internal/pitfall/rollout_admission_test.go` sur le corpus `replica-failure` : maillon `admission` en échec, leçon `admission.quota-exceeded` ; condition absente → événement `FailedCreate` lu ; lecture refusée → maillon `unknown`
 - [ ] T021 [P] [US1] Écrire `cmd/kubectl-telemach/notice_test.go` : stderr d'un relevé `apply-pod-security-warn` → une information ℹ, code 0, `hints.json` retient le namespace ; second appel dans les 24 h → rien ; aucune lecture du cluster (faux kubectl qui échoue s'il est appelé)
 - [ ] T022 [P] [US1] Étendre `tests/shell/` (bash et zsh, pseudo-terminal, LL-009) : `scale` déclenche `watch` ; `would violate PodSecurity` dans stderr d'une commande réussie déclenche `notice` sans processus supplémentaire ; mesure de latence de l'invite inchangée (SC-006, 100 échantillons, hors `-race`)
 
 ### Implementation for User Story 1
 
-- [ ] T023 [US1] Rédiger dans `internal/catalog/data/admission.yaml` les entrées `admission.quota-exceeded`, `admission.quota-must-specify`, `admission.limitrange`, `admission.pod-security` (research.md F3), motifs écrits d'après les relevés des trois versions ; corrections `describe resourcequota`, `describe limitrange`, `get ns <ns> --show-labels` ; anti-patterns « gonfler le quota » et « retirer le label pod-security.kubernetes.io/enforce ». Faire passer T017 (dépend de T008)
-- [ ] T024 [US1] Ajouter le type `pod-security` à `internal/manifest/issue.go`, la règle (appelée seulement par `explain`, jamais par `check`) dans `internal/manifest/podsecurity.go` et la version corrigée dans `internal/manifest/fixes.go` ; brancher dans `cmd/kubectl-telemach/explain.go` (`manifestAnalysis`) quand l'entrée reconnue est `admission.pod-security`. Faire passer T018 (dépend de T023)
+- [X] T023 [US1] Rédiger dans `internal/catalog/data/admission.yaml` les entrées `admission.quota-exceeded`, `admission.quota-must-specify`, `admission.limitrange`, `admission.pod-security` (research.md F3), motifs écrits d'après les relevés des trois versions ; corrections `describe resourcequota`, `describe limitrange`, `get ns <ns> --show-labels` ; anti-patterns « gonfler le quota » et « retirer le label pod-security.kubernetes.io/enforce ». Faire passer T017 (dépend de T008)
+- [X] T024 [US1] Ajouter le type `pod-security` à `internal/manifest/issue.go`, la règle (appelée seulement par `explain`, jamais par `check`) dans `internal/manifest/podsecurity.go` et la version corrigée dans `internal/manifest/fixes.go` ; brancher dans `cmd/kubectl-telemach/explain.go` (`manifestAnalysis`) quand l'entrée reconnue est `admission.pod-security`. Faire passer T018 (dépend de T023)
 - [ ] T025 [P] [US1] Ajouter l'information `missing-limits` à `internal/manifest/semantic.go` et `internal/manifest/issue.go` (niveau information de la PR #20) et son entrée `schema.missing-limits` dans `internal/catalog/data/schema.yaml`. Faire passer T019
-- [ ] T026 [US1] Ajouter le maillon `admission` et le piège `deployment.replica-failure` à `internal/pitfall/rollout.go` (condition `ReplicaFailure` passée à `diagnose.Diagnose` comme stderr, repli sur `ReplicaSetEvents`) et l'entrée `pitfalls: [deployment.replica-failure]` dans `internal/catalog/data/rollout.yaml`. Faire passer T020 (dépend de T016, T023)
+- [X] T026 [US1] Ajouter le maillon `admission` et le piège `deployment.replica-failure` à `internal/pitfall/rollout.go` (condition `ReplicaFailure` passée à `diagnose.Diagnose` comme stderr, repli sur `ReplicaSetEvents`) et l'entrée `pitfalls: [deployment.replica-failure]` dans `internal/catalog/data/rollout.yaml`. Faire passer T020 (dépend de T016, T023)
 - [ ] T027 [US1] Créer `cmd/kubectl-telemach/notice.go` (sous-commande cachée, contracts/cli.md § notice, clé `telemach:pod-security:<namespace>` dans `hints.json`) et l'entrée `admission.pod-security-warning` dans `internal/catalog/data/admission.yaml`. Faire passer T021 (dépend de T023)
 - [ ] T028 [US1] Modifier `internal/shellinit/scripts/bash.sh` et `internal/shellinit/scripts/zsh.sh` : `scale` dans `__telemach_after_success` ; test `[[ $(<"$__telemach_tmp") == *"would violate PodSecurity"* ]]` puis `notice` ; incrémenter `TELEMACH_KUBECTL_SHELL` ; étendre `internal/workload/targets.go` (cible Deployment de `scale`) et `cmd/kubectl-telemach/watch.go` (piège `deployment.replica-failure`). Faire passer T022 (dépend de T026, T027)
 - [ ] T029 [US1] Écrire les scénarios T1 à T4 dans `tests/integration/training_test.go` (commandes exactes du quickstart, namespace neuf par scénario, bash et zsh) et les valider sur kind (dépend de T023 à T028)
@@ -131,14 +131,14 @@ Deployment, avec version corrigée et avertissement d'une commande réussie.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T030 [P] [US2] Étendre `internal/workload/select_test.go` sur les messages réels de `testdata/objects/` : découpage `0/N nodes are available: …` en causes, partie `preemption:` ignorée, raisons `UntoleratedTaint` (taint extrait), `PodAntiAffinity`, `PodAffinity`, `NodeUnschedulable`, causes existantes inchangées, cause inconnue citée telle quelle, cause principale = plus grand nombre de nœuds, taint `node-role.kubernetes.io/control-plane` marqué normal (data-model.md § PlacementCause)
+- [X] T030 [P] [US2] Étendre `internal/workload/select_test.go` sur les messages réels de `testdata/objects/` : découpage `0/N nodes are available: …` en causes, partie `preemption:` ignorée, raisons `UntoleratedTaint` (taint extrait), `PodAntiAffinity`, `PodAffinity`, `NodeUnschedulable`, causes existantes inchangées, cause inconnue citée telle quelle, cause principale = plus grand nombre de nœuds, taint `node-role.kubernetes.io/control-plane` marqué normal (data-model.md § PlacementCause)
 - [ ] T031 [P] [US2] Étendre `internal/render/pod_golden_test.go` : liste « Nœuds par cause » (exemple de contracts/cli.md § diagnose), noms des nœuds si la lecture des nœuds est permise, diagnostic partiel sinon ; golden files couleur et sans couleur dans `testdata/golden/f004/`
 - [ ] T032 [P] [US2] Ajouter les attentes `drain-*` de T008 au corpus et vérifier que `--disable-eviction`, `--force` et `--delete-emptydir-data` n'apparaissent que dans des corrections `safe: false` ou des anti-patterns (`internal/catalog/catalog_test.go`, extension de `TestForcedDeletionIsAntiPattern`)
 
 ### Implementation for User Story 2
 
-- [ ] T033 [US2] Implémenter le découpage et `Causes []PlacementCause` dans `internal/workload/select.go` (research.md F6). Faire passer T030
-- [ ] T034 [US2] Rédiger `internal/catalog/data/node.yaml` : `drain.daemonset-pods`, `drain.pdb-blocked`, `drain.local-storage` (research.md F7) ; et dans `internal/catalog/data/workload.yaml` les entrées `pod.untolerated-taint` (cause et approfondissement : « une toleration autorise, elle ne force pas : il faut aussi un nodeSelector ou une affinité »), `pod.pod-anti-affinity`, `pod.node-unschedulable` (`kubectl uncordon`). Faire passer T032 (dépend de T008)
+- [X] T033 [US2] Implémenter le découpage et `Causes []PlacementCause` dans `internal/workload/select.go` (research.md F6). Faire passer T030
+- [X] T034 [US2] Rédiger `internal/catalog/data/node.yaml` : `drain.daemonset-pods`, `drain.pdb-blocked`, `drain.local-storage` (research.md F7) ; et dans `internal/catalog/data/workload.yaml` les entrées `pod.untolerated-taint` (cause et approfondissement : « une toleration autorise, elle ne force pas : il faut aussi un nodeSelector ou une affinité »), `pod.pod-anti-affinity`, `pod.node-unschedulable` (`kubectl uncordon`). Faire passer T032 (dépend de T008)
 - [ ] T035 [US2] Lire les nœuds (`ListNodes`) dans `internal/workload/diagnose.go` seulement pour `UntoleratedTaint` et `NodeUnschedulable`, et rendre la liste « Nœuds par cause » dans `internal/render/pod.go`. Faire passer T031 (dépend de T013, T033, T034)
 - [ ] T036 [US2] Écrire les scénarios T5 et T6 dans `tests/integration/training_test.go` (exécution en série : ils modifient des nœuds du cluster jetable, et les remettent en état en fin de scénario même en cas d'échec) et les valider sur kind (dépend de T035)
 
@@ -154,16 +154,16 @@ Deployment, avec version corrigée et avertissement d'une commande réussie.
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T037 [P] [US3] Écrire `internal/cron/cron_test.go` et `internal/cron/fuzz_test.go` : 5 champs, listes, intervalles, pas, noms (`JAN`, `MON`), `?`, macros (`@hourly` … `@yearly`), bornes, `TZ=`/`CRON_TZ=` refusés avec renvoi vers `spec.timeZone`, messages en français avec champ et position ; `Next` sur des cas connus (fuseau `Europe/Paris`, passage à l'heure d'été) ; fuzzing sans panique
-- [ ] T038 [P] [US3] Écrire `internal/pitfall/job_test.go`, `cronjob_test.go`, `daemonset_test.go`, `statefulset_test.go` sur le corpus `testdata/objects/` : chaque piège de data-model.md § Pitfall reconnu, objet sain sans piège (SC-003), lecture refusée → maillon `unknown`
+- [X] T037 [P] [US3] Écrire `internal/cron/cron_test.go` et `internal/cron/fuzz_test.go` : 5 champs, listes, intervalles, pas, noms (`JAN`, `MON`), `?`, macros (`@hourly` … `@yearly`), bornes, `TZ=`/`CRON_TZ=` refusés avec renvoi vers `spec.timeZone`, messages en français avec champ et position ; `Next` sur des cas connus (fuseau `Europe/Paris`, passage à l'heure d'été) ; fuzzing sans panique
+- [X] T038 [P] [US3] Écrire `internal/pitfall/job_test.go`, `cronjob_test.go`, `daemonset_test.go`, `statefulset_test.go` sur le corpus `testdata/objects/` : chaque piège de data-model.md § Pitfall reconnu, objet sain sans piège (SC-003), lecture refusée → maillon `unknown`
 - [ ] T039 [P] [US3] Étendre `internal/manifest/corpus_test.go` avec `invalid-cron` (problème, ligne et colonne de `spec.schedule`, exemple corrigé) et `cmd/kubectl-telemach/diagnose_test.go` : `diagnose` sans argument liste un Job en échec (faux kubectl)
 
 ### Implementation for User Story 3
 
-- [ ] T040 [US3] Implémenter `internal/cron/cron.go` (research.md F9, data-model.md § CronSchedule, sans dépendance). Faire passer T037
-- [ ] T041 [US3] Rédiger `internal/catalog/data/batch.yaml` : leçons des pièges `job.*`, `cronjob.*`, `daemonset.*`, `statefulset.*` (data-model.md § Pitfall) et l'entrée `manifest.cron-schedule` (motif d'après le relevé `apply-cronjob-invalid`, rangée avant les entrées génériques « is invalid ») avec les 5 champs et un exemple commenté (dépend de T008)
-- [ ] T042 [P] [US3] Implémenter `internal/pitfall/job.go` (pods par label `batch.kubernetes.io/job-name`, puis `job-name`) et `internal/pitfall/cronjob.go` (Jobs par `ownerReferences`, prochaine échéance par `internal/cron`, enchaînement sur le diagnostic du dernier Job). Faire passer leur part de T038 (dépend de T016, T040, T041)
-- [ ] T043 [P] [US3] Implémenter `internal/pitfall/daemonset.go` (nœuds exclus et taints, control-plane normal) et `internal/pitfall/statefulset.go` (Service de `serviceName`, `OrderedReady`, PVC `<modèle>-<nom>-<k>` avec la leçon PVC de la 002). Faire passer leur part de T038 (dépend de T016, T041)
+- [X] T040 [US3] Implémenter `internal/cron/cron.go` (research.md F9, data-model.md § CronSchedule, sans dépendance). Faire passer T037
+- [X] T041 [US3] Rédiger `internal/catalog/data/batch.yaml` : leçons des pièges `job.*`, `cronjob.*`, `daemonset.*`, `statefulset.*` (data-model.md § Pitfall) et l'entrée `manifest.cron-schedule` (motif d'après le relevé `apply-cronjob-invalid`, rangée avant les entrées génériques « is invalid ») avec les 5 champs et un exemple commenté (dépend de T008)
+- [X] T042 [P] [US3] Implémenter `internal/pitfall/job.go` (pods par label `batch.kubernetes.io/job-name`, puis `job-name`) et `internal/pitfall/cronjob.go` (Jobs par `ownerReferences`, prochaine échéance par `internal/cron`, enchaînement sur le diagnostic du dernier Job). Faire passer leur part de T038 (dépend de T016, T040, T041)
+- [X] T043 [P] [US3] Implémenter `internal/pitfall/daemonset.go` (nœuds exclus et taints, control-plane normal) et `internal/pitfall/statefulset.go` (Service de `serviceName`, `OrderedReady`, PVC `<modèle>-<nom>-<k>` avec la leçon PVC de la 002). Faire passer leur part de T038 (dépend de T016, T041)
 - [ ] T044 [US3] Ajouter le problème `invalid-cron` à `internal/manifest/semantic.go` et `internal/manifest/issue.go` (CronJob, `spec.schedule`, via `internal/cron`) avec son exemple corrigé dans `internal/manifest/fixes.go` ; ajouter `ListJobs` aux lectures parallèles de `diagnose` sans argument dans `cmd/kubectl-telemach/diagnose.go`, dans la limite globale de 10 objets ; cible `statefulset.no-service` dans `internal/workload/targets.go`. Faire passer T039 (dépend de T040, T042, T043)
 - [ ] T045 [US3] Écrire les scénarios T7 à T9 dans `tests/integration/training_test.go` et les valider sur kind (dépend de T044)
 
@@ -180,13 +180,13 @@ et hors ligne).
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T046 [P] [US4] Écrire `internal/pitfall/hpa_test.go` sur le corpus : ordre des maillons `metrics-api` → `target` → `requests` → `conditions`, premier maillon cassé nommé, `ScalingLimited` avec `TooManyReplicas` présenté comme `hpa.limited` (information), métriques `Pods`/`Object`/`External` « hors de portée », APIService illisible → `unknown`
+- [X] T046 [P] [US4] Écrire `internal/pitfall/hpa_test.go` sur le corpus : ordre des maillons `metrics-api` → `target` → `requests` → `conditions`, premier maillon cassé nommé, `ScalingLimited` avec `TooManyReplicas` présenté comme `hpa.limited` (information), métriques `Pods`/`Object`/`External` « hors de portée », APIService illisible → `unknown`
 - [ ] T047 [P] [US4] Étendre `cmd/kubectl-telemach/check_test.go` : HPA et Deployment sans `requests.cpu` dans les mêmes fichiers → information `hpa-missing-request`, code 0 ; HPA seul (cible absente des fichiers) → rien ; ajouter `top-metrics-unavailable` aux attentes du corpus d'erreurs
 
 ### Implementation for User Story 4
 
 - [ ] T048 [US4] Rédiger `internal/catalog/data/metrics.yaml` : `metrics.api-unavailable` (concept metrics-server, `kubectl get apiservice v1beta1.metrics.k8s.io`, `minikube addons enable metrics-server`, « attendre environ une minute après l'installation » ; `--kubelet-insecure-tls` jamais proposé) et les leçons `hpa.*` (dépend de T008)
-- [ ] T049 [US4] Implémenter `internal/pitfall/hpa.go` (research.md F10). Faire passer T046 (dépend de T016, T048)
+- [X] T049 [US4] Implémenter `internal/pitfall/hpa.go` (research.md F10). Faire passer T046 (dépend de T016, T048)
 - [ ] T050 [US4] Ajouter l'information `hpa-missing-request` à `internal/manifest/semantic.go` (règle inter-documents : HPA et cible dans les fichiers vérifiés) et son entrée dans `internal/catalog/data/schema.yaml` ; ajouter la cible HPA à `internal/workload/targets.go` et à `cmd/kubectl-telemach/watch.go` (2 lectures, budget de 12 inchangé). Faire passer T047 (dépend de T049)
 - [ ] T051 [US4] Écrire les scénarios T10 et T11 dans `tests/integration/training_test.go` (metrics-server installé seulement pour T11) et les valider sur kind (dépend de T050)
 
@@ -202,14 +202,14 @@ et hors ligne).
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T052 [P] [US5] Écrire `internal/manifest/stdin_test.go` : même résultat que le fichier pour chaque cas de `testdata/manifests/` (SC-009) ; `<stdin>` dans les positions ; `Document.Source` retenu depuis `# Source:` ; flux de 1 Mio + 1 octet → `file-unreadable` ; non UTF-8 → `not-utf8` ; vide → `no-manifest-file`
-- [ ] T053 [P] [US5] Étendre `cmd/kubectl-telemach/check_test.go` : `-f -` deux fois → code 2 ; entrée standard reliée à un terminal (pseudo-terminal de `tests/shell`) → message d'usage immédiat, code 2 ; `helm-rendered/rendu.yaml` par l'entrée standard → template d'origine dans la position ; `last` et `deepen` ne relisent pas `<stdin>`
+- [X] T052 [P] [US5] Écrire `internal/manifest/stdin_test.go` : même résultat que le fichier pour chaque cas de `testdata/manifests/` (SC-009) ; `<stdin>` dans les positions ; `Document.Source` retenu depuis `# Source:` ; flux de 1 Mio + 1 octet → `file-unreadable` ; non UTF-8 → `not-utf8` ; vide → `no-manifest-file`
+- [X] T053 [P] [US5] Étendre `cmd/kubectl-telemach/check_test.go` : `-f -` deux fois → code 2 ; entrée standard reliée à un terminal (pseudo-terminal de `tests/shell`) → message d'usage immédiat, code 2 ; `helm-rendered/rendu.yaml` par l'entrée standard → template d'origine dans la position ; `last` et `deepen` ne relisent pas `<stdin>`
 
 ### Implementation for User Story 5
 
-- [ ] T054 [US5] Implémenter `ReadStdin` et la reconnaissance de `-` dans `internal/manifest/read.go` (taille, UTF-8, nettoyage identiques à `Read`), `Document.Source` (dernier `# Source:` avant la première clé du document) et le rendu « template … » dans `internal/render/manifest.go`. Faire passer T052
-- [ ] T055 [US5] Brancher `-f -` dans `cmd/kubectl-telemach/check.go` (lecture de `a.stdin`, détection du terminal par `term.IsTerminal`, refus du double `-`, enregistrement `Files: ["<stdin>"]`). Faire passer T053 (dépend de T054)
-- [ ] T056 [P] [US5] Remplacer la recette de `helm-template` et `helm-values` dans `internal/catalog/data/schema.yaml` par `helm template demo {{.suggestion}} | {{.kubectl}} telemach check -f -`, et ajouter au `README.md` la recette (Helm, `kubectl kustomize`, `--dry-run=client -o yaml`) ; mettre à jour les golden files concernés
+- [X] T054 [US5] Implémenter `ReadStdin` et la reconnaissance de `-` dans `internal/manifest/read.go` (taille, UTF-8, nettoyage identiques à `Read`), `Document.Source` (dernier `# Source:` avant la première clé du document) et le rendu « template … » dans `internal/render/manifest.go`. Faire passer T052
+- [X] T055 [US5] Brancher `-f -` dans `cmd/kubectl-telemach/check.go` (lecture de `a.stdin`, détection du terminal par `term.IsTerminal`, refus du double `-`, enregistrement `Files: ["<stdin>"]`). Faire passer T053 (dépend de T054)
+- [X] T056 [P] [US5] Remplacer la recette de `helm-template` et `helm-values` dans `internal/catalog/data/schema.yaml` par `helm template demo {{.suggestion}} | {{.kubectl}} telemach check -f -`, et ajouter au `README.md` la recette (Helm, `kubectl kustomize`, `--dry-run=client -o yaml`) ; mettre à jour les golden files concernés
 - [ ] T057 [US5] Écrire le scénario T12 dans `tests/integration/training_test.go` (commandes exactes du quickstart, sous bash et zsh) (dépend de T055, T056)
 
 **Checkpoint**: US5 complète et validée seule.
@@ -224,12 +224,12 @@ et hors ligne).
 
 ### Tests for User Story 6 ⚠️
 
-- [ ] T058 [P] [US6] Ajouter au corpus les attentes `wait-*`, `rollout-undo-revision-missing`, `debug-ephemeral-disabled` (`source: formation`) avec `fixed_command_contains: telemach diagnose pod/web` pour `wait-condition-timeout` ; test de `suggest.go` : type non pris en charge par `diagnose` → correction `kubectl describe`
+- [X] T058 [P] [US6] Ajouter au corpus les attentes `wait-*`, `rollout-undo-revision-missing`, `debug-ephemeral-disabled` (`source: formation`) avec `fixed_command_contains: telemach diagnose pod/web` pour `wait-condition-timeout` ; test de `suggest.go` : type non pris en charge par `diagnose` → correction `kubectl describe`
 - [ ] T059 [P] [US6] Écrire `scripts/collect-errors/training_test.go` (étiquette `integration`) sur un faux dossier de formation de deux TP : tableau Markdown (TP, panne, commande, message masqué, entrée ou `unknown`/`unsupported`), namespace neuf par panne, prérequis de `telemach-relevé.yaml` appliqués avant
 
 ### Implementation for User Story 6
 
-- [ ] T060 [US6] Rédiger les entrées `wait.timeout` (enrichisseur `diag_target` dans `internal/diagnose/suggest.go`, `--for=delete` relié à la leçon des finalizers), `rollout.undo-revision-missing` dans `internal/catalog/data/rollout.yaml`, `runtime.ephemeral-disabled` et le rappel `--target` dans le `deepen` de `runtime.exec-not-found` dans `internal/catalog/data/runtime.yaml`. Faire passer T058 (dépend de T008)
+- [X] T060 [US6] Rédiger les entrées `wait.timeout` (enrichisseur `diag_target` dans `internal/diagnose/suggest.go`, `--for=delete` relié à la leçon des finalizers), `rollout.undo-revision-missing` dans `internal/catalog/data/rollout.yaml`, `runtime.ephemeral-disabled` et le rappel `--target` dans le `deepen` de `runtime.exec-not-found` dans `internal/catalog/data/runtime.yaml`. Faire passer T058 (dépend de T008)
 - [ ] T061 [US6] Implémenter le mode `-training` de `scripts/collect-errors/main.go` (research.md F13) et l'ajouter à `.github/workflows/corpus.yml` (entrée `training_repo`, clone en lecture seule, sortie en artefact). Faire passer T059
 - [ ] T062 [US6] Écrire le scénario T13 dans `tests/integration/training_test.go` et le valider sur kind (dépend de T060)
 

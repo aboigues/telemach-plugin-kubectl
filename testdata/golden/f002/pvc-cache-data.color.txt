@@ -22,4 +22,7 @@
       [38;2;248;248;242mkubectl get nodes --show-labels[0m
    2. Corriger ou retirer le nodeSelector dans le manifeste.
 
+[1mNœuds par cause (0/1 disponibles)[m
+   ✖ 1 nœud    nodeSelector ou affinité de nœud non satisfaits
+
 [3;38;2;125;207;255m➜ Pour aller plus loin : kubectl telemach deepen[m

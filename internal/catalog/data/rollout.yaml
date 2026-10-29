@@ -280,3 +280,77 @@
       ensuite.
   doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#failed-deployment
   tests: [rollout-status-deadline]
+
+# Feature 004 (US6, research.md F14) : retour à une révision absente de l'historique.
+- id: rollout.undo-revision-missing
+  category: rollout
+  applies: [rollout undo]
+  patterns:
+    - 'unable to find specified revision (?P<revision>\d+) in history'
+  concept:
+    name: rollout history
+    definition: >-
+      Chaque modification du modèle de pod d'un Deployment crée un nouveau ReplicaSet, qui
+      devient une révision de son historique. Seules les dernières révisions sont gardées
+      (revisionHistoryLimit, 10 par défaut).
+  summary: La révision {{.revision}} n'existe pas dans l'historique{{if .name}} de {{.type}}/{{.name}}{{end}}.
+  cause: >-
+    Cette révision n'a jamais existé (numéro mal choisi), ou elle a été effacée parce que
+    l'historique ne garde que les révisions les plus récentes.
+  fixes:
+    - description: Lister les révisions disponibles, puis choisir un numéro de cette liste.
+      command: '{{.kubectl}} rollout history {{if .name}}{{.type}}/{{.name}}{{else}}deployment/NOM{{end}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Revenir simplement à la révision précédente, sans numéro.
+      command: '{{.kubectl}} rollout undo {{if .name}}{{.type}}/{{.name}}{{else}}deployment/NOM{{end}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      rollout undo ne restaure pas un fichier : il reprend le modèle de pod d'un ancien
+      ReplicaSet. Une modification qui ne touche pas le modèle de pod (nombre de répliques)
+      ne crée pas de révision. L'annotation kubernetes.io/change-cause, si elle est
+      renseignée, apparaît dans la colonne CHANGE-CAUSE de l'historique.
+    example: |-
+      kubectl rollout history deployment/web
+      kubectl rollout history deployment/web --revision=2
+      kubectl get rs -l app=web
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-historique », crée un
+      Deployment, change deux fois son image, puis liste l'historique et reviens à la première
+      révision. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-back-a-deployment
+  tests: [rollout-undo-revision-missing]
+
+# Feature 004 (US1, research.md F4) : refus d'admission vu depuis un Deployment. Quand le
+# refus est reconnu, la leçon affichée est celle de son entrée (quota, LimitRange,
+# PodSecurity) ; celle-ci sert sinon.
+- id: deployment.replica-failure
+  category: rollout
+  pitfalls: [deployment.replica-failure]
+  concept:
+    name: ReplicaSet
+    definition: >-
+      Un Deployment ne crée pas ses pods lui-même : il confie ce travail à un ReplicaSet. Si le
+      serveur API refuse ces pods, la commande sur le Deployment a pourtant réussi.
+  summary: 'Le ReplicaSet de « {{.deployment}} » ne peut pas créer ses pods : {{.refusal}}'
+  cause: >-
+    Les pods sont refusés à l'étape d'admission (quota, LimitRange, PodSecurity, webhook) ;
+    la condition ReplicaFailure du Deployment recopie le refus.
+  fixes:
+    - description: Lire le refus dans les événements du ReplicaSet.
+      command: '{{.kubectl}} describe rs -l {{.selector}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      « kubectl scale » ou « kubectl apply » ne modifient que le Deployment : c'est ensuite
+      au ReplicaSet de créer les pods, et c'est à ce moment-là qu'ils sont refusés. Rien
+      n'échoue côté kubectl.
+    example: |-
+      kubectl get deploy NOM -o jsonpath='{.status.conditions}'
+      kubectl get events --field-selector reason=FailedCreate
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-replicaset », ajoute un
+      quota limits.cpu=1, déploie un Deployment à 500m de limite puis passe-le à trois
+      répliques. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+  tests: [replica-failure]

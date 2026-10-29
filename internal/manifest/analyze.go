@@ -1,6 +1,7 @@
 package manifest
 
 import (
+	"io"
 	"sort"
 	"strings"
 
@@ -43,6 +44,12 @@ func (r Result) Blocking() bool {
 // hors schéma et le schéma de la version choisie d'après le client kubectl. Une erreur de
 // syntaxe bloque le reste : seules les erreurs de syntaxe sont alors listées.
 func Analyze(paths []string, recursive bool, kubectlVersion string) Result {
+	return AnalyzeInput(paths, recursive, kubectlVersion, nil)
+}
+
+// AnalyzeInput est Analyze avec l'entrée standard, lue quand paths contient « - »
+// (check -f -, feature 004).
+func AnalyzeInput(paths []string, recursive bool, kubectlVersion string, stdin io.Reader) Result {
 	var r Result
 	rules, fallback, err := schema.Select(kubectlVersion)
 	if err == nil {
@@ -50,7 +57,13 @@ func Analyze(paths []string, recursive bool, kubectlVersion string) Result {
 	}
 	expanded, issues := Expand(paths, recursive)
 	for _, p := range expanded {
-		f, readIssues := Read(p)
+		var f *File
+		var readIssues []Issue
+		if p == "-" {
+			f, readIssues = ReadStdin(stdin)
+		} else {
+			f, readIssues = Read(p)
+		}
 		issues = append(issues, readIssues...)
 		if !f.Readable {
 			continue
@@ -142,6 +155,13 @@ func finish(issues []Issue, files []*File) []Issue {
 		is := &issues[i]
 		is.Suggestion = redact.Redact(is.Suggestion)
 		is.Detail = redact.Redact(sanitize.Clean(is.Detail))
+		if f := byPath[is.File]; f != nil && is.Document > 0 {
+			for _, d := range f.Documents {
+				if d.Index == is.Document {
+					is.Source = redact.Redact(sanitize.Clean(d.Source))
+				}
+			}
+		}
 		if f := byPath[is.File]; f != nil && is.Line > 0 {
 			is.Excerpt = excerpt(f, is.Line, is.RelatedLines)
 			is.Fixed = fixedLines(f, *is)

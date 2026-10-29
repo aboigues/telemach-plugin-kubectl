@@ -1,0 +1,6 @@
+# Attendu du diagnostic (feature 004), rédigé à la main d'après le relevé kind 1.37.
+# Première échéance (1er janvier) pas encore arrivée : information, pas une panne.
+kind: cronjob
+name: annuel
+primary: cronjob.never-run
+links: {schedule: ok, history: ok, last-job: skipped}

@@ -1,0 +1,5 @@
+apply
+-f
+testdata/objects/scenarios/limitrange-pod.yaml
+-n
+apply-limitrange

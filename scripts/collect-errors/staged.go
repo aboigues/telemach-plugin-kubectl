@@ -70,6 +70,17 @@ var stagedCases = []stagedCase{
 	// Maintenance des nœuds (US2) : l'ordre des refus est celui de kubectl (DaemonSet, puis
 	// stockage local, puis éviction).
 	drainCase("drain-daemonset-pods", "drain {W1}"),
+	{
+		// Pod lancé seul (kubectl run) sur le nœud : aucun contrôleur ne le recréerait.
+		ID: "drain-unmanaged-pods",
+		Setup: [][]string{
+			words("label node {W1} formation=drain --overwrite"),
+			{"run", "solo", "--image={IMG}", "-n", "{NS}", "--overrides", `{"spec":{"nodeSelector":{"formation":"drain"}}}`},
+			words("wait --for=condition=Ready pod/solo --timeout=120s -n {NS}"),
+		},
+		Args:    words("drain {W1} --ignore-daemonsets"),
+		Cleanup: [][]string{words("uncordon {W1}"), words("label node {W1} formation-")},
+	},
 	drainCase("drain-local-storage", "drain {W1} --ignore-daemonsets"),
 	drainCase("drain-pdb-blocked", "drain {W1} --ignore-daemonsets --delete-emptydir-data --timeout=20s"),
 	// Métriques (US4) : aucun metrics-server dans ce cluster.

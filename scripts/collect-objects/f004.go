@@ -56,6 +56,13 @@ func hpaReads(name, target string) []read {
 	}
 }
 
+// pendingPodEvents lit les événements du pod en attente du Deployment anti.
+func pendingPodEvents(c *kindcluster.Cluster, ns string) []string {
+	res := c.Kubectl("get", "pods", "-l", "app=anti", "--field-selector", "status.phase=Pending",
+		"-o", "jsonpath={.items[0].metadata.name}", "-n", ns)
+	return kuberead.PodEventsArgs(strings.TrimSpace(res.Stdout))
+}
+
 // replicaSetEvents lit les événements du ReplicaSet courant du Deployment api.
 func replicaSetEvents(c *kindcluster.Cluster, ns string) []string {
 	res := c.Kubectl("get", "replicasets", "-l", "app=api", "-o", "jsonpath={.items[-1:].metadata.name}", "-n", ns)
@@ -81,7 +88,11 @@ var f004Cases = []objectCase{
 	{
 		id: "pending-anti-affinity", ns: "f004-anti",
 		steps: []step{apply("anti-affinity.yaml"), pause(20 * time.Second)},
-		reads: []read{r("pods.json", kuberead.PodsArgs()), r("nodes.json", kuberead.NodesArgs())},
+		reads: []read{
+			r("pods.json", kuberead.PodsArgs()),
+			r("nodes.json", kuberead.NodesArgs()),
+			{file: "events-pending.json", dyn: pendingPodEvents},
+		},
 	},
 	// Refus d'admission vu depuis le Deployment (US1).
 	{

@@ -1,0 +1,68 @@
+{
+  "apiVersion": "batch/v1",
+  "kind": "CronJob",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "••••••"
+    },
+    "creationTimestamp": "2026-10-29T16:19:16Z",
+    "generation": 1,
+    "name": "sauvegarde",
+    "namespace": "f004-cron-suspendu",
+    "resourceVersion": "1072",
+    "uid": "b5f4fcc9-9326-4af3-a057-1054e6e4b163"
+  },
+  "spec": {
+    "concurrencyPolicy": "Allow",
+    "failedJobsHistoryLimit": 1,
+    "jobTemplate": {
+      "metadata": {},
+      "spec": {
+        "template": {
+          "metadata": {},
+          "spec": {
+            "containers": [
+              {
+                "command": [
+                  "sh",
+                  "-c",
+                  "echo sauvegarde"
+                ],
+                "image": "busybox:1.38",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "calcul",
+                "resources": {
+                  "limits": {
+                    "cpu": "100m",
+                    "memory": "32Mi"
+                  },
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "16Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Never",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "runAsUser": 65534
+            },
+            "terminationGracePeriodSeconds": 30
+          }
+        }
+      }
+    },
+    "schedule": "*/5 * * * *",
+    "successfulJobsHistoryLimit": 3,
+    "suspend": true
+  },
+  "status": {}
+}

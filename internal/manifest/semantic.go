@@ -7,6 +7,7 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
+	"github.com/aboigues/telemach-plugin-kubectl/internal/cron"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/redact"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/schema"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/textdist"
@@ -150,6 +151,8 @@ func SemanticIssues(f *File, d *Document, rules *schema.SchemaSet) []Issue {
 	}
 	out = append(out, selectorIssues(f, d)...)
 	out = append(out, enumIssues(f, d)...)
+	out = append(out, cronIssues(f, d)...)
+	out = append(out, limitsIssues(f, d)...)
 	for _, p := range d.Masked {
 		is := Issue{Kind: KindPlaintextSecret, File: f.Path, Document: d.Index, Line: p.Line, Column: p.Column, Resource: d.Resource(), Suggestion: "secretKeyRef"}
 		is.FieldPath = pathAt(d.Root, p)
@@ -221,6 +224,72 @@ func enumIssues(f *File, d *Document) []Issue {
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Line < out[j].Line })
 	return out
+}
+
+// limitsIssues signale, par une information, chaque conteneur sans resources.limits
+// (feature 004, FR-004) : c'est la cause n° 1 du refus « must specify limits » d'un quota.
+func limitsIssues(f *File, d *Document) []Issue {
+	path, ok := podTemplates[d.Kind]
+	if !ok {
+		return nil
+	}
+	tpl := d.Root
+	prefix := ""
+	for _, k := range path {
+		tpl = get(tpl, k)
+		prefix += k + "."
+	}
+	var out []Issue
+	spec := get(tpl, "spec")
+	for _, list := range []string{"initContainers", "containers"} {
+		for i, c := range seq(get(spec, list)) {
+			if lim := get(get(c, "resources"), "limits"); lim != nil && len(lim.Content) > 0 {
+				continue
+			}
+			key := getKey(c, "name")
+			if key == nil {
+				continue
+			}
+			out = append(out, Issue{
+				Kind: KindMissingLimits, File: f.Path, Document: d.Index, Line: key.Line, Column: key.Column,
+				Resource: d.Resource(), FieldPath: prefix + "spec." + list + "[" + itoa(i) + "].resources.limits",
+				Detail: scalar(c, "name"),
+			})
+		}
+	}
+	return out
+}
+
+// cronIssues vérifie hors ligne l'expression spec.schedule d'un CronJob (feature 004,
+// research.md F9). La version corrigée n'est proposée que si elle est certaine : quatre champs
+// dont les trois derniers valent « * » (il manque un « * »).
+func cronIssues(f *File, d *Document) []Issue {
+	if d.Kind != "CronJob" {
+		return nil
+	}
+	n := get(get(d.Root, "spec"), "schedule")
+	if n == nil || n.Kind != yaml.ScalarNode {
+		return nil
+	}
+	_, err := cron.Parse(n.Value)
+	if err == nil {
+		return nil
+	}
+	is := Issue{
+		Kind: KindInvalidCron, File: f.Path, Document: d.Index, Line: n.Line, Column: n.Column,
+		Resource: d.Resource(), FieldPath: "spec.schedule", Detail: err.Error(),
+	}
+	if fs := strings.Fields(n.Value); len(fs) == 4 && fs[1] == "*" && fs[2] == "*" && fs[3] == "*" {
+		quote := ""
+		switch n.Style {
+		case yaml.DoubleQuotedStyle:
+			quote = `"`
+		case yaml.SingleQuotedStyle:
+			quote = "'"
+		}
+		is.Suggestion = quote + strings.Join(fs, " ") + " *" + quote
+	}
+	return []Issue{is}
 }
 
 // pathAt retrouve le chemin du champ dont la valeur est à la position p.

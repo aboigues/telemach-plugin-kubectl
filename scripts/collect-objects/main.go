@@ -205,7 +205,7 @@ func main() {
 	scenarios := flag.String("scenarios", "testdata/objects/scenarios", "dossier des manifestes des scénarios")
 	variant := flag.String("variant", "", "version mineure relevée (ex. 1.35) : variante rangée dans <cas>@<version> si un fichier diffère")
 	kindConfig := flag.String("kind-config", "testdata/kind/three-nodes.yaml", "configuration kind du cluster de relevé (feature 004 : trois nœuds)")
-	only := flag.String("only", "", "cas à relever : un identifiant, ou f004 pour tous ceux de la feature 004")
+	only := flag.String("only", "", "cas à relever : identifiants séparés par des virgules, ou f004 pour tous ceux de la feature 004")
 	flag.Parse()
 	if err := collect(*out, *pods, *scenarios, *variant, *kindConfig, *only); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -231,9 +231,7 @@ func collect(out, podsDir, scenarios, variant, kindConfig, only string) error {
 		return err
 	}
 	for _, oc := range append(append([]objectCase(nil), cases...), f004Cases...) {
-		// -only f004 : les cas de la feature 004 (ceux qui ont leur propre namespace) ; sinon un
-		// seul cas, par son identifiant.
-		if only != "" && (only != "f004" || oc.ns == "") && oc.id != only {
+		if !selected(only, oc) {
 			continue
 		}
 		if oc.ns != "" {
@@ -288,7 +286,7 @@ func prepare(c *kindcluster.Cluster, scenarios, caseNS string, steps []step) err
 				args[i] = nodes.Replace(a)
 			}
 			if !s.cluster {
-				args = append(args, "-n", namespace)
+				args = withNamespace(args, namespace)
 			}
 			if r := c.Kubectl(args...); r.ExitCode != 0 && !s.soft {
 				return fmt.Errorf("kubectl %s : %s", strings.Join(s.args, " "), r.Stderr)
@@ -296,6 +294,32 @@ func prepare(c *kindcluster.Cluster, scenarios, caseNS string, steps []step) err
 		}
 	}
 	return nil
+}
+
+// withNamespace place « -n » avant un éventuel « -- » : après, il deviendrait un argument de
+// la commande du conteneur (kubectl create job … -- sh -c …).
+func withNamespace(args []string, namespace string) []string {
+	for i, a := range args {
+		if a == "--" {
+			out := append(append(append([]string(nil), args[:i]...), "-n", namespace), args[i:]...)
+			return out
+		}
+	}
+	return append(args, "-n", namespace)
+}
+
+// selected indique si un cas fait partie de la sélection -only : identifiants séparés par des
+// virgules, ou f004 pour tous ceux de la feature 004 (qui ont leur propre namespace).
+func selected(only string, oc objectCase) bool {
+	if only == "" {
+		return true
+	}
+	for _, o := range strings.Split(only, ",") {
+		if o == oc.id || (o == "f004" && oc.ns != "") {
+			return true
+		}
+	}
+	return false
 }
 
 // capture exécute une lecture ; un échec est rangé dans <fichier>.err (message masqué), comme

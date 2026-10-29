@@ -1,0 +1,5 @@
+run
+nu
+--image=nginxinc/nginx-unprivileged:1.30-alpine
+-n
+run-quota-must-specify

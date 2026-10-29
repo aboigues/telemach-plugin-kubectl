@@ -267,6 +267,71 @@ func (r *Reader) ConfigMapDates(name string) (ConfigMapDates, error) {
 }
 
 // getJSON exécute une lecture et décode sa sortie JSON dans v.
+// Lectures de la feature 004 (research.md F1).
+
+// GetJob lit un Job.
+func (r *Reader) GetJob(name string) (Job, error) {
+	var j Job
+	err := r.getJSON("le Job "+name, &j, JobArgs(name)...)
+	return j, err
+}
+
+// ListJobs lit les Jobs du namespace.
+func (r *Reader) ListJobs() (JobList, error) {
+	var l JobList
+	err := r.getJSON("les Jobs", &l, JobsArgs()...)
+	return l, err
+}
+
+// GetCronJob lit un CronJob.
+func (r *Reader) GetCronJob(name string) (CronJob, error) {
+	var c CronJob
+	err := r.getJSON("le CronJob "+name, &c, CronJobArgs(name)...)
+	return c, err
+}
+
+// GetDaemonSet lit un DaemonSet.
+func (r *Reader) GetDaemonSet(name string) (DaemonSet, error) {
+	var d DaemonSet
+	err := r.getJSON("le DaemonSet "+name, &d, DaemonSetArgs(name)...)
+	return d, err
+}
+
+// GetStatefulSet lit un StatefulSet.
+func (r *Reader) GetStatefulSet(name string) (StatefulSet, error) {
+	var s StatefulSet
+	err := r.getJSON("le StatefulSet "+name, &s, StatefulSetArgs(name)...)
+	return s, err
+}
+
+// GetHPA lit un HorizontalPodAutoscaler.
+func (r *Reader) GetHPA(name string) (HPA, error) {
+	var h HPA
+	err := r.getJSON("le HPA "+name, &h, HPAArgs(name)...)
+	return h, err
+}
+
+// ListNodes lit les nœuds du cluster.
+func (r *Reader) ListNodes() (NodeList, error) {
+	var l NodeList
+	err := r.getJSON("les nœuds", &l, NodesArgs()...)
+	return l, err
+}
+
+// GetMetricsAPIService lit l'APIService de l'API de métriques.
+func (r *Reader) GetMetricsAPIService() (APIService, error) {
+	var a APIService
+	err := r.getJSON("l'API de métriques", &a, MetricsAPIServiceArgs()...)
+	return a, err
+}
+
+// ReplicaSetEvents lit les événements d'un ReplicaSet.
+func (r *Reader) ReplicaSetEvents(rs string) (EventList, error) {
+	var l EventList
+	err := r.getJSON("les événements du ReplicaSet "+rs, &l, ReplicaSetEventsArgs(rs)...)
+	return l, err
+}
+
 func (r *Reader) getJSON(what string, v any, args ...string) error {
 	out, err := r.run(what, args...)
 	if err != nil {

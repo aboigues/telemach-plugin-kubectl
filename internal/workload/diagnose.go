@@ -40,6 +40,9 @@ type PodSnapshot struct {
 	LogPrevious bool
 	DeniedReads []string
 	Others      []PodSummary
+	// Feature 004 : causes de placement d'un pod Pending, sur PlacementTotal nœuds.
+	Placement      []PlacementCause
+	PlacementTotal int
 }
 
 // EventSummary est un événement résumé, masqué.
@@ -83,6 +86,10 @@ func Diagnose(r Reader, p kuberead.Pod, scope kuberead.Scope, cat *catalog.Catal
 		snap.Owner = o.Kind + "/" + o.Name
 	}
 	fillContainer(&snap, p)
+	if len(cl.Causes) > 0 {
+		snap.Placement, snap.PlacementTotal = cl.Causes, cl.Total
+		refineNodes(r, p, &snap)
+	}
 	if cl.State == StateFailing {
 		readEvents(r, &snap)
 		refine(&snap)
@@ -245,6 +252,18 @@ func captures(snap PodSnapshot, scope kuberead.Scope) map[string]string {
 	}
 	if snap.Owner != "" {
 		c["owner"] = snap.Owner
+	}
+	// Feature 004 : cause principale de placement (taint, nœuds concernés).
+	if len(snap.Placement) > 0 {
+		main := MainCause(snap.Placement)
+		if main.Reason == ReasonUntoleratedTaint && main.Detail != "" {
+			c["taint"] = main.Detail
+		}
+		if len(main.NodeNames) > 0 {
+			c["node_names"] = strings.Join(main.NodeNames, ", ")
+			c["node"] = main.NodeNames[0]
+		}
+		c["nodes_total"] = strconv.Itoa(snap.PlacementTotal)
 	}
 	return c
 }

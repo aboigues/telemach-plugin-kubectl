@@ -1,0 +1,5 @@
+error: unable to drain node "telemach-cluster-worker" due to error: [cannot delete Pods with local storage (use --delete-emptydir-data to override): drain-daemonset-pods/cache-5f84bd9cd7-hwrkw, cannot delete DaemonSet-managed Pods (use --ignore-daemonsets to ignore): kube-system/kindnet-45jpq, kube-system/kube-proxy-hdgst], continuing command...
+There are pending nodes to be drained:
+ telemach-cluster-worker
+cannot delete Pods with local storage (use --delete-emptydir-data to override): drain-daemonset-pods/cache-5f84bd9cd7-hwrkw
+cannot delete DaemonSet-managed Pods (use --ignore-daemonsets to ignore): kube-system/kindnet-45jpq, kube-system/kube-proxy-hdgst

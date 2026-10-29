@@ -1,0 +1,4 @@
+# Message relevé en formation (issue #16) : metrics-server installé mais pas encore prêt.
+source: formation
+entry: metrics.api-unavailable
+origin: cluster

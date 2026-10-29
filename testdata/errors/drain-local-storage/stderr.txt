@@ -1,0 +1,4 @@
+error: unable to drain node "telemach-cluster-worker" due to error: cannot delete Pods with local storage (use --delete-emptydir-data to override): drain-local-storage/cache-64cff754b9-zfh97, continuing command...
+There are pending nodes to be drained:
+ telemach-cluster-worker
+cannot delete Pods with local storage (use --delete-emptydir-data to override): drain-local-storage/cache-64cff754b9-zfh97

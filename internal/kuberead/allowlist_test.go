@@ -151,6 +151,47 @@ func TestAllowlistObjects(t *testing.T) {
 	}
 }
 
+// Feature 004 (research.md F1) : lectures des Jobs, CronJobs, DaemonSets, StatefulSets, HPA,
+// nœuds, API de métriques et événements d'un ReplicaSet, en get/list seulement.
+func TestAllowlistWorkloads(t *testing.T) {
+	r, log := setup(t, "")
+	_, _ = r.GetJob("calc")
+	_, _ = r.ListJobs()
+	_, _ = r.GetCronJob("sauvegarde")
+	_, _ = r.GetDaemonSet("agent")
+	_, _ = r.GetStatefulSet("base")
+	_, _ = r.GetHPA("web")
+	_, _ = r.ListNodes()
+	_, _ = r.GetMetricsAPIService()
+	_, _ = r.ReplicaSetEvents("api-5d9f")
+	want := [][]string{
+		withScope("get", "job", "calc", "-o", "json"),
+		withScope("get", "jobs", "-o", "json"),
+		withScope("get", "cronjob", "sauvegarde", "-o", "json"),
+		withScope("get", "daemonset", "agent", "-o", "json"),
+		withScope("get", "statefulset", "base", "-o", "json"),
+		withScope("get", "hpa", "web", "-o", "json"),
+		withScope("get", "nodes", "-o", "json"),
+		withScope("get", "apiservice", "v1beta1.metrics.k8s.io", "-o", "json"),
+		withScope("get", "events", "--field-selector", "involvedObject.kind=ReplicaSet,involvedObject.name=api-5d9f", "-o", "json"),
+	}
+	got := calls(t, log)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatalf("lectures (-attendu +obtenu) :\n%s", diff)
+	}
+	for _, c := range got {
+		if c[1] != "get" {
+			t.Errorf("verbe interdit : %v", c)
+		}
+		for _, a := range c {
+			switch a {
+			case "secret", "secrets", "describe", "exec", "-A", "--all-namespaces":
+				t.Errorf("argument interdit %q : %v", a, c)
+			}
+		}
+	}
+}
+
 // Les seules fonctions publiques du lecteur sont celles de la liste fermée : en ajouter une
 // impose de mettre à jour ce test (et research.md R8).
 func TestNoOtherReads(t *testing.T) {
@@ -161,10 +202,11 @@ func TestNoOtherReads(t *testing.T) {
 	}
 	sort.Strings(methods)
 	want := []string{
-		"ConfigMapDates", "GetDeployment", "GetIngress", "GetPVC", "GetPod", "GetService",
-		"ListDeployments", "ListEndpointSlices", "ListIngressClasses", "ListIngresses", "ListPVCs",
-		"ListPods", "ListServices", "ListStorageClasses", "Logs", "PodEvents", "PodsBySelector",
-		"ReplicaSetsBySelector", "ServiceEndpointSlices",
+		"ConfigMapDates", "GetCronJob", "GetDaemonSet", "GetDeployment", "GetHPA", "GetIngress",
+		"GetJob", "GetMetricsAPIService", "GetPVC", "GetPod", "GetService", "GetStatefulSet",
+		"ListDeployments", "ListEndpointSlices", "ListIngressClasses", "ListIngresses", "ListJobs",
+		"ListNodes", "ListPVCs", "ListPods", "ListServices", "ListStorageClasses", "Logs", "PodEvents",
+		"PodsBySelector", "ReplicaSetEvents", "ReplicaSetsBySelector", "ServiceEndpointSlices",
 	}
 	if diff := cmp.Diff(want, methods); diff != "" {
 		t.Errorf("méthodes publiques (-attendu +obtenu) :\n%s", diff)

@@ -62,6 +62,8 @@ func TestValidationRules(t *testing.T) {
 		{"manifest-issue sans issue_kinds", "applies: [get]", "applies: [get]\n  fallback: manifest-issue", "issue_kinds"},
 		{"aucun motif", `patterns: ['the server doesn''t have a resource type "(?P<type>[^"]+)"']`, "patterns: []", "au moins un motif"},
 		{"approfondissement incomplet", "exercise: Crée", "exercice: Crée", "exercice"},
+		{"origine inconnue", "applies: [get]", "applies: [get]\n  origin: application", "origin inconnue"},
+		{"when_flag invalide", "applies: [get]", "applies: [get]\n  when_flag: for", "when_flag invalide"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -218,6 +220,7 @@ func TestForcedDeletionIsAntiPattern(t *testing.T) {
 		t.Fatal(err)
 	}
 	forced := regexp.MustCompile(`--grace-period[= ]0|--force\b|finalizers`)
+	forcedDeletion := regexp.MustCompile(`--grace-period[= ]0|finalizers|delete [^\n]*--force\b`)
 	for _, e := range c.Entries {
 		texts := []string{e.Summary, e.Cause, e.Deepen.Explanation, e.Deepen.Example, e.Deepen.Exercise}
 		for _, f := range e.Fixes {
@@ -228,8 +231,10 @@ func TestForcedDeletionIsAntiPattern(t *testing.T) {
 				t.Errorf("%s : suppression forcée ou finalizers mentionnés sans anti_pattern : %q", e.ID, text)
 			}
 		}
-		// La démarche : chercher d'abord ce qui bloque (finalizers, nœud, volume).
-		if e.AntiPattern != nil && forced.MatchString(e.AntiPattern.Description) &&
+		// La démarche : chercher d'abord ce qui bloque (finalizers, nœud, volume). Elle vaut
+		// pour la suppression forcée d'un objet (delete --force, --grace-period=0, finalizers) ;
+		// « drain --force » (feature 004) ne touche pas aux finalizers.
+		if e.AntiPattern != nil && forcedDeletion.MatchString(e.AntiPattern.Description) &&
 			(!strings.Contains(e.AntiPattern.Description, "finalizers") || !strings.Contains(e.AntiPattern.Description, "nœud")) {
 			t.Errorf("%s : l'anti_pattern doit proposer d'identifier ce qui bloque (FR-028)", e.ID)
 		}

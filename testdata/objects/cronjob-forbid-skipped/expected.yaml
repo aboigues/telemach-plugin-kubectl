@@ -1,0 +1,5 @@
+# Attendu du diagnostic (feature 004), rédigé à la main d'après le relevé kind 1.37.
+kind: cronjob
+name: export
+primary: cronjob.forbid-skipped
+links: {schedule: ok, history: broken, last-job: ok}

@@ -157,3 +157,54 @@ func (f *ObjectFixture) ConfigMapDates(name string) (kuberead.ConfigMapDates, er
 	}
 	return kuberead.ParseConfigMapDates(name, string(data)), nil
 }
+
+// Lectures de la feature 004 : fichiers du relevé de scripts/collect-objects/f004.go.
+
+func (f *ObjectFixture) GetJob(string) (kuberead.Job, error) {
+	var v kuberead.Job
+	return v, f.load("job.json", &v)
+}
+
+func (f *ObjectFixture) ListJobs() (kuberead.JobList, error) {
+	var v kuberead.JobList
+	return v, f.load("jobs.json", &v)
+}
+
+func (f *ObjectFixture) GetCronJob(string) (kuberead.CronJob, error) {
+	var v kuberead.CronJob
+	return v, f.load("cronjob.json", &v)
+}
+
+func (f *ObjectFixture) GetDaemonSet(string) (kuberead.DaemonSet, error) {
+	var v kuberead.DaemonSet
+	return v, f.load("daemonset.json", &v)
+}
+
+func (f *ObjectFixture) GetStatefulSet(string) (kuberead.StatefulSet, error) {
+	var v kuberead.StatefulSet
+	return v, f.load("statefulset.json", &v)
+}
+
+func (f *ObjectFixture) GetHPA(string) (kuberead.HPA, error) {
+	var v kuberead.HPA
+	return v, f.load("hpa.json", &v)
+}
+
+func (f *ObjectFixture) ListNodes() (kuberead.NodeList, error) {
+	var v kuberead.NodeList
+	return v, f.load("nodes.json", &v)
+}
+
+func (f *ObjectFixture) GetMetricsAPIService() (kuberead.APIService, error) {
+	var v kuberead.APIService
+	return v, f.load("apiservice.json", &v)
+}
+
+func (f *ObjectFixture) ReplicaSetEvents(string) (kuberead.EventList, error) {
+	var v kuberead.EventList
+	err := f.load("events-replicaset.json", &v)
+	if kuberead.IsNotFound(err) {
+		return v, nil
+	}
+	return v, err
+}

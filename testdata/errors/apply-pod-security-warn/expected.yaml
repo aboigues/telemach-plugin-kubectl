@@ -1,0 +1,4 @@
+# Sortie d'erreur d'une commande RÉUSSIE (code 0) : expliquée par « notice », pas par
+# explain (feature 004, research.md F5).
+entry: admission.pod-security-warning
+origin: cluster

@@ -1,0 +1,84 @@
+# kubectl wait (feature 004, US6, research.md F14). Le message est le même pour une
+# condition, un jsonpath et --for=delete : seule l'option --for les distingue (when_flag).
+
+# --for=delete : rangée avant l'entrée générale, réservée à cette option.
+- id: wait.delete-timeout
+  category: wait
+  applies: [wait]
+  when_flag: --for=delete
+  patterns:
+    - 'timed out waiting for the condition on (?P<restype>[a-z0-9.]+)/(?P<objname>[^\s]+)'
+  concept:
+    name: finalizer
+    definition: >-
+      Un finalizer est une étiquette posée sur un objet par un contrôleur : tant qu'elle est
+      là, l'objet reste en cours de suppression (Terminating), le temps que ce contrôleur
+      fasse son nettoyage (volume, ressource externe), puis la retire.
+  summary: L'objet {{.restype}}/{{.objname}} n'a pas été supprimé dans le délai.
+  cause: >-
+    La suppression attend sans doute un finalizer, des objets dépendants encore présents, ou
+    un pod dont le nœud ne répond plus.
+  fixes:
+    - description: Voir ce qui retient l'objet, à commencer par ses finalizers.
+      command: "{{.kubectl}} get {{.restype}} {{.objname}}{{if .scope}} {{.scope}}{{end}} -o jsonpath='{.metadata.finalizers}'"
+      safe: true
+    - description: Si la suppression est seulement lente, relancer l'attente avec un délai plus long.
+      command: '{{.kubectl}} wait --for=delete {{.restype}}/{{.objname}} --timeout=120s{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  anti_pattern:
+    description: >-
+      Retirer les finalizers à la main ou supprimer avec --force --grace-period=0 fait
+      disparaître l'objet sans laisser son contrôleur terminer le nettoyage (volumes,
+      ressources externes). Identifie d'abord ce qui bloque : quels finalizers, quel
+      contrôleur, quel nœud.
+  deepen:
+    explanation: >-
+      kubectl delete rend la main dès que la suppression est demandée ; l'objet peut rester
+      Terminating tant qu'un finalizer n'est pas retiré. wait --for=delete attend sa
+      disparition réelle.
+    example: |-
+      kubectl get pod web -o jsonpath='{.metadata.finalizers}'
+      kubectl wait --for=delete pod/web --timeout=60s
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-finalizer », crée une
+      ConfigMap, ajoute-lui un finalizer avec kubectl patch, demande sa suppression puis
+      observe-la avec kubectl get. Retire le finalizer, puis supprime le namespace.
+  doc_url: https://kubernetes.io/docs/concepts/overview/working-with-objects/finalizers/
+  tests: [wait-delete-timeout]
+
+- id: wait.timeout
+  category: wait
+  applies: [wait]
+  patterns:
+    - 'timed out waiting for the condition on (?P<restype>[a-z0-9.]+)/(?P<objname>[^\s]+)'
+  concept:
+    name: kubectl wait
+    definition: >-
+      kubectl wait attend qu'un objet atteigne un état (une condition comme Ready ou
+      Available, ou une valeur jsonpath) et échoue quand le délai --timeout est écoulé.
+      L'échec dit seulement que l'état n'est pas atteint, pas pourquoi.
+  summary: L'objet {{.restype}}/{{.objname}} n'a pas atteint l'état attendu dans le délai.
+  cause: >-
+    L'objet est encore en train de démarrer, ou il est bloqué : image introuvable, pod qui
+    redémarre, ressources insuffisantes… La raison est dans son état et ses événements.
+  fixes:
+    - description: Chercher pourquoi l'objet n'est pas dans l'état attendu.
+      command: '{{if .diag_target}}{{.kubectl}} telemach diagnose {{.diag_target}}{{else}}{{.kubectl}} describe {{.restype}} {{.objname}}{{end}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Si l'objet est seulement lent, relancer l'attente avec un délai plus long.
+      command: '{{.kubectl}} wait --for={{if .wait_for}}{{.wait_for}}{{else}}condition=Ready{{end}} {{.restype}}/{{.objname}} --timeout=120s{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      wait est utile dans un script pour enchaîner les étapes (« attendre que le Deployment
+      soit Available avant de tester »). Quand il expire, la question devient : qu'est-ce qui
+      empêche l'objet d'avancer ? Le diagnostic de l'objet ou ses événements y répondent.
+    example: |-
+      kubectl wait --for=condition=Available deployment/web --timeout=90s
+      kubectl wait --for=jsonpath='{.status.phase}'=Running pod/web --timeout=60s
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-wait », lance un pod avec
+      une image inexistante, attends-le avec kubectl wait --for=condition=Ready --timeout=10s,
+      puis diagnostique-le avec kubectl telemach diagnose. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_wait/
+  tests: [wait-condition-timeout, wait-deployment-timeout, wait-jsonpath-timeout]

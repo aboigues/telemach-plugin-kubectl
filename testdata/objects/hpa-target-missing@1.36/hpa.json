@@ -1,0 +1,48 @@
+{
+  "apiVersion": "autoscaling/v2",
+  "kind": "HorizontalPodAutoscaler",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "••••••"
+    },
+    "creationTimestamp": "2026-10-29T16:51:26Z",
+    "name": "orphelin",
+    "namespace": "f004-hpa-orphelin",
+    "resourceVersion": "2042",
+    "uid": "7789d461-dac8-42f8-bbc1-a5a0314cf26c"
+  },
+  "spec": {
+    "maxReplicas": 3,
+    "metrics": [
+      {
+        "resource": {
+          "name": "cpu",
+          "target": {
+            "averageUtilization": 50,
+            "type": "Utilization"
+          }
+        },
+        "type": "Resource"
+      }
+    ],
+    "minReplicas": 1,
+    "scaleTargetRef": {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "name": "absent"
+    }
+  },
+  "status": {
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-10-29T16:51:43Z",
+        "message": "the HPA controller was unable to get the target's current scale: deployments.apps \"absent\" not found",
+        "reason": "FailedGetScale",
+        "status": "False",
+        "type": "AbleToScale"
+      }
+    ],
+    "currentMetrics": null,
+    "desiredReplicas": 0
+  }
+}
