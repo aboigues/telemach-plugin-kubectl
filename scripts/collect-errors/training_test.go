@@ -38,7 +38,7 @@ func TestTrainingDiscoveryAndReport(t *testing.T) {
 		{TP: "tp04-jobs", Panne: "import.yaml", Command: "kubectl telemach diagnose -n panne-01", Message: "a | b", Result: "reconnue"},
 		{TP: "tp06-hpa", Panne: "export.yaml", Command: "kubectl apply -f export.yaml", Message: "error: x", Result: "unknown"},
 	})
-	for _, want := range []string{"| TP | Panne |", `a \| b`, "2 ligne(s), 1 non reconnue(s)"} {
+	for _, want := range []string{"| TP | Panne |", `a \| b`, "2 ligne(s), 1 non reconnue(s) ou non prise(s) en charge, 0 sans signal"} {
 		if !strings.Contains(report, want) {
 			t.Errorf("rapport sans %q :\n%s", want, report)
 		}
