@@ -1,0 +1,44 @@
+# Deployment sans requests.cpu et son HPA à 50 % CPU (feature 004, FR-018) : information de check.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      containers:
+      - name: web
+        image: nginxinc/nginx-unprivileged:1.30-alpine
+        securityContext: {allowPrivilegeEscalation: false}
+        resources:
+          requests: {memory: 32Mi}
+          limits: {memory: 64Mi}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: web
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50

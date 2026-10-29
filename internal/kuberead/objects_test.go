@@ -12,7 +12,11 @@ import (
 
 // forbiddenFields sont les champs JSON qui porteraient une valeur sensible : aucun type lu du
 // cluster ne doit les déclarer (FR-018, research.md S2).
-var forbiddenFields = map[string]bool{"data": true, "binaryData": true, "stringData": true, "value": true}
+var forbiddenFields = map[string]bool{"data": true, "binaryData": true, "stringData": true, "value": true, "addresses": true}
+
+// publicValues sont les types dont le champ « value » n'est pas secret : la valeur d'un taint
+// et celle d'une toleration (« dedie=gpu ») servent au placement (feature 004).
+var publicValues = map[reflect.Type]bool{reflect.TypeOf(Taint{}): true, reflect.TypeOf(Toleration{}): true}
 
 // TestNoSensitiveField parcourt par réflexion tous les types lus du cluster.
 func TestNoSensitiveField(t *testing.T) {
@@ -33,6 +37,15 @@ func TestNoSensitiveField(t *testing.T) {
 		StorageClassList{},
 		ConfigMapDates{},
 		EventList{},
+		// Feature 004 (research.md F2) : aucune valeur d'env, aucune adresse de nœud.
+		Job{},
+		JobList{},
+		CronJob{},
+		DaemonSet{},
+		StatefulSet{},
+		HPA{},
+		NodeList{},
+		APIService{},
 	}
 	seen := map[reflect.Type]bool{}
 	var walk func(rt reflect.Type, path string)
@@ -47,7 +60,7 @@ func TestNoSensitiveField(t *testing.T) {
 		for i := 0; i < rt.NumField(); i++ {
 			f := rt.Field(i)
 			tag := strings.Split(f.Tag.Get("json"), ",")[0]
-			if forbiddenFields[tag] {
+			if forbiddenFields[tag] && (tag != "value" || !publicValues[rt]) {
 				t.Errorf("%s.%s : champ %q interdit (valeur sensible)", path, f.Name, tag)
 			}
 			if tag == "annotations" && f.Type != reflect.TypeOf(KnownAnnotations{}) {
@@ -93,6 +106,33 @@ func TestDecodeObjects(t *testing.T) {
 	}
 }
 
+// Feature 004 : valeurs par défaut de Kubernetes quand le champ manque (data-model.md).
+func TestWorkloadDefaults(t *testing.T) {
+	var j Job
+	mustDecode(t, `{"metadata":{"name":"calc"},"spec":{}}`, &j)
+	var c CronJob
+	mustDecode(t, `{"metadata":{"name":"cj"},"spec":{"schedule":"*/5 * * * *"}}`, &c)
+	var s StatefulSet
+	mustDecode(t, `{"metadata":{"name":"base"},"spec":{}}`, &s)
+	var h HPA
+	mustDecode(t, `{"metadata":{"name":"web"},"spec":{"maxReplicas":3}}`, &h)
+	if j.Spec.BackoffLimitOrDefault() != 6 || c.Spec.ConcurrencyPolicyOrDefault() != "Allow" ||
+		s.PodManagementPolicyOrDefault() != "OrderedReady" || s.ReplicasOrDefault() != 1 || h.MinReplicasOrDefault() != 1 {
+		t.Errorf("valeurs par défaut : backoffLimit %d, concurrencyPolicy %s, podManagementPolicy %s, replicas %d, minReplicas %d",
+			j.Spec.BackoffLimitOrDefault(), c.Spec.ConcurrencyPolicyOrDefault(), s.PodManagementPolicyOrDefault(), s.ReplicasOrDefault(), h.MinReplicasOrDefault())
+	}
+	var n NodeList
+	mustDecode(t, `{"items":[{"metadata":{"name":"w1"},"spec":{"taints":[{"key":"dedie","value":"gpu","effect":"NoSchedule"},
+		{"key":"node-role.kubernetes.io/control-plane","effect":"NoSchedule"}]},
+		"status":{"addresses":[{"type":"InternalIP","address":"172.18.0.3"}]}}]}`, &n)
+	if got := n.Items[0].Spec.Taints[0].String() + " " + n.Items[0].Spec.Taints[1].String(); got != "dedie=gpu:NoSchedule node-role.kubernetes.io/control-plane:NoSchedule" {
+		t.Errorf("taints : %s", got)
+	}
+	if strings.Contains(goString(n), "172.18.0.3") {
+		t.Error("l'adresse d'un nœud ne doit pas être décodée")
+	}
+}
+
 func TestParseConfigMapDates(t *testing.T) {
 	d := ParseConfigMapDates("conf", "2026-10-17T10:00:00Z\n2026-10-17T12:30:00Z\nMODE=prod\n\n")
 	if len(d.Modified) != 2 || !d.Latest().Equal(time.Date(2026, 10, 17, 12, 30, 0, 0, time.UTC)) {
@@ -125,6 +165,19 @@ func TestCorpusObjectsDecode(t *testing.T) {
 		"service-docs":   func() any { return &Service{} },
 		// Événements d'un pod en difficulté lié à l'objet (pod consommateur d'un PVC).
 		"events-cache-user": func() any { return &EventList{} },
+		// Feature 004 (research.md F1).
+		"job":               func() any { return &Job{} },
+		"jobs":              func() any { return &JobList{} },
+		"cronjob":           func() any { return &CronJob{} },
+		"daemonset":         func() any { return &DaemonSet{} },
+		"statefulset":       func() any { return &StatefulSet{} },
+		"hpa":               func() any { return &HPA{} },
+		"nodes":             func() any { return &NodeList{} },
+		"apiservice":        func() any { return &APIService{} },
+		"pvcs":              func() any { return &PVCList{} },
+		"events-place":      func() any { return &EventList{} },
+		"events-pending":    func() any { return &EventList{} },
+		"events-replicaset": func() any { return &EventList{} },
 	}
 	decoded := 0
 	for _, f := range files {

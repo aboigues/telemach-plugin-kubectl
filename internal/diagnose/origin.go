@@ -9,7 +9,17 @@ import (
 // Origine de l'erreur (FR-004, research.md R5). kubectl renvoie le code 1 pour presque toutes
 // ses erreurs : l'origine se déduit donc surtout du texte et de l'entrée reconnue.
 func init() {
-	originRules = append(originRules, applicationOrigin, clusterOrigin)
+	originRules = append(originRules, declaredOrigin, applicationOrigin, clusterOrigin)
+}
+
+// declaredOrigin : origine déclarée par l'entrée du catalogue (champ origin, feature 004),
+// pour une erreur du cluster que son texte ne trahit pas (éviction refusée par un
+// PodDisruptionBudget, API absente du cluster).
+func declaredOrigin(_ Input, d Diagnosis) (Origin, bool) {
+	if d.Entry != nil && d.Entry.Origin != "" {
+		return Origin(d.Entry.Origin), true
+	}
+	return "", false
 }
 
 // clusterMarkers signale une réponse du serveur API.
@@ -43,12 +53,13 @@ func clusterOrigin(in Input, d Diagnosis) (Origin, bool) {
 		return OriginCluster, true
 	}
 	switch catalog.Category(d.Entry.Category) {
-	case "auth", "namespace", "conflict", "workload":
+	case "auth", "namespace", "conflict", "workload", "admission":
 		return OriginCluster, true
 	case "notfound":
 		if d.Entry.ID == "notfound.resource" {
 			return OriginCluster, true
 		}
+
 	}
 	return "", false
 }

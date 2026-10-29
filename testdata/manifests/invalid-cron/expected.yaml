@@ -1,0 +1,10 @@
+# Expression cron à 4 champs (feature 004, US3, T009 du quickstart) : problème invalid-cron
+# de check, puis manifest.cron-schedule à l'application.
+file: 'cronjob.yaml'
+document: 1
+line: 6
+column: 13
+resource: 'CronJob/sauvegarde'
+field_path: 'spec.schedule'
+kind: 'invalid-cron'
+apply: true

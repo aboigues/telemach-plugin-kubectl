@@ -1,0 +1,6 @@
+wait
+--for=jsonpath={.status.phase}=Running
+pod/web
+--timeout=10s
+-n
+wait-jsonpath-timeout

@@ -183,11 +183,24 @@ __telemach_run() (
 )
 
 # Après une création réussie, la vérification différée est lancée ; c'est « watch » qui écarte
-# les commandes non concernées (--dry-run, -f -, URL, -k). « expose » crée un Service.
+# les commandes non concernées (--dry-run, -f -, URL, -k). « expose » crée un Service ;
+# « scale » peut voir ses pods refusés par un quota (feature 004). Un avertissement PodSecurity
+# d'une commande réussie est expliqué tout de suite par « notice » : le fichier est lu par une
+# boucle « read », intégrée au shell, sans lancer de processus (research.md F5).
 __telemach_after_success() {
 	case "$__telemach_verb" in
-	apply | create | run | expose) __telemach_watch "$@" ;;
+	apply | create | run | expose | scale) __telemach_watch "$@" ;;
 	esac
+	[ -s "${__telemach_tmp:-}" ] || return 0
+	local __telemach_line
+	while IFS= read -r __telemach_line || [ -n "$__telemach_line" ]; do
+		case "$__telemach_line" in
+		*"would violate PodSecurity"*)
+			command "$__telemach_bin" notice --stderr-file "$__telemach_tmp" -- "$@" || true
+			return 0
+			;;
+		esac
+	done <"$__telemach_tmp"
 }
 
 __telemach_kubectl() { __telemach_run kubectl "$@"; }

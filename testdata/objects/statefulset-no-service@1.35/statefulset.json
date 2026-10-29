@@ -1,0 +1,86 @@
+{
+  "apiVersion": "apps/v1",
+  "kind": "StatefulSet",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "••••••"
+    },
+    "creationTimestamp": "2026-10-29T17:10:52Z",
+    "generation": 1,
+    "name": "base",
+    "namespace": "f004-sts-service",
+    "resourceVersion": "1545",
+    "uid": "3b6e4064-a985-4172-adbc-4cc11457990f"
+  },
+  "spec": {
+    "persistentVolumeClaimRetentionPolicy": {
+      "whenDeleted": "Retain",
+      "whenScaled": "Retain"
+    },
+    "podManagementPolicy": "OrderedReady",
+    "replicas": 2,
+    "revisionHistoryLimit": 10,
+    "selector": {
+      "matchLabels": {
+        "app": "base"
+      }
+    },
+    "serviceName": "base",
+    "template": {
+      "metadata": {
+        "labels": {
+          "app": "base"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "image": "nginxinc/nginx-unprivileged:1.30-alpine",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "base",
+            "resources": {
+              "limits": {
+                "cpu": "100m",
+                "memory": "64Mi"
+              },
+              "requests": {
+                "cpu": "10m",
+                "memory": "16Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File"
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "restartPolicy": "Always",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "runAsNonRoot": true,
+          "runAsUser": 65534
+        },
+        "terminationGracePeriodSeconds": 30
+      }
+    },
+    "updateStrategy": {
+      "rollingUpdate": {
+        "partition": 0
+      },
+      "type": "RollingUpdate"
+    }
+  },
+  "status": {
+    "availableReplicas": 2,
+    "collisionCount": 0,
+    "currentReplicas": 2,
+    "currentRevision": "base-677c68d7f8",
+    "observedGeneration": 1,
+    "readyReplicas": 2,
+    "replicas": 2,
+    "updateRevision": "base-677c68d7f8",
+    "updatedReplicas": 2
+  }
+}

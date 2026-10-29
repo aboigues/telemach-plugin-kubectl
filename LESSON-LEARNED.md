@@ -71,6 +71,27 @@ dans le registre d'origine ; seule la règle préventive, transposée à kubectl
 
 ## Incidents
 
+### LL-018 — Commit créé malgré un lint en échec : chaîne de validation terminée par « ; »
+
+- **Date** : 2026-10-29
+- **Catégorie** : processus
+- **Contexte** : feature 004, commit de la phase 1 (outillage des relevés), juste après la reprise
+  d'une session interrompue par le plantage du terminal.
+- **Cause racine** : la commande enchaînait bien lint, tests et `scripts/secrets` par `&&`, mais
+  se poursuivait par `; git add -A && git commit …` : le `;` relançait le commit quel que soit
+  le résultat des validations. golangci-lint a signalé une erreur (QF1001), le commit a été créé.
+  C'est l'erreur que D-LL-008 interdit, réintroduite par une commande composée en une fois.
+- **Impact** : un commit local non conforme (refusé à la poussée pour une autre raison, jamais
+  publié) ; annulé par `git reset --soft HEAD~1`, lint corrigé, commit refait.
+- **Correctif** : commit refait avec une seule chaîne `&&`, de la première validation à
+  `git push`.
+- **Règle préventive** : dans une commande qui valide puis committe, aucun `;` ni retour à la
+  ligne entre la première validation et `git push` ; tout affichage de contrôle (`git status`)
+  se fait avant la chaîne, jamais au milieu.
+- **Suivi** : non automatisable (forme d'une commande ad hoc) ; la gate `lint` de la CI reste
+  le filet de sécurité, et la règle est rappelée dans les conventions de
+  `specs/004-training-feedback/tasks.md`.
+
 ### LL-017 — « auth can-i » qui répond « no » et « diff » qui trouve des différences expliqués comme des erreurs
 
 - **Date** : 2026-10-29

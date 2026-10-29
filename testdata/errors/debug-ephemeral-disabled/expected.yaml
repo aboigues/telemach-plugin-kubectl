@@ -1,0 +1,5 @@
+# Message relevé en formation (issue #19) : les conteneurs éphémères sont toujours actifs de
+# Kubernetes 1.35 à 1.37, le cas n'est pas reproductible sur kind (research.md F12).
+source: formation
+entry: runtime.ephemeral-disabled
+origin: cluster

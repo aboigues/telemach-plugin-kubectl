@@ -140,7 +140,7 @@ func issueCaptures(is manifest.Issue, kubectl string) map[string]string {
 	return c
 }
 
-// position écrit « fichier:ligne:colonne (document d, Kind/nom) ».
+// position écrit « fichier:ligne:colonne (document d, Kind/nom, template t) ».
 func position(is manifest.Issue) string {
 	pos := is.File
 	if is.Line > 0 {
@@ -155,6 +155,9 @@ func position(is manifest.Issue) string {
 	}
 	if is.Resource != "" && !strings.HasSuffix(is.Resource, "/") {
 		ctx = append(ctx, is.Resource)
+	}
+	if is.Source != "" {
+		ctx = append(ctx, "template "+is.Source)
 	}
 	if len(ctx) > 0 {
 		pos += " (" + strings.Join(ctx, ", ") + ")"

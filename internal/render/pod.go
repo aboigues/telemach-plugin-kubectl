@@ -37,6 +37,24 @@ func RenderPod(w io.Writer, snap workload.PodSnapshot, d diagnose.Diagnosis, o O
 	}
 	b.Reset()
 	b.WriteString(text + "\n")
+	if len(snap.Placement) > 0 {
+		b.WriteString("\n" + t.Label(fmt.Sprintf("%s (0/%d disponibles)", LabelPlacement, snap.PlacementTotal)) + "\n")
+		for _, c := range snap.Placement {
+			symbol := SymbolError
+			if c.Normal {
+				symbol = SymbolInfo
+			}
+			line := fmt.Sprintf("%s %-9s %s", symbol, plural(c.Nodes, "nœud"), placementLabel(c))
+			if len(c.NodeNames) > 0 {
+				line += " (" + strings.Join(c.NodeNames, ", ") + ")"
+			}
+			if c.Normal {
+				b.WriteString(indent + t.Hint(line) + "\n")
+			} else {
+				b.WriteString(indent + line + "\n")
+			}
+		}
+	}
 	if len(snap.LogTail) > 0 {
 		label := LabelLog + " (conteneur " + snap.Container
 		if snap.LogPrevious {
@@ -67,6 +85,33 @@ func RenderPod(w io.Writer, snap workload.PodSnapshot, d diagnose.Diagnosis, o O
 	}
 	_, err := io.WriteString(w, b.String())
 	return err
+}
+
+// placementLabel décrit une cause de placement en français (feature 004, research.md F6).
+func placementLabel(c workload.PlacementCause) string {
+	switch c.Reason {
+	case workload.ReasonUntoleratedTaint:
+		switch {
+		case c.Normal:
+			return "taint du plan de contrôle (normal)"
+		case c.Detail != "":
+			return "taint " + c.Detail + " non toléré"
+		}
+		return "taint non toléré"
+	case workload.ReasonNodeUnschedulable:
+		return "nœud non planifiable (cordon)"
+	case workload.ReasonPodAntiAffinity:
+		return "anti-affinité de pods non satisfaite"
+	case workload.ReasonPodAffinity:
+		return "affinité de pods non satisfaite"
+	case workload.ReasonInsufficient:
+		return "ressource insuffisante : " + c.Detail
+	case workload.ReasonNodeSelector:
+		return "nodeSelector ou affinité de nœud non satisfaits"
+	case workload.ReasonUnboundPVC:
+		return "PersistentVolumeClaim non lié"
+	}
+	return "« " + c.Detail + " »"
 }
 
 // podIdentity résume le pod : namespace, propriétaire, image, état, redémarrages.

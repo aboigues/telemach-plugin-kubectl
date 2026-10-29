@@ -62,6 +62,9 @@ type Classification struct {
 	ExitCode  int
 	Restarts  int
 	Resource  string // ressource insuffisante (cpu, memory)
+	// Feature 004 : causes de placement d'un pod Pending (message du scheduler découpé).
+	Total  int
+	Causes []PlacementCause
 }
 
 // Classify range un pod d'après son seul statut, sans lecture supplémentaire.
@@ -73,6 +76,16 @@ func Classify(p kuberead.Pod, now time.Time) Classification {
 	for _, c := range s.Conditions {
 		if c.Type == "PodScheduled" && c.Status == "False" {
 			cl := Classification{State: StateFailing, Reason: ReasonUnschedulable, Message: c.Message}
+			if total, causes := ParseScheduler(c.Message); len(causes) > 0 {
+				cl.Total, cl.Causes = total, causes
+				if main := MainCause(causes); main.Reason != ReasonPlacementUnknown {
+					cl.Reason = main.Reason
+					if main.Reason == ReasonInsufficient {
+						cl.Resource = main.Detail
+					}
+				}
+				return cl
+			}
 			switch {
 			case insufficient.MatchString(c.Message):
 				cl.Reason = ReasonInsufficient

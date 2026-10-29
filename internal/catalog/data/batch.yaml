@@ -1,0 +1,670 @@
+# Jobs et CronJobs (feature 004, US3) : syntaxe cron, puis leçons des diagnostics de Job,
+# CronJob, DaemonSet et StatefulSet.
+- id: schema.invalid-cron
+  category: batch
+  fallback: manifest-issue
+  issue_kinds: [invalid-cron]
+  concept:
+    name: cron schedule
+    definition: >-
+      Le champ spec.schedule d'un CronJob dit quand lancer un Job, en 5 champs séparés par des
+      espaces : minute (0-59), heure (0-23), jour du mois (1-31), mois (1-12) et jour de la
+      semaine (0-6, 0 pour dimanche). « * » veut dire « chaque », « */5 » « toutes les 5 ».
+  summary: 'Le contrôleur des CronJobs refuserait ce champ. {{.detail}}'
+  cause: >-
+    Le contrôleur des CronJobs refuserait cette expression, et kubectl apply aussi : le CronJob
+    ne serait jamais créé.
+  fixes:
+    - description: Corriger l'expression (voir la ligne désignée ci-dessous) ; par exemple « */5 * * * * » pour toutes les 5 minutes, « 0 2 * * * » pour chaque nuit à 2 h.
+      safe: true
+    - description: Écrire le fuseau horaire dans spec.timeZone (par exemple Europe/Paris), jamais dans l'expression.
+      safe: true
+  deepen:
+    explanation: >-
+      Sans spec.timeZone, l'heure est celle du contrôleur, en général UTC : « 0 2 * * * » se
+      déclenche alors à 3 h ou 4 h à Paris selon la saison. Quand le jour du mois et le jour
+      de la semaine sont tous les deux restreints, l'un OU l'autre suffit.
+    example: |-
+      # minute heure jour-du-mois mois jour-de-la-semaine
+      #   */5    *        *        *          *         toutes les 5 minutes
+      #   0      2        *        *          *         chaque nuit à 2 h
+      #   0      9        *        *        1-5         à 9 h du lundi au vendredi
+      kubectl create cronjob sauvegarde --image=busybox:1.38 --schedule="0 2 * * *" --dry-run=client -o yaml -- echo sauvegarde
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-cron », génère un CronJob
+      qui s'exécute à 9 h du lundi au vendredi avec --dry-run=client -o yaml, vérifie-le avec
+      « kubectl telemach check -f - », puis applique-le. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/#schedule-syntax
+  tests: [invalid-cron]
+
+# Leçons des diagnostics de Job (feature 004, research.md F8). Captures : job, failed,
+# succeeded, backoff_limit, deadline, completions, pod, reason, condition, scope.
+- id: job.backoff-limit
+  category: batch
+  pitfalls: [job.backoff-limit]
+  concept:
+    name: Job
+    definition: >-
+      Un Job lance des pods jusqu'à ce qu'un nombre donné réussisse (completions). Chaque pod
+      en échec est une tentative ; au-delà de backoffLimit tentatives (6 par défaut), le Job
+      abandonne et passe en échec.
+  summary: Le Job « {{.job}} » a abandonné après {{.failed}} tentative(s) en échec (backoffLimit {{.backoff_limit}}).
+  cause: >-
+    Le programme du conteneur s'arrête en erreur à chaque tentative{{if .reason}} (dernier pod :
+    {{.pod}}, {{.reason}}){{end}}. Relancer le Job sans corriger la cause échouerait de la même
+    façon : la raison est dans le journal du dernier pod.
+  fixes:
+    - description: Lire le journal du dernier pod du Job.
+      command: '{{.kubectl}} logs job/{{.job}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Corriger le programme ou sa configuration, puis recréer le Job (un Job terminé ne se relance pas).
+      command: '{{.kubectl}} delete job {{.job}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Avec restartPolicy: Never, chaque échec crée un nouveau pod (on garde ainsi le journal de
+      chaque tentative) ; avec OnFailure, le même pod redémarre. Entre deux tentatives, le Job
+      attend de plus en plus longtemps (10 s, 20 s, 40 s…).
+    example: |-
+      kubectl get job calc
+      kubectl get pods -l batch.kubernetes.io/job-name=calc
+      kubectl logs job/calc
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-job », lance un Job dont
+      la commande est « exit 3 » avec backoffLimit: 1, puis compte ses pods et lis le journal
+      du dernier. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/job/#pod-backoff-failure-policy
+  tests: [job-backoff-limit]
+
+- id: job.deadline
+  category: batch
+  pitfalls: [job.deadline]
+  concept:
+    name: activeDeadlineSeconds
+    definition: >-
+      activeDeadlineSeconds limite la durée totale d'un Job, toutes tentatives comprises :
+      passé ce délai, ses pods sont arrêtés et le Job passe en échec, même si un pod était en
+      train de réussir.
+  summary: Le Job « {{.job}} » a été arrêté au bout de {{if .deadline}}{{.deadline}} s{{else}}son délai maximal{{end}} (activeDeadlineSeconds).
+  cause: >-
+    Le travail dure plus longtemps que le délai prévu, ou un pod est resté bloqué (image
+    longue à télécharger, ressource attendue). Les pods ont été arrêtés : leur journal n'est
+    peut-être plus lisible.
+  fixes:
+    - description: Comparer le délai à la durée réelle du travail, puis l'augmenter dans le manifeste si elle est légitime.
+      command: '{{.kubectl}} get job {{.job}}{{if .scope}} {{.scope}}{{end}} -o jsonpath=''{.spec.activeDeadlineSeconds}'''
+      safe: true
+    - description: Lire les événements du Job, qui disent quand et pourquoi il a été arrêté.
+      command: '{{.kubectl}} describe job {{.job}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      activeDeadlineSeconds prime sur backoffLimit : le Job s'arrête au premier des deux
+      atteint. Il protège contre un travail qui ne finirait jamais, au prix d'un échec franc.
+    example: |-
+      kubectl describe job lent
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-delai », lance un Job
+      « sleep 60 » avec activeDeadlineSeconds: 10, puis observe sa condition Failed. Supprime le
+      namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/job/#job-termination-and-cleanup
+  tests: [job-deadline]
+
+- id: job.failed
+  category: batch
+  pitfalls: [job.failed]
+  concept:
+    name: Job
+    definition: >-
+      Un Job passe en échec (condition Failed) quand il ne peut plus atteindre son nombre de
+      réussites ; la raison de la condition dit pourquoi.
+  summary: Le Job « {{.job}} » est en échec.
+  cause: >-
+    Condition relevée : « {{.condition}} ».
+  fixes:
+    - description: Lire la condition et les événements du Job.
+      command: '{{.kubectl}} describe job {{.job}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Les raisons les plus courantes sont BackoffLimitExceeded (trop de tentatives en échec)
+      et DeadlineExceeded (délai dépassé) ; une podFailurePolicy peut aussi arrêter le Job dès
+      un code de sortie donné.
+    example: |-
+      kubectl get job NOM -o jsonpath='{.status.conditions}'
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-job-echec », lance un
+      Job qui échoue, puis lis ses conditions avec -o jsonpath. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/job/
+  tests: [job-backoff-limit]
+
+- id: job.suspended
+  category: batch
+  pitfalls: [job.suspended]
+  concept:
+    name: Job
+    definition: >-
+      Un Job suspendu (spec.suspend: true) ne crée aucun pod tant qu'on ne le reprend pas.
+  summary: Le Job « {{.job}} » est suspendu (spec.suspend) et ne crée aucun pod.
+  cause: >-
+    La suspension est volontaire : elle sert à préparer un Job avant de le lancer.
+  fixes:
+    - description: Reprendre le Job.
+      command: '{{.kubectl}} patch job {{.job}}{{if .scope}} {{.scope}}{{end}} -p ''{"spec":{"suspend":false}}'''
+      safe: true
+  deepen:
+    explanation: >-
+      Suspendre un Job en cours arrête ses pods ; le reprendre en crée de nouveaux. Le délai
+      activeDeadlineSeconds ne court pas pendant la suspension.
+    example: |-
+      kubectl get job NOM -o jsonpath='{.spec.suspend}'
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-suspend », crée un Job
+      avec suspend: true, vérifie qu'il n'a aucun pod, puis reprends-le. Supprime le namespace
+      ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/job/#suspending-a-job
+  tests: [job-complete]
+
+- id: job.running
+  category: batch
+  pitfalls: [job.running]
+  concept:
+    name: Job
+    definition: >-
+      Un Job en cours a encore des pods actifs ou des tentatives possibles.
+  summary: Le Job « {{.job}} » est en cours ({{.succeeded}}/{{.completions}} réussite(s), {{.failed}} échec(s)).
+  cause: >-
+    Le travail n'est pas terminé : relance le diagnostic plus tard, ou suis-le en direct.
+  fixes:
+    - description: Attendre la fin du Job.
+      command: '{{.kubectl}} wait --for=condition=Complete job/{{.job}} --timeout=300s{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      completions fixe le nombre de réussites attendues et parallelism le nombre de pods
+      lancés en même temps.
+    example: |-
+      kubectl get job NOM -w
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-parallele », lance un
+      Job avec completions: 4 et parallelism: 2, puis observe ses pods. Supprime le namespace
+      ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/job/#parallel-jobs
+  tests: [job-complete]
+
+- id: job.pods-gone
+  category: batch
+  pitfalls: [job.pods-gone]
+  concept:
+    name: Job
+    definition: >-
+      Les pods d'un Job terminé restent en place pour qu'on puisse lire leur journal, jusqu'à
+      leur suppression (à la main, ou avec le Job lui-même).
+  summary: 'Le Job « {{.job}} » est terminé, mais il n''a plus aucun pod : son journal n''est plus lisible.'
+  cause: >-
+    Les pods du Job ont été supprimés. Avec ttlSecondsAfterFinished, c'est le Job lui-même qui
+    disparaît, avec ses pods, une fois le délai écoulé : « kubectl get job » ne le trouve
+    alors plus du tout.
+  fixes:
+    - description: Pour garder une trace, envoyer le résultat du travail ailleurs (fichier sur un volume, base, journal centralisé) plutôt que dans le seul journal du pod.
+      safe: true
+  deepen:
+    explanation: >-
+      ttlSecondsAfterFinished nettoie automatiquement les Jobs terminés ; un CronJob, lui,
+      garde ses derniers Jobs selon successfulJobsHistoryLimit et failedJobsHistoryLimit.
+    example: |-
+      kubectl get job NOM -o jsonpath='{.spec.ttlSecondsAfterFinished}'
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-ttl », lance un Job avec
+      ttlSecondsAfterFinished: 30, puis vérifie qu'il disparaît une demi-minute après sa fin.
+      Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/
+  tests: [job-pods-gone]
+
+- id: job.complete
+  category: batch
+  pitfalls: [job.complete]
+  concept:
+    name: Job
+    definition: >-
+      Un Job terminé avec succès (condition Complete) a atteint son nombre de réussites ; ses
+      pods restent Completed pour qu'on lise leur journal.
+  summary: Le Job « {{.job}} » est terminé avec succès ({{.succeeded}}/{{.completions}}).
+  cause: >-
+    Rien à corriger : le résultat du travail est dans le journal de ses pods.
+  fixes:
+    - description: Lire le résultat.
+      command: '{{.kubectl}} logs job/{{.job}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Un Job réussi ne se relance pas : pour refaire le travail, on le supprime puis on le
+      recrée, ou on utilise un CronJob pour le répéter.
+    example: |-
+      kubectl logs job/NOM
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-job-ok », lance un Job
+      « echo bonjour » et lis son résultat avec kubectl logs job/NOM. Supprime le namespace
+      ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/job/
+  tests: [job-complete]
+
+# CronJob. Captures : cronjob, schedule, policy, timezone, next, last, due, active, job, pod,
+# reason, scope.
+- id: cronjob.suspended
+  category: batch
+  pitfalls: [cronjob.suspended]
+  concept:
+    name: CronJob
+    definition: >-
+      Un CronJob crée un Job à chaque échéance de son expression cron. Suspendu
+      (spec.suspend: true), il ne crée plus aucun Job ; les échéances manquées ne sont pas
+      rattrapées au-delà de startingDeadlineSeconds.
+  summary: Le CronJob « {{.cronjob}} » est suspendu (spec.suspend) et ne lance plus de Job.
+  cause: >-
+    La suspension est un réglage du CronJob, souvent posé pour une maintenance ou un exercice.
+  fixes:
+    - description: Reprendre le CronJob.
+      command: '{{.kubectl}} patch cronjob {{.cronjob}}{{if .scope}} {{.scope}}{{end}} -p ''{"spec":{"suspend":false}}'''
+      safe: true
+    - description: Lancer une exécution tout de suite, sans attendre l'échéance.
+      command: '{{.kubectl}} create job {{.cronjob}}-manuel --from=cronjob/{{.cronjob}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      « kubectl create job --from=cronjob/NOM » crée un Job à partir du modèle du CronJob :
+      pratique pour tester sans attendre, que le CronJob soit suspendu ou non.
+    example: |-
+      kubectl get cronjob NOM
+      kubectl create job test --from=cronjob/NOM
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-cron-pause », crée un
+      CronJob à la minute, suspends-le, puis lance une exécution avec --from. Supprime le
+      namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/
+  tests: [cronjob-suspended]
+
+- id: cronjob.never-run
+  category: batch
+  pitfalls: [cronjob.never-run]
+  concept:
+    name: CronJob
+    definition: >-
+      Un CronJob ne crée son premier Job qu'à la première échéance de son expression cron,
+      dans son fuseau (spec.timeZone, UTC par défaut).
+  summary: '{{if .due}}Le CronJob « {{.cronjob}} » a manqué l''échéance du {{.due}}.{{else}}Le CronJob « {{.cronjob}} » n''a pas encore été déclenché.{{end}}'
+  cause: >-
+    {{if .due}}L'échéance a été manquée : startingDeadlineSeconds trop court, contrôleur
+    indisponible au moment voulu, ou fuseau horaire différent de celui attendu ({{.timezone}}).{{else}}C'est
+    normal : la première échéance de « {{.schedule}} » n'est pas encore arrivée ; prochaine
+    exécution le {{.next}} ({{.timezone}}).{{end}}
+  fixes:
+    - description: Lancer une exécution tout de suite pour tester le modèle de Job.
+      command: '{{.kubectl}} create job {{.cronjob}}-test --from=cronjob/{{.cronjob}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Vérifier l'expression et le fuseau horaire.
+      command: '{{.kubectl}} get cronjob {{.cronjob}}{{if .scope}} {{.scope}}{{end}} -o jsonpath=''{.spec.schedule} {.spec.timeZone}'''
+      safe: true
+  deepen:
+    explanation: >-
+      Sans spec.timeZone, « 0 2 * * * » se déclenche à 2 h UTC, soit 3 h ou 4 h à Paris.
+      startingDeadlineSeconds fixe le retard maximal accepté pour une échéance manquée.
+    example: |-
+      kubectl get cronjob NOM -o wide
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-fuseau », crée un
+      CronJob avec timeZone: Europe/Paris et compare sa colonne LAST SCHEDULE à l'heure locale.
+      Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/#time-zones
+  tests: [cronjob-never-run]
+
+- id: cronjob.forbid-skipped
+  category: batch
+  pitfalls: [cronjob.forbid-skipped]
+  concept:
+    name: concurrencyPolicy
+    definition: >-
+      concurrencyPolicy dit quoi faire quand une échéance arrive alors que le Job précédent
+      tourne encore : Allow (les deux tournent), Forbid (la nouvelle exécution est sautée) ou
+      Replace (l'ancienne est arrêtée).
+  summary: Le CronJob « {{.cronjob}} » saute des exécutions (concurrencyPolicy Forbid) tant que « {{.active}} » tourne.
+  cause: >-
+    Une exécution dure plus longtemps que l'intervalle de « {{.schedule}} » : avec Forbid,
+    chaque échéance qui tombe pendant qu'elle tourne est abandonnée.
+  fixes:
+    - description: Voir depuis quand le Job actif tourne.
+      command: '{{.kubectl}} get job {{.active}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Raccourcir le travail, espacer les échéances, ou borner chaque exécution avec activeDeadlineSeconds dans jobTemplate.
+      safe: true
+  deepen:
+    explanation: >-
+      Forbid évite que deux sauvegardes écrivent en même temps au même endroit ; le prix est
+      d'en sauter quand une exécution s'éternise. activeDeadlineSeconds dans le modèle de Job
+      empêche une exécution bloquée de tout arrêter.
+    example: |-
+      kubectl get cronjob NOM -o jsonpath='{.spec.concurrencyPolicy}'
+      kubectl get jobs
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-forbid », crée un CronJob
+      à la minute dont le Job dure 3 minutes, avec Forbid, et compte les Jobs créés en
+      5 minutes. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/#concurrency-policy
+  tests: [cronjob-forbid-skipped]
+
+- id: cronjob.last-failed
+  category: batch
+  pitfalls: [cronjob.last-failed]
+  concept:
+    name: CronJob
+    definition: >-
+      Chaque échéance d'un CronJob crée un Job ; un Job en échec ne bloque pas les échéances
+      suivantes, qui échoueront de la même façon tant que la cause n'est pas corrigée.
+  summary: La dernière exécution du CronJob « {{.cronjob}} » ({{.job}}) a échoué.
+  cause: >-
+    Le Job « {{.job}} » est en échec{{if .reason_job}} ({{.reason_job}}){{end}}{{if .pod}} ; son
+    dernier pod, {{.pod}}, s'est arrêté ({{.reason}}){{end}}. La cause est dans le journal de ce
+    pod.
+  fixes:
+    - description: Lire le journal de la dernière exécution.
+      command: '{{.kubectl}} logs job/{{.job}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Après correction, tester tout de suite avec une exécution manuelle.
+      command: '{{.kubectl}} create job {{.cronjob}}-test --from=cronjob/{{.cronjob}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      failedJobsHistoryLimit (1 par défaut) garde les derniers Jobs en échec pour qu'on puisse
+      lire leur journal ; successfulJobsHistoryLimit (3) fait de même pour les réussites.
+    example: |-
+      kubectl get jobs
+      kubectl logs job/NOM
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-cron-echec », crée un
+      CronJob à la minute dont la commande est « exit 2 », puis diagnostique-le après sa
+      première exécution. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/#jobs-history-limits
+  tests: [cronjob-last-failed]
+
+- id: cronjob.ok
+  category: batch
+  pitfalls: [cronjob.ok]
+  concept:
+    name: CronJob
+    definition: >-
+      Un CronJob crée un Job à chaque échéance de son expression cron.
+  summary: Le CronJob « {{.cronjob}} » fonctionne{{if .next}} ; prochaine exécution le {{.next}}{{end}}.
+  cause: >-
+    Rien à corriger : la planification est active et la dernière exécution n'a pas échoué.
+  fixes:
+    - description: Lister ses dernières exécutions.
+      command: '{{.kubectl}} get jobs{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Chaque Job créé par un CronJob porte son nom suivi d'un numéro tiré de l'heure prévue.
+    example: |-
+      kubectl get cronjob NOM
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-cron », crée un CronJob
+      à la minute, puis liste ses Jobs au bout de trois minutes. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/
+  tests: [cronjob-suspended]
+
+# DaemonSet. Captures : daemonset, desired, ready, nodes, excluded, taints, normal, pod, reason.
+- id: daemonset.excluded-nodes
+  category: batch
+  pitfalls: [daemonset.excluded-nodes]
+  concept:
+    name: DaemonSet
+    definition: >-
+      Un DaemonSet fait tourner un pod sur chaque nœud qui l'accepte. Un nœud dont le taint
+      n'est pas toléré par le modèle de pod n'en reçoit pas.
+  summary: 'Le DaemonSet « {{.daemonset}} » vise {{.desired}} nœud(s) sur {{.nodes}} : {{.excluded}} exclu(s) par un taint.'
+  cause: >-
+    {{if .normal}}C'est normal : le taint du plan de contrôle ({{.taints}}) réserve ce nœud aux
+    composants du cluster. Pour un agent qui doit aussi y tourner (collecte de journaux), il
+    faut une toleration explicite.{{else}}Le taint « {{.taints}} » n'est pas toléré par le modèle
+    de pod : ces nœuds n'ont pas d'agent. Si c'est un oubli, ajoute la toleration.{{end}}
+  fixes:
+    - description: Lire les taints des nœuds.
+      command: '{{.kubectl}} get nodes -o custom-columns=NOM:.metadata.name,TAINTS:.spec.taints'
+      safe: true
+    - description: Pour couvrir ces nœuds, ajouter au modèle de pod la toleration du taint.
+      manifest: |-
+        tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      safe: true
+  deepen:
+    explanation: >-
+      Le contrôleur des DaemonSets ajoute de lui-même quelques tolérances (nœud pas prêt,
+      injoignable), mais jamais celle du plan de contrôle ni celles de tes propres taints.
+    example: |-
+      kubectl get ds NOM -o wide
+      kubectl get pods -l app=agent -o wide
+    exercise: >-
+      Avec un cluster de test à plusieurs nœuds, crée un namespace d'exercice avec « kubectl
+      create namespace exo-ds », déploie un DaemonSet, compte ses pods, puis ajoute la
+      toleration du plan de contrôle et recompte. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/#taints-and-tolerations
+  tests: [daemonset-control-plane, daemonset-tainted-worker]
+
+- id: daemonset.rollout-stuck
+  category: batch
+  pitfalls: [daemonset.rollout-stuck]
+  concept:
+    name: DaemonSet
+    definition: >-
+      La mise à jour d'un DaemonSet remplace ses pods nœud par nœud (RollingUpdate) ; un pod
+      qui ne démarre pas bloque la suite.
+  summary: Le DaemonSet « {{.daemonset}} » n'a que {{.ready}} pod(s) prêt(s) sur {{.desired}}.
+  cause: >-
+    {{if .pod}}Le pod {{.pod}} est en difficulté ({{.reason}}) : sa cause est détaillée
+    ci-dessous.{{else}}Des pods démarrent encore : relance le diagnostic dans quelques
+    instants.{{end}}
+  fixes:
+    - description: Suivre la mise à jour.
+      command: '{{.kubectl}} rollout status daemonset/{{.daemonset}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      maxUnavailable (1 par défaut) limite le nombre de nœuds privés de leur agent pendant une
+      mise à jour.
+    example: |-
+      kubectl rollout status daemonset/NOM
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-ds-maj », déploie un
+      DaemonSet, change son image pour une image inexistante et suis le rollout. Supprime le
+      namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/manage-daemon/update-daemon-set/
+  tests: [daemonset-control-plane]
+
+- id: daemonset.ok
+  category: batch
+  pitfalls: [daemonset.ok]
+  concept:
+    name: DaemonSet
+    definition: >-
+      Un DaemonSet fait tourner un pod sur chaque nœud qui l'accepte.
+  summary: Le DaemonSet « {{.daemonset}} » a ses {{.desired}} pod(s) prêt(s), un par nœud visé.
+  cause: >-
+    Rien à corriger.
+  fixes:
+    - description: Voir sur quel nœud tourne chaque pod.
+      command: '{{.kubectl}} get pods{{if .scope}} {{.scope}}{{end}} -o wide'
+      safe: true
+  deepen:
+    explanation: >-
+      Ajouter un nœud au cluster y crée automatiquement un pod du DaemonSet.
+    example: |-
+      kubectl get ds
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-ds-ok », déploie un
+      DaemonSet et compare son nombre de pods au nombre de nœuds. Supprime le namespace
+      ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/
+  tests: [daemonset-control-plane]
+
+# StatefulSet. Captures : statefulset, service, desired, policy, pvc, class, blocking, pod,
+# reason.
+- id: statefulset.no-service
+  category: batch
+  pitfalls: [statefulset.no-service]
+  concept:
+    name: headless Service
+    definition: >-
+      Un StatefulSet donne à chaque pod un nom DNS stable (base-0.base, base-1.base…) grâce à
+      un Service headless (clusterIP: None) nommé dans spec.serviceName. Ce Service doit être
+      créé à part.
+  summary: Le Service headless « {{.service}} » du StatefulSet « {{.statefulset}} » n'existe pas.
+  cause: >-
+    Les pods démarrent, mais leurs noms DNS stables ne résolvent rien : une application qui
+    s'y attend (réplication d'une base de données) ne trouve pas ses pairs.
+  fixes:
+    - description: Créer le Service headless qui porte le nom de spec.serviceName.
+      command: '{{.kubectl}} create service clusterip {{.service}} --clusterip=None --tcp=PORT:PORT{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Un Service headless n'a pas d'adresse virtuelle : le DNS renvoie directement l'adresse
+      de chaque pod, et un nom par pod (NOM-k.SERVICE.NAMESPACE.svc.cluster.local).
+    example: |-
+      kubectl get sts NOM -o jsonpath='{.spec.serviceName}'
+      kubectl get svc
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-headless », déploie un
+      StatefulSet et son Service headless, puis résous base-0.base depuis un pod busybox:1.38.
+      Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#stable-network-id
+  tests: [statefulset-no-service]
+
+- id: statefulset.pvc-pending
+  category: batch
+  pitfalls: [statefulset.pvc-pending]
+  concept:
+    name: volumeClaimTemplates
+    definition: >-
+      volumeClaimTemplates crée un PersistentVolumeClaim par pod du StatefulSet, nommé
+      MODÈLE-NOM-k. Tant qu'il n'est pas lié à un volume, son pod ne démarre pas.
+  summary: 'Le PVC « {{.pvc}} » du StatefulSet « {{.statefulset}} » est en attente : son pod ne démarre pas.'
+  cause: >-
+    Le PVC n'est lié à aucun volume{{if .class}} (classe demandée : « {{.class}} »){{end}} :
+    classe de stockage inexistante, aucun volume disponible, ou provisionneur absent.
+  fixes:
+    - description: Diagnostiquer le PVC.
+      command: '{{.kubectl}} telemach diagnose pvc/{{.pvc}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Lister les classes de stockage du cluster.
+      command: '{{.kubectl}} get storageclass'
+      safe: true
+  deepen:
+    explanation: >-
+      Les PVC d'un StatefulSet survivent à ses pods et à sa suppression : pour changer leur
+      classe, il faut les supprimer à la main, après avoir sauvegardé les données.
+    example: |-
+      kubectl get pvc
+      kubectl describe pvc data-NOM-0
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-sts-pvc », déploie un
+      StatefulSet avec un volumeClaimTemplates, supprime le StatefulSet et constate que les
+      PVC restent. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#volume-claim-templates
+  tests: [statefulset-pvc-pending]
+
+- id: statefulset.ordered-wait
+  category: batch
+  pitfalls: [statefulset.ordered-wait]
+  concept:
+    name: OrderedReady
+    definition: >-
+      Avec podManagementPolicy: OrderedReady (par défaut), un StatefulSet crée ses pods un par
+      un, dans l'ordre : le pod k+1 n'est créé que quand le pod k est prêt.
+  summary: Le StatefulSet « {{.statefulset}} » attend que « {{.blocking}} » soit prêt avant de créer les pods suivants.
+  cause: >-
+    Le pod {{.blocking}} n'est pas prêt{{if .reason}} ({{.reason}}){{end}} : tant qu'il ne
+    l'est pas, aucun pod de rang supérieur n'est créé. Corrige sa cause, détaillée ci-dessous.
+  fixes:
+    - description: Diagnostiquer le pod qui bloque.
+      command: '{{.kubectl}} telemach diagnose pod/{{.blocking}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      L'ordre garantit qu'une base de données répliquée démarre son primaire avant ses
+      secondaires. podManagementPolicy: Parallel lance tous les pods ensemble, quand
+      l'application n'a pas besoin de cet ordre.
+    example: |-
+      kubectl get pods -l app=NOM -w
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-ordre », déploie un
+      StatefulSet de trois répliques et observe leur création une par une. Supprime le
+      namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#deployment-and-scaling-guarantees
+  tests: [statefulset-ordered-wait]
+
+- id: statefulset.ok
+  category: batch
+  pitfalls: [statefulset.ok]
+  concept:
+    name: StatefulSet
+    definition: >-
+      Un StatefulSet gère des pods à identité stable : nom ordonné, nom DNS et volume propres
+      à chacun.
+  summary: Le StatefulSet « {{.statefulset}} » a ses {{.desired}} pod(s), son Service headless et ses volumes.
+  cause: >-
+    Rien à corriger.
+  fixes:
+    - description: Résoudre le nom DNS stable du premier pod depuis un pod d'enquête.
+      command: '{{.kubectl}} run dns-test -it --rm --image=busybox:1.38 --restart=Never{{if .scope}} {{.scope}}{{end}} -- nslookup {{.statefulset}}-0.{{.service}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Supprimer un pod d'un StatefulSet le recrée avec le même nom et le même volume.
+    example: |-
+      kubectl get sts,pods,pvc
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-sts », déploie un
+      StatefulSet, supprime son pod -0 et observe son retour à l'identique. Supprime le
+      namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/
+  tests: [statefulset-healthy]
+
+# Refus du serveur pour une expression cron invalide (feature 004, FR-013). Message relevé
+# identique sur kind 1.35, 1.36 et 1.37 (testdata/manifests/invalid-cron/stderr.txt) ; ce
+# fichier est lu avant conflict.yaml et manifest.yaml, dont les motifs « is invalid » sont
+# plus généraux.
+- id: manifest.cron-schedule
+  category: manifest
+  patterns:
+    - 'The CronJob "(?P<name>[^"]+)" is invalid: spec\.schedule: Invalid value: "(?P<schedule>[^"]*)": (?P<detail>[^\n\[]+)'
+  concept:
+    name: cron schedule
+    definition: >-
+      Le champ spec.schedule d'un CronJob dit quand lancer un Job, en 5 champs séparés par des
+      espaces : minute (0-59), heure (0-23), jour du mois (1-31), mois (1-12) et jour de la
+      semaine (0-6, 0 pour dimanche).
+  summary: L'expression cron « {{.schedule}} » du CronJob « {{.name}} » est refusée par le serveur API.
+  cause: >-
+    Le serveur API vérifie l'expression à la création : « {{.detail}} ». Le CronJob n'a pas été
+    créé.
+  fixes:
+    - description: Corriger l'expression dans le manifeste (voir la ligne désignée ci-dessous), puis la vérifier hors ligne avant de l'appliquer.
+      command: '{{.kubectl}} telemach check -f FICHIER'
+      safe: true
+  deepen:
+    explanation: >-
+      « */5 * * * * » veut dire toutes les 5 minutes ; « 0 2 * * * », chaque nuit à 2 h ;
+      « 0 9 * * 1-5 », à 9 h du lundi au vendredi. Le fuseau se règle dans spec.timeZone,
+      jamais dans l'expression.
+    example: |-
+      # minute heure jour-du-mois mois jour-de-la-semaine
+      #   */5    *        *        *          *         toutes les 5 minutes
+      #   0      2        *        *          *         chaque nuit à 2 h
+      kubectl create cronjob sauvegarde --image=busybox:1.38 --schedule="0 2 * * *" --dry-run=client -o yaml -- echo sauvegarde
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-cron-serveur »,
+      applique un CronJob à 4 champs, lis le refus, corrige-le et applique-le de nouveau.
+      Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/#schedule-syntax
+  tests: [invalid-cron]

@@ -2,6 +2,7 @@ package manifest
 
 import (
 	"errors"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -14,8 +15,11 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-// MaxFileSize est la taille maximale d'un manifeste relu (1 Mio).
+// MaxFileSize est la taille maximale d'un manifeste relu (1 Mio), fichier ou entrée standard.
 const MaxFileSize = 1 << 20
+
+// StdinPath désigne l'entrée standard (check -f -) dans les positions affichées.
+const StdinPath = "<stdin>"
 
 // File est un manifeste relu, en lecture seule (FR-013, data-model.md § ManifestFile).
 type File struct {
@@ -30,6 +34,7 @@ type Document struct {
 	Index      int // 1-based, documents vides exclus (comme kubectl)
 	StartLine  int // première ligne du document dans le fichier
 	EndLine    int
+	Source     string // template d'origine d'un rendu Helm (commentaire « # Source: »)
 	APIVersion string
 	Kind       string
 	Name       string
@@ -58,6 +63,10 @@ var manifestExt = map[string]bool{".yaml": true, ".yml": true, ".json": true}
 // dans l'ordre de kubectl. Les chemins introuvables produisent un problème.
 func Expand(paths []string, recursive bool) (files []string, issues []Issue) {
 	for _, p := range paths {
+		if p == "-" { // entrée standard, lue par AnalyzeInput
+			files = append(files, p)
+			continue
+		}
 		info, err := os.Stat(p)
 		if err != nil {
 			issues = append(issues, Issue{Kind: KindFileNotFound, File: p, Blocking: true})
@@ -110,15 +119,63 @@ func Read(path string) (*File, []Issue) {
 		}
 		return f, []Issue{{Kind: KindFileUnreadable, File: path, Detail: detail, Blocking: true}}
 	}
+	return parseContent(f, data)
+}
+
+// ReadStdin lit l'entrée standard (check -f -) avec la même taille maximale et les mêmes
+// contrôles qu'un fichier ; elle est désignée par StdinPath (feature 004, research.md F11).
+func ReadStdin(r io.Reader) (*File, []Issue) {
+	f := &File{Path: StdinPath}
+	if r == nil {
+		r = strings.NewReader("")
+	}
+	data, err := io.ReadAll(io.LimitReader(r, MaxFileSize+1))
+	if err != nil {
+		return f, []Issue{{Kind: KindFileUnreadable, File: StdinPath, Detail: "Lecture de l'entrée standard impossible", Blocking: true}}
+	}
+	if len(data) > MaxFileSize {
+		return f, []Issue{{Kind: KindFileUnreadable, File: StdinPath, Detail: "L'entrée standard dépasse 1 Mio : vérifie un rendu plus petit (un chart, un dossier Kustomize)", Blocking: true}}
+	}
+	f, issues := parseContent(f, data)
+	if len(issues) == 0 && len(f.Documents) == 0 {
+		return f, []Issue{{
+			Kind: KindNoManifestFile, File: StdinPath, Blocking: true,
+			Detail: "L'entrée standard est vide : aucun manifeste n'a été transmis (la commande placée avant « | » n'a-t-elle rien produit ?)",
+		}}
+	}
+	return f, issues
+}
+
+// parseContent vérifie l'encodage d'un contenu relu et découpe ses documents.
+func parseContent(f *File, data []byte) (*File, []Issue) {
 	if !utf8.Valid(data) {
 		line, col := firstInvalidUTF8(data)
-		return f, []Issue{{Kind: KindNotUTF8, File: path, Line: line, Column: col, Blocking: true}}
+		return f, []Issue{{Kind: KindNotUTF8, File: f.Path, Line: line, Column: col, Blocking: true}}
 	}
 	text := strings.ReplaceAll(string(data), "\r\n", "\n")
 	f.Readable = true
 	f.Lines = strings.Split(text, "\n")
 	f.Documents = splitDocuments(f.Lines)
 	return f, nil
+}
+
+// sourceComment reconnaît le commentaire que « helm template » place en tête de chaque
+// document rendu : « # Source: chart/templates/api.yaml ».
+var sourceComment = regexp.MustCompile(`^#\s*Source:\s*(\S.*?)\s*$`)
+
+// helmSource renvoie le template d'origine annoncé avant la première clé du document.
+func helmSource(body []string) string {
+	source := ""
+	for _, l := range body {
+		t := strings.TrimSpace(l)
+		if t != "" && !strings.HasPrefix(t, "#") {
+			break
+		}
+		if m := sourceComment.FindStringSubmatch(t); m != nil {
+			source = m[1]
+		}
+	}
+	return source
 }
 
 // separator reconnaît une ligne « --- » (éventuellement suivie d'un commentaire).
@@ -134,7 +191,7 @@ func splitDocuments(lines []string) []*Document {
 		if isBlank(body) {
 			return
 		}
-		d := &Document{Index: len(docs) + 1, StartLine: start + 1, EndLine: end}
+		d := &Document{Index: len(docs) + 1, StartLine: start + 1, EndLine: end, Source: helmSource(body)}
 		parse(d, strings.Join(body, "\n"))
 		docs = append(docs, d)
 	}

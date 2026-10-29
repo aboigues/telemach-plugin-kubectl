@@ -17,6 +17,7 @@ import (
 // cluster injoignable.
 const objectCluster = `#!/bin/sh
 echo "$*" >> "$CALL_LOG"
+[ -n "$FAKE_DELAY" ] && sleep "$FAKE_DELAY"
 if [ "$FAKE_MODE" = refused ]; then echo 'The connection to the server localhost:8080 was refused' >&2; exit 1; fi
 if [ -n "$FAKE_DENY" ] && [ "$2" = "$FAKE_DENY" ]; then echo "Error from server (Forbidden): $2 is forbidden" >&2; exit 1; fi
 serve() { if [ -f "$FAKE_CASE/$1" ]; then cat "$FAKE_CASE/$1"; else echo "Error from server (NotFound): $1 not found" >&2; exit 1; fi; }
@@ -29,12 +30,22 @@ case "$1 $2" in
 "get pod") serve "pod-$3.json" ;;
 "get ingress") serve ingress.json ;;
 "get ingressclasses") serve ingressclasses.json ;;
-"get pvc") serve pvc.json ;;
+"get pvc")
+  if [ "$3" = "-o" ]; then serve pvcs.json; else serve pvc.json; fi ;;
 "get storageclasses") serve storageclasses.json ;;
 "get deployment") serve deployment.json ;;
 "get replicasets") serve replicasets.json ;;
 "get configmap") serve configmap-dates.txt ;;
-"get events") echo '{"items":[]}' ;;
+"get events")
+  case "$*" in *kind=ReplicaSet*) if [ -f "$FAKE_CASE/events-replicaset.json" ]; then cat "$FAKE_CASE/events-replicaset.json"; else echo '{"items":[]}'; fi ;; *) echo '{"items":[]}' ;; esac ;;
+"get job") serve job.json ;;
+"get jobs") serve jobs.json ;;
+"get cronjob") serve cronjob.json ;;
+"get daemonset") serve daemonset.json ;;
+"get statefulset") serve statefulset.json ;;
+"get hpa") serve hpa.json ;;
+"get nodes") serve nodes.json ;;
+"get apiservice") serve apiservice.json ;;
 "logs "*) ;;
 *) echo "appel inattendu : $*" >&2; exit 99 ;;
 esac
@@ -206,5 +217,48 @@ func TestWatchImageHint(t *testing.T) {
 	runWatch(a, "apply", "-f", m, "-n", "demo")
 	if got := strings.Count(signals(), "ℹ"); got != 2 {
 		t.Errorf("après 24 h, l'information doit revenir : %d ligne(s)", got)
+	}
+}
+
+// Feature 004 (T028, T050) : après « scale », un Deployment dont les pods sont refusés est
+// signalé ; après l'application d'un HPA, une cible sans request l'est aussi.
+func TestWatchFeature004(t *testing.T) {
+	hpa := `apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: web
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: web}
+  maxReplicas: 3
+`
+	tests := []struct {
+		name, corpus, main string
+		args               []string
+		want               string
+	}{
+		{
+			"scale refusé par le quota", "replica-failure", "api",
+			[]string{"scale", "deployment", "api", "--replicas=3", "-n", "demo"},
+			"⚠ Le Deployment api ne peut pas créer ses pods (refus d'admission) : kubectl telemach diagnose deployment/api -n demo\n",
+		},
+		{
+			"HPA sans request", "hpa-missing-request", "web",
+			[]string{"apply", "-f", hpa, "-n", "demo"},
+			"⚠ Le HPA web ne peut pas calculer l'utilisation de cpu : le conteneur web n'a pas de request : kubectl telemach diagnose hpa/web -n demo\n",
+		},
+		{"HPA sain", "hpa-idle", "web", []string{"apply", "-f", hpa, "-n", "demo"}, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a, _, signals := watchEnv(t, tt.corpus, tt.main)
+			args := append([]string(nil), tt.args...)
+			if args[0] == "apply" {
+				args[2] = manifestFile(t, args[2])
+			}
+			runWatch(a, args...)
+			if got := signals(); got != tt.want {
+				t.Errorf("signaux :\n%q\nattendu :\n%q", got, tt.want)
+			}
+		})
 	}
 }

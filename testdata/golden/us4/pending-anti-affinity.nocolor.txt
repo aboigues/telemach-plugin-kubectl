@@ -1,0 +1,33 @@
+✖ Le pod « anti-7ffd4b4d55-ncxq2 » reste en attente, sa règle d'affinité de pods ne peut être satisfaite sur aucun nœud.
+   pod anti-7ffd4b4d55-ncxq2 · namespace f004-anti · ReplicaSet/anti-7ffd4b4d55 · image nginxinc/nginx-unprivileged:1.30-alpine · état PodAntiAffinity
+
+📘 Concept — pod affinity
+   L'affinité et l'anti-affinité de pods placent un pod par rapport à d'autres
+   pods : ensemble (affinité) ou séparés (anti-affinité), par nœud ou par zone
+   selon topologyKey. En mode « required », une règle impossible à satisfaire
+   laisse le pod Pending.
+
+🔎 Cause probable
+   Avec requiredDuringSchedulingIgnoredDuringExecution et topologyKey
+   kubernetes.io/hostname, chaque réplique exige un nœud sans autre réplique :
+   il y a plus de répliques que de nœuds utilisables.
+
+💡 Corrections
+   1. Compter les nœuds utilisables et les répliques déjà placées.
+      kubectl get pods -n demo -o wide
+   2. Passer la règle en « preferred » (répartition souhaitée, non obligatoire),
+      ou réduire le nombre de répliques.
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels: {app: web}
+
+Nœuds par cause (0/3 disponibles)
+   ✖ 1 nœud    taint non toléré
+   ✖ 2 nœuds   anti-affinité de pods non satisfaite
+
+➜ Pour aller plus loin : kubectl telemach deepen

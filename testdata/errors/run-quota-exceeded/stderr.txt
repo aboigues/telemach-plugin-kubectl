@@ -1,0 +1,1 @@
+Error from server (Forbidden): pods "gros" is forbidden: exceeded quota: quota-equipe, requested: limits.cpu=2, used: limits.cpu=0, limited: limits.cpu=1

@@ -192,6 +192,11 @@ func (a *app) manifestAnalysis(cmd command.Command, d diagnose.Diagnosis, stderr
 		return manifest.Result{}, false
 	}
 	r := manifest.Analyze(cmd.LocalFiles(), cmd.Recursive, kubectlVersion)
+	if d.Entry != nil && d.Entry.ID == "admission.pod-security" {
+		// Version corrigée du securityContext des conteneurs cités (feature 004, FR-003).
+		r.AddPodSecurity(d.Captures["violations"])
+		return r, true
+	}
 	locs := manifest.Locate(stderr, r.Files)
 	relevant := len(locs) > 0 || d.Entry == nil ||
 		(d.Entry.Category == "manifest" || d.Entry.Category == "schema" || d.Entry.ID == "cmdline.invalid-name")

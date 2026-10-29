@@ -110,6 +110,12 @@ func validate(e *Entry) []error {
 	if e.Fallback != "" && e.Fallback != FallbackApplication && e.Fallback != FallbackManifestIssue {
 		fail("fallback inconnu %q (valeurs possibles : application, manifest-issue)", e.Fallback)
 	}
+	if e.WhenFlag != "" && (!strings.HasPrefix(e.WhenFlag, "--") || !strings.Contains(e.WhenFlag, "=")) {
+		fail("when_flag invalide %q (forme attendue : --option=préfixe)", e.WhenFlag)
+	}
+	if e.Origin != "" && e.Origin != "cluster" && e.Origin != "kubectl" {
+		fail("origin inconnue %q (valeurs possibles : cluster, kubectl)", e.Origin)
+	}
 	if (e.Fallback == FallbackManifestIssue) != (len(e.IssueKinds) > 0) {
 		fail("fallback: manifest-issue va de pair avec issue_kinds")
 	}

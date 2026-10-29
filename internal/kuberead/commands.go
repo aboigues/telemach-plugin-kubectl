@@ -72,3 +72,41 @@ func PodsBySelectorArgs(selector string) []string {
 func PodEventsArgs(pod string) []string {
 	return []string{"get", "events", "--field-selector", "involvedObject.kind=Pod,involvedObject.name=" + pod, "-o", "json"}
 }
+
+// Lectures de la feature 004 (research.md F1), sans les options de portée.
+
+// JobArgs lit un Job.
+func JobArgs(name string) []string { return []string{"get", "job", name, "-o", "json"} }
+
+// JobsArgs lit les Jobs du namespace (Jobs d'un CronJob, Jobs en échec).
+func JobsArgs() []string { return []string{"get", "jobs", "-o", "json"} }
+
+// CronJobArgs lit un CronJob.
+func CronJobArgs(name string) []string { return []string{"get", "cronjob", name, "-o", "json"} }
+
+// DaemonSetArgs lit un DaemonSet.
+func DaemonSetArgs(name string) []string { return []string{"get", "daemonset", name, "-o", "json"} }
+
+// StatefulSetArgs lit un StatefulSet.
+func StatefulSetArgs(name string) []string {
+	return []string{"get", "statefulset", name, "-o", "json"}
+}
+
+// HPAArgs lit un HorizontalPodAutoscaler.
+func HPAArgs(name string) []string { return []string{"get", "hpa", name, "-o", "json"} }
+
+// NodesArgs lit les nœuds (objets du cluster) : taints et état de planification.
+func NodesArgs() []string { return []string{"get", "nodes", "-o", "json"} }
+
+// MetricsAPIServiceName est l'APIService de l'API de métriques (metrics-server).
+const MetricsAPIServiceName = "v1beta1.metrics.k8s.io"
+
+// MetricsAPIServiceArgs lit l'APIService de l'API de métriques (objet du cluster).
+func MetricsAPIServiceArgs() []string {
+	return []string{"get", "apiservice", MetricsAPIServiceName, "-o", "json"}
+}
+
+// ReplicaSetEventsArgs lit les événements d'un ReplicaSet (refus FailedCreate).
+func ReplicaSetEventsArgs(rs string) []string {
+	return []string{"get", "events", "--field-selector", "involvedObject.kind=ReplicaSet,involvedObject.name=" + rs, "-o", "json"}
+}

@@ -22,6 +22,7 @@ type expected struct {
 	Suggestion   string `yaml:"suggestion"`
 	RelatedLines []int  `yaml:"related_lines"`
 	Apply        bool   `yaml:"apply"`
+	ExplainOnly  bool   `yaml:"explain_only"` // problème produit par explain seulement (feature 004)
 }
 
 type manifestCase struct {
@@ -93,8 +94,12 @@ func TestManifestCorpus(t *testing.T) {
 	if len(cases) < 20 {
 		t.Fatalf("au moins 20 manifestes erronés attendus, %d trouvés", len(cases))
 	}
-	ok := 0
+	ok, total := 0, 0
 	for _, c := range cases {
+		if c.exp.ExplainOnly {
+			continue
+		}
+		total++
 		r := Analyze([]string{filepath.Join(c.dir, c.exp.File)}, false, "")
 		var best []string
 		found := false
@@ -128,8 +133,8 @@ func TestManifestCorpus(t *testing.T) {
 		}
 		t.Logf("✖ %s : attendu %s ; écarts %v ; trouvés %v", c.name, c.exp.Kind, best, kinds)
 	}
-	rate := float64(ok) / float64(len(cases))
-	t.Logf("SC-002 (check) : %d/%d manifestes correctement localisés (%.0f %%)", ok, len(cases), rate*100)
+	rate := float64(ok) / float64(total)
+	t.Logf("SC-002 (check) : %d/%d manifestes correctement localisés (%.0f %%)", ok, total, rate*100)
 	if rate < 0.9 {
 		t.Errorf("SC-002 non atteint : %.0f %% < 90 %%", rate*100)
 	}
@@ -140,7 +145,7 @@ func TestManifestCorpus(t *testing.T) {
 func TestManifestCorpusFromKubectl(t *testing.T) {
 	total, ok := 0, 0
 	for _, c := range loadManifestCases(t) {
-		if c.stderr == "" {
+		if c.stderr == "" || c.exp.ExplainOnly {
 			continue
 		}
 		total++

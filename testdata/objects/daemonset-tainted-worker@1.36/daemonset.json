@@ -1,0 +1,84 @@
+{
+  "apiVersion": "apps/v1",
+  "kind": "DaemonSet",
+  "metadata": {
+    "annotations": {
+      "deprecated.daemonset.template.generation": "1",
+      "kubectl.kubernetes.io/last-applied-configuration": "••••••"
+    },
+    "creationTimestamp": "2026-10-29T16:48:59Z",
+    "generation": 1,
+    "name": "agent",
+    "namespace": "f004-ds-taint",
+    "resourceVersion": "1491",
+    "uid": "0e564ea9-c197-413d-a423-bf3a33df01c8"
+  },
+  "spec": {
+    "revisionHistoryLimit": 10,
+    "selector": {
+      "matchLabels": {
+        "app": "agent"
+      }
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "app": "agent"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "command": [
+              "sh",
+              "-c",
+              "while true; do sleep 3600; done"
+            ],
+            "image": "busybox:1.38",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "agent",
+            "resources": {
+              "limits": {
+                "cpu": "50m",
+                "memory": "32Mi"
+              },
+              "requests": {
+                "cpu": "10m",
+                "memory": "16Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File"
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "restartPolicy": "Always",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "runAsNonRoot": true,
+          "runAsUser": 65534
+        },
+        "terminationGracePeriodSeconds": 30
+      }
+    },
+    "updateStrategy": {
+      "rollingUpdate": {
+        "maxSurge": 0,
+        "maxUnavailable": 1
+      },
+      "type": "RollingUpdate"
+    }
+  },
+  "status": {
+    "currentNumberScheduled": 1,
+    "desiredNumberScheduled": 1,
+    "numberAvailable": 1,
+    "numberMisscheduled": 0,
+    "numberReady": 1,
+    "observedGeneration": 1,
+    "updatedNumberScheduled": 1
+  }
+}

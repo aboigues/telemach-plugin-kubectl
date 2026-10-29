@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: sauvegarde
+spec:
+  schedule: "*/5 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+          containers:
+          - name: sauvegarde
+            image: busybox:1.38
+            command: ["sh", "-c", "echo sauvegarde"]
+            securityContext: {allowPrivilegeEscalation: false}
+            resources:
+              requests: {cpu: 10m, memory: 16Mi}
+              limits: {cpu: 100m, memory: 32Mi}

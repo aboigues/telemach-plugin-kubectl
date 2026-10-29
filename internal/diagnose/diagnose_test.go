@@ -114,3 +114,68 @@ func TestWebhookIsNotTheAPIServer(t *testing.T) {
 		}
 	}
 }
+
+// Feature 004 : « wait » expiré, même message pour une condition et pour --for=delete ; seule
+// l'option --for choisit la leçon (when_flag), et le diagnostic de l'objet est proposé quand
+// diagnose prend son type en charge.
+func TestWaitTimeoutByFlag(t *testing.T) {
+	cat, err := catalog.Default()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct{ args, stderr, entry, target string }{
+		{"wait --for=condition=Ready pod/web -n t13", "error: timed out waiting for the condition on pods/web", "wait.timeout", "pod/web"},
+		{"wait --for=condition=Available deployment/api", "error: timed out waiting for the condition on deployments/api", "wait.timeout", "deployment/api"},
+		{"wait --for=condition=Ready configmap/c", "error: timed out waiting for the condition on configmaps/c", "wait.timeout", ""},
+		{"wait --for=delete configmap/reste", "error: timed out waiting for the condition on configmaps/reste", "wait.delete-timeout", ""},
+	} {
+		d := Diagnose(Input{Command: command.Parse(strings.Fields(tc.args)), ExitCode: 1, Stderr: tc.stderr}, cat)
+		if d.Entry == nil || d.Entry.ID != tc.entry || d.Captures["diag_target"] != tc.target {
+			t.Errorf("%s : entrée %v, cible %q ; attendu %s, %q", tc.args, d.Entry, d.Captures["diag_target"], tc.entry, tc.target)
+		}
+	}
+}
+
+// Feature 004 : la liste des pods d'un drain refusé s'arrête avant « , continuing command… ».
+func TestDrainPodsCapture(t *testing.T) {
+	cat, err := catalog.Default()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct{ file, entry, pods string }{
+		{"drain-unmanaged-pods", "drain.unmanaged-pods", "drain-unmanaged-pods/solo"},
+		{"drain-daemonset-pods", "drain.daemonset-pods", "kube-system/kindnet-tj8tw, kube-system/kube-proxy-8wbxr"},
+	} {
+		c := loadCase(t, tc.file)
+		d := diagnoseCase(c, cat)
+		if d.Entry == nil || d.Entry.ID != tc.entry || d.Captures["pods"] != tc.pods || d.Captures["node"] != "telemach-cluster-worker" {
+			t.Errorf("%s : entrée %v, pods %q, nœud %q", tc.file, d.Entry, d.Captures["pods"], d.Captures["node"])
+		}
+	}
+}
+
+// loadCase renvoie un cas du corpus testdata/errors/ par son nom.
+func loadCase(t *testing.T, name string) corpusCase {
+	t.Helper()
+	for _, c := range loadCorpus(t) {
+		if c.Name == name {
+			return c
+		}
+	}
+	t.Fatalf("cas %q absent du corpus", name)
+	return corpusCase{}
+}
+
+// Relevé du scénario T6 (feature 004) : trois causes dans un même message ; chaque liste de
+// pods s'arrête à la cause suivante.
+func TestDrainSeveralCauses(t *testing.T) {
+	cat, err := catalog.Default()
+	if err != nil {
+		t.Fatal(err)
+	}
+	msg := `error: unable to drain node "w1" due to error: [cannot delete Pods that declare no controller (use --force to override): t3/web, t4/web, cannot delete Pods with local storage (use --delete-emptydir-data to override): t6/cache-64cff754b9-tz8tg], continuing command...`
+	d := Diagnose(Input{Command: command.Parse(strings.Fields("drain w1 --ignore-daemonsets")), ExitCode: 1, Stderr: msg}, cat)
+	if d.Entry == nil || d.Entry.ID != "drain.unmanaged-pods" || d.Captures["pods"] != "t3/web, t4/web" {
+		t.Errorf("entrée %v, pods %q", d.Entry, d.Captures["pods"])
+	}
+}

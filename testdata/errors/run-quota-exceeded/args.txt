@@ -1,0 +1,7 @@
+run
+gros
+--image=nginxinc/nginx-unprivileged:1.30-alpine
+-n
+run-quota-exceeded
+--overrides
+{"spec":{"containers":[{"name":"gros","image":"nginxinc/nginx-unprivileged:1.30-alpine","resources":{"limits":{"cpu":"2","memory":"64Mi"}}}]}}

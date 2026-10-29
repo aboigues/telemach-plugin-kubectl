@@ -1,0 +1,298 @@
+# Métriques et autoscaling (feature 004, US4, research.md F10). Motifs d'après le relevé kind
+# top-metrics-unavailable et le message relevé en formation (issue #16).
+- id: metrics.api-unavailable
+  category: metrics
+  origin: cluster
+  patterns:
+    - 'Metrics API not available'
+    - 'metrics not available yet'
+  concept:
+    name: metrics-server
+    definition: >-
+      metrics-server collecte la consommation de CPU et de mémoire des pods auprès des
+      kubelets et la publie par l'API de métriques (metrics.k8s.io). kubectl top et les
+      HorizontalPodAutoscaler en dépendent ; il n'est pas installé dans tous les clusters.
+  summary: 'L''API de métriques ne répond pas : metrics-server est absent ou pas encore prêt.'
+  cause: >-
+    metrics-server n'est pas installé dans le cluster, n'est pas encore prêt, ou vient d'être
+    installé : les premières mesures arrivent environ une minute après son démarrage.
+  fixes:
+    - description: Vérifier que l'API de métriques est déclarée et disponible (colonne AVAILABLE à True).
+      command: '{{.kubectl}} get apiservice v1beta1.metrics.k8s.io'
+      safe: true
+    - description: Vérifier le pod de metrics-server (souvent dans kube-system).
+      command: '{{.kubectl}} get pods -n kube-system -l k8s-app=metrics-server'
+      safe: true
+    - description: Avec minikube, l'activer par son module, puis attendre environ une minute.
+      command: minikube addons enable metrics-server
+      safe: true
+  deepen:
+    explanation: >-
+      Un HorizontalPodAutoscaler interroge l'API de métriques toutes les 15 secondes environ.
+      Sans elle, kubectl get hpa affiche « <unknown> » dans la colonne TARGETS et l'autoscaler
+      ne change jamais le nombre de répliques, sans aucune erreur visible ailleurs.
+    example: |-
+      kubectl get apiservice v1beta1.metrics.k8s.io
+      kubectl top nodes
+      kubectl top pods
+    exercise: >-
+      Avec un cluster de test, crée un namespace d'exercice avec « kubectl create namespace
+      exo-metriques », lance un pod, puis compare « kubectl top pods -n exo-metriques » avant
+      et une minute après l'installation de metrics-server. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/debug/debug-cluster/resource-metrics-pipeline/
+  tests: [top-metrics-unavailable, top-metrics-not-yet]
+
+# Leçons du diagnostic d'un HPA (feature 004, research.md F10). Captures : hpa, target_kind,
+# target, min, max, current, resources, api_reason, container, resource, limit_reason,
+# condition, condition_message, scope.
+- id: hpa.metrics-unavailable
+  category: metrics
+  pitfalls: [hpa.metrics-unavailable]
+  concept:
+    name: metrics-server
+    definition: >-
+      Un HorizontalPodAutoscaler lit la consommation des pods dans l'API de métriques
+      (metrics.k8s.io), fournie par metrics-server. Sans elle, il ne peut rien calculer.
+  summary: Le HPA « {{.hpa}} » ne reçoit aucune métrique, l'API de métriques est absente ou indisponible.
+  cause: >-
+    metrics-server n'est pas installé, ou pas encore prêt{{if .api_reason}} (état de l'API :
+    {{.api_reason}}){{end}}. kubectl get hpa affiche alors « <unknown> » dans la colonne
+    TARGETS, et le nombre de répliques ne change jamais.
+  fixes:
+    - description: Vérifier l'API de métriques (AVAILABLE doit valoir True).
+      command: '{{.kubectl}} get apiservice v1beta1.metrics.k8s.io'
+      safe: true
+    - description: Avec minikube, l'activer par son module, puis attendre environ une minute.
+      command: minikube addons enable metrics-server
+      safe: true
+  deepen:
+    explanation: >-
+      metrics-server interroge les kubelets toutes les 15 secondes environ ; le HPA calcule
+      ensuite le nombre de répliques voulu : répliques × (consommation / cible), arrondi au
+      supérieur, entre minReplicas et maxReplicas.
+    example: |-
+      kubectl get hpa
+      kubectl top pods
+    exercise: >-
+      Avec un cluster de test, crée un namespace d'exercice avec « kubectl create namespace
+      exo-hpa », crée un HPA sur un Deployment et observe sa colonne TARGETS avant et après
+      l'installation de metrics-server. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
+  tests: [hpa-metrics-unavailable]
+
+- id: hpa.target-missing
+  category: metrics
+  pitfalls: [hpa.target-missing]
+  concept:
+    name: scaleTargetRef
+    definition: >-
+      scaleTargetRef désigne l'objet dont le HPA règle le nombre de répliques (un Deployment ou
+      un StatefulSet), par son type et son nom, dans le même namespace.
+  summary: Le HPA « {{.hpa}} » vise {{.target_kind}}/{{.target}}, qui n'existe pas dans ce namespace.
+  cause: >-
+    Le nom ou le type de la cible est mal écrit, la cible est dans un autre namespace, ou elle
+    a été supprimée.
+  fixes:
+    - description: Lister les Deployments et StatefulSets du namespace.
+      command: '{{.kubectl}} get deployments,statefulsets{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+    - description: Créer le HPA directement depuis la cible, ce qui évite les fautes de nom.
+      command: '{{.kubectl}} autoscale deployment NOM --cpu-percent=50 --min=1 --max=5{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Le HPA ne crée pas sa cible et ne signale l'erreur que dans sa condition AbleToScale
+      (FailedGetScale) : kubectl apply réussit sans rien dire.
+    example: |-
+      kubectl describe hpa NOM
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-hpa-cible », crée un HPA
+      sur un Deployment inexistant, lis sa condition AbleToScale, puis crée le Deployment.
+      Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
+  tests: [hpa-target-missing]
+
+- id: hpa.missing-request
+  category: metrics
+  pitfalls: [hpa.missing-request]
+  concept:
+    name: resource requests
+    definition: >-
+      Une cible en pourcentage (averageUtilization) se calcule par rapport à la request du
+      conteneur : 50 % de CPU veut dire la moitié de requests.cpu. Sans request, le
+      pourcentage n'existe pas.
+  summary: Le HPA « {{.hpa}} » ne peut pas calculer l'utilisation de {{.resource}}, le conteneur « {{.container}} » n'a pas de request.
+  cause: >-
+    Le conteneur {{.container}} de {{.target_kind}}/{{.target}} ne déclare pas
+    requests.{{.resource}} ; le HPA reste bloqué à « <unknown> », sans erreur visible ailleurs.
+  fixes:
+    - description: Déclarer la request dans le modèle de pod de la cible, puis l'appliquer.
+      manifest: |-
+        resources:
+          requests: {cpu: 100m, memory: 64Mi}
+          limits: {cpu: 500m, memory: 128Mi}
+      safe: true
+    - description: Lire la condition ScalingActive du HPA, qui nomme le conteneur fautif.
+      command: '{{.kubectl}} describe hpa {{.hpa}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      C'est le piège n° 1 de l'autoscaling : tout semble en place, mais le pourcentage n'a pas
+      de référence. Chaque conteneur du pod doit déclarer la request de la ressource visée,
+      sidecars compris.
+    example: |-
+      kubectl get deploy NOM -o jsonpath='{.spec.template.spec.containers[*].resources.requests}'
+    exercise: >-
+      Avec un cluster de test et metrics-server, crée un namespace d'exercice avec « kubectl
+      create namespace exo-request », un Deployment sans requests.cpu et un HPA à 50 % : lis
+      TARGETS, puis ajoute la request. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#how-does-a-horizontalpodautoscaler-work
+  tests: [hpa-missing-request]
+
+- id: hpa.inactive
+  category: metrics
+  pitfalls: [hpa.inactive]
+  concept:
+    name: HorizontalPodAutoscaler
+    definition: >-
+      Un HorizontalPodAutoscaler ajuste le nombre de répliques de sa cible d'après des
+      métriques ; ses conditions disent s'il peut agir (AbleToScale) et calculer
+      (ScalingActive).
+  summary: Le HPA « {{.hpa}} » est inactif ({{.condition}} False).
+  cause: >-
+    Message du contrôleur : « {{.condition_message}} ».
+  fixes:
+    - description: Lire les conditions et événements du HPA.
+      command: '{{.kubectl}} describe hpa {{.hpa}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      AbleToScale False vient en général de la cible ; ScalingActive False, des métriques.
+    example: |-
+      kubectl get hpa NOM -o jsonpath='{.status.conditions}'
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-hpa-conditions », crée
+      un HPA et lis ses trois conditions avec kubectl describe. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
+  tests: [hpa-metrics-unavailable]
+
+- id: hpa.limited
+  category: metrics
+  pitfalls: [hpa.limited]
+  concept:
+    name: HorizontalPodAutoscaler
+    definition: >-
+      minReplicas et maxReplicas bornent le nombre de répliques choisi par le HPA ; la
+      condition ScalingLimited signale qu'il voudrait aller au-delà.
+  summary: 'Le HPA « {{.hpa}} » est à sa borne : il voudrait {{if eq .limit_reason "TooFewReplicas"}}moins de {{.min}}{{else}}plus de {{.max}}{{end}} répliques.'
+  cause: >-
+    Ce n'est pas une panne : le HPA fonctionne, mais la borne
+    {{if eq .limit_reason "TooFewReplicas"}}minReplicas{{else}}maxReplicas{{end}} l'arrête. Si la
+    charge le justifie, relève maxReplicas ; sinon, la limite protège le cluster.
+  fixes:
+    - description: Voir la consommation mesurée et la cible.
+      command: '{{.kubectl}} get hpa {{.hpa}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      maxReplicas est un garde-fou : sans lui, une boucle (requête lente qui consomme du CPU)
+      pourrait remplir le cluster de répliques.
+    example: |-
+      kubectl get hpa NOM -w
+    exercise: >-
+      Avec un cluster de test et metrics-server, crée un namespace d'exercice avec « kubectl
+      create namespace exo-hpa-borne », un HPA plafonné à une réplique sur un pod qui consomme
+      du CPU, puis lis la condition ScalingLimited. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
+  tests: [hpa-limited]
+
+- id: hpa.other-metrics
+  category: metrics
+  pitfalls: [hpa.other-metrics]
+  concept:
+    name: custom metrics
+    definition: >-
+      Un HPA peut aussi suivre des métriques personnalisées (Pods, Object) ou externes
+      (External), fournies par un adaptateur comme celui de Prometheus.
+  summary: Le HPA « {{.hpa}} » suit aussi des métriques personnalisées ou externes, que TELEMACH ne vérifie pas.
+  cause: >-
+    Ces métriques dépendent d'un adaptateur installé dans le cluster ; leur chaîne est hors de
+    portée de ce diagnostic.
+  fixes:
+    - description: Lire l'état de chaque métrique dans le HPA.
+      command: '{{.kubectl}} describe hpa {{.hpa}}{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Les métriques personnalisées passent par l'API custom.metrics.k8s.io, les externes par
+      external.metrics.k8s.io ; chacune doit être déclarée par un APIService.
+    example: |-
+      kubectl get apiservices | grep metrics
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-metriques-api », puis
+      liste les APIService de métriques de ton cluster. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/#autoscaling-on-multiple-metrics-and-custom-metrics
+  tests: [hpa-idle]
+
+- id: hpa.ok
+  category: metrics
+  pitfalls: [hpa.ok]
+  concept:
+    name: HorizontalPodAutoscaler
+    definition: >-
+      Un HorizontalPodAutoscaler ajuste le nombre de répliques de sa cible d'après la
+      consommation mesurée, entre minReplicas et maxReplicas.
+  summary: Le HPA « {{.hpa}} » fonctionne ({{.current}} réplique(s), entre {{.min}} et {{.max}}).
+  cause: >-
+    Rien à corriger : l'API de métriques répond, la cible existe et ses conteneurs déclarent
+    leurs requests.
+  fixes:
+    - description: Suivre ses décisions.
+      command: '{{.kubectl}} get hpa {{.hpa}} -w{{if .scope}} {{.scope}}{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Pour éviter les oscillations, le HPA attend 5 minutes de mesures plus basses avant de
+      réduire (fenêtre de stabilisation, behavior.scaleDown).
+    example: |-
+      kubectl describe hpa NOM
+    exercise: >-
+      Avec un cluster de test et metrics-server, crée un namespace d'exercice avec « kubectl
+      create namespace exo-hpa-ok », un HPA sain, puis génère de la charge et observe-le.
+      Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
+  tests: [hpa-idle]
+
+# Information de check (feature 004, FR-018) : HPA et cible dans les mêmes fichiers.
+- id: schema.hpa-missing-request
+  category: metrics
+  fallback: manifest-issue
+  issue_kinds: [hpa-missing-request]
+  concept:
+    name: resource requests
+    definition: >-
+      Une cible d'autoscaling en pourcentage se calcule par rapport à la request du conteneur :
+      sans request pour la ressource visée, le HPA ne peut rien calculer.
+  summary: Le conteneur « {{.detail}} » est visé par un HPA sur {{.suggestion}}, mais ne déclare pas requests.{{.suggestion}}.
+  cause: >-
+    Une fois appliqué, le HPA resterait à « <unknown> » dans kubectl get hpa, sans erreur
+    nulle part ailleurs.
+  fixes:
+    - description: Déclarer la request du conteneur pour cette ressource.
+      manifest: |-
+        resources:
+          requests: {cpu: 100m, memory: 64Mi}
+          limits: {cpu: 500m, memory: 128Mi}
+      safe: true
+  deepen:
+    explanation: >-
+      averageUtilization: 50 veut dire « la moitié de la request ». C'est le piège n° 1 de
+      l'autoscaling : tout semble en place, mais le pourcentage n'a pas de référence.
+    example: |-
+      kubectl explain hpa.spec.metrics.resource.target
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-hpa-check », écris un
+      Deployment sans requests.cpu et un HPA à 50 % dans le même dossier, puis vérifie-les
+      avec kubectl telemach check -f DOSSIER. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#how-does-a-horizontalpodautoscaler-work
+  tests: [hpa-missing-request]

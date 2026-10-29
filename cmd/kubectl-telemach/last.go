@@ -87,11 +87,22 @@ func (a *app) renderLast(w io.Writer, last state.LastDiagnosis, theme render.The
 			return err
 		}
 	}
-	if len(last.Files) == 0 {
+	// L'entrée standard (check -f -) n'est pas conservée : elle ne peut pas être relue
+	// (feature 004, research.md F11).
+	var files []string
+	for _, f := range last.Files {
+		if f == manifest.StdinPath {
+			fmt.Fprintln(w, opts.Theme.Dim(render.Wrap(render.SymbolInfo+" Le manifeste lu sur l'entrée standard (-f -) n'est pas conservé : "+
+				"relance la commande complète, par exemple « helm template … | kubectl telemach check -f - ».", opts.Width, "")))
+			continue
+		}
+		files = append(files, f)
+	}
+	if len(files) == 0 {
 		return nil
 	}
 	// Manifestes réanalysés dans leur état actuel (contracts/cli.md § last).
-	r := manifest.Analyze(last.Files, false, last.KubectlVersion)
+	r := manifest.Analyze(files, false, last.KubectlVersion)
 	if last.Source == state.SourceObject && len(last.Object) > 0 {
 		// Diagnostic d'objet réaffiché sans relire le cluster (feature 002).
 		var snap pitfall.ObjectSnapshot

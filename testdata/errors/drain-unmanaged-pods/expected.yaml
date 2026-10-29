@@ -1,0 +1,2 @@
+entry: drain.unmanaged-pods
+origin: kubectl

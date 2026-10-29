@@ -1,0 +1,6 @@
+# Attendu du diagnostic (feature 004), rédigé à la main d'après le relevé kind 1.37.
+# Le plan de contrôle est exclu par son taint : comportement normal (information).
+kind: daemonset
+name: agent
+primary: daemonset.excluded-nodes
+links: {nodes: ok, rollout: ok}

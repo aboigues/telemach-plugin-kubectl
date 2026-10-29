@@ -1,0 +1,4 @@
+debug
+-it
+web
+--image=busybox:1.38

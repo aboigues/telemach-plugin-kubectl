@@ -1,0 +1,12 @@
+# Rendu réel de « helm template demo ./telemarche » (Helm v4.3.1, 2026-10-29) : un document
+# fautif (imagePullPolicy mal orthographié). Rejoué par l'entrée standard dans
+# internal/manifest/stdin_test.go (feature 004, T052, SC-009).
+file: 'rendu.yaml'
+document: 2
+line: 36
+column: 26
+resource: 'Deployment/demo-api'
+field_path: 'spec.template.spec.containers[0].imagePullPolicy'
+kind: 'invalid-enum'
+suggestion: 'IfNotPresent'
+apply: false

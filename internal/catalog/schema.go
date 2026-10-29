@@ -1,6 +1,9 @@
 package catalog
 
-import "regexp"
+import (
+	"regexp"
+	"strings"
+)
 
 // Category regroupe les erreurs par domaine Kubernetes.
 type Category string
@@ -13,6 +16,8 @@ var Categories = map[Category]bool{
 	"service": true, "rollout": true, "config": true, "ingress": true, "storage": true, "portforward": true,
 	// Retours de formation (issues #10 et suivantes) : étape d'admission du serveur API.
 	"admission": true,
+	// Feature 004 : nœuds (drain, placement), métriques et autoscaling, Jobs et CronJobs.
+	"node": true, "metrics": true, "batch": true, "wait": true,
 }
 
 // Valeurs autorisées du champ fallback.
@@ -35,6 +40,8 @@ type Entry struct {
 	IssueKinds  []string         `yaml:"issue_kinds"`  // types de ManifestIssue couverts (manifest-issue)
 	Pitfalls    []string         `yaml:"pitfalls"`     // pièges silencieux couverts (feature 002, diagnose d'un objet)
 	Fallback    string           `yaml:"fallback"`
+	Origin      string           `yaml:"origin"`    // origine imposée : cluster ou kubectl (feature 004)
+	WhenFlag    string           `yaml:"when_flag"` // « --option=préfixe » : l'entrée exige cette option (feature 004)
 	Concept     ConceptRef       `yaml:"concept"`
 	Summary     string           `yaml:"summary"`
 	Cause       string           `yaml:"cause"`
@@ -78,6 +85,17 @@ type Deepening struct {
 
 // Compiled renvoie les motifs compilés de l'entrée.
 func (e *Entry) Compiled() []*regexp.Regexp { return e.compiled }
+
+// MatchesFlags indique si les options de la commande satisfont when_flag : l'option est
+// présente et sa valeur commence par le préfixe donné (« --for=delete »).
+func (e *Entry) MatchesFlags(flags map[string]string) bool {
+	if e.WhenFlag == "" {
+		return true
+	}
+	name, prefix, _ := strings.Cut(e.WhenFlag, "=")
+	v, ok := flags[name]
+	return ok && strings.HasPrefix(v, prefix)
+}
 
 // AppliesTo indique si l'entrée concerne la sous-commande verb (liste vide = toutes).
 func (e *Entry) AppliesTo(verb string) bool {

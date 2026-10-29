@@ -15,6 +15,8 @@ import (
 
 	"github.com/aboigues/telemach-plugin-kubectl/internal/render"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/state"
+
+	"golang.org/x/term"
 )
 
 // version est renseignée à la compilation (-ldflags "-X main.version=…").
@@ -28,6 +30,8 @@ func (e exitError) Error() string { return fmt.Sprintf("code de sortie %d", e.co
 // app regroupe les dépendances injectables (pour les tests).
 type app struct {
 	stdout, stderr io.Writer
+	stdin          io.Reader   // check -f - (feature 004)
+	stdinTerminal  func() bool // l'entrée standard est-elle un terminal ?
 	getenv         func(string) string
 	now            func() time.Time
 	getwd          func() (string, error)
@@ -43,6 +47,10 @@ func newApp() *app {
 	return &app{
 		stdout: os.Stdout,
 		stderr: os.Stderr,
+		stdin:  os.Stdin,
+		stdinTerminal: func() bool {
+			return term.IsTerminal(int(os.Stdin.Fd())) //nolint:gosec // descripteur de fichier valide
+		},
 		getenv: os.Getenv,
 		now:    time.Now,
 		getwd:  os.Getwd,
@@ -107,7 +115,7 @@ func (a *app) rootCommand() *cobra.Command {
 	root.CompletionOptions.DisableDefaultCmd = true
 	frenchHelp(root)
 	root.SetVersionTemplate(versionTemplate)
-	root.AddCommand(a.shellInitCommand(), a.versionCommand(), a.explainCommand(), a.lastCommand(), a.checkCommand(), a.deepenCommand(), a.diagnoseCommand(), a.watchCommand())
+	root.AddCommand(a.shellInitCommand(), a.versionCommand(), a.explainCommand(), a.lastCommand(), a.checkCommand(), a.deepenCommand(), a.diagnoseCommand(), a.watchCommand(), a.noticeCommand())
 	return root
 }
 

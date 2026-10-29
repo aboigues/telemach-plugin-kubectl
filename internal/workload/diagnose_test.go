@@ -38,6 +38,19 @@ func (f fixture) PodEvents(string) (kuberead.EventList, error) {
 	return l, json.Unmarshal(data, &l)
 }
 
+// ListNodes rejoue la lecture des nœuds (feature 004) quand le cas en contient une.
+func (f fixture) ListNodes() (kuberead.NodeList, error) {
+	var l kuberead.NodeList
+	if f.denied["nodes"] {
+		return l, &kuberead.ErrDenied{What: "les nœuds"}
+	}
+	data, err := os.ReadFile(filepath.Join(f.dir, "nodes.json")) //nolint:gosec // corpus du dépôt
+	if err != nil {
+		return l, err
+	}
+	return l, json.Unmarshal(data, &l)
+}
+
 func (f fixture) Logs(_, _ string, previous bool) ([]string, error) {
 	if f.denied["logs"] {
 		return nil, &kuberead.ErrDenied{What: "le journal"}

@@ -1,0 +1,80 @@
+{
+  "apiVersion": "batch/v1",
+  "kind": "CronJob",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "••••••"
+    },
+    "creationTimestamp": "2026-10-29T16:19:22Z",
+    "generation": 1,
+    "name": "export",
+    "namespace": "f004-cron-forbid",
+    "resourceVersion": "1154",
+    "uid": "0fa950b7-8963-4f02-a9f9-5f7a82f99173"
+  },
+  "spec": {
+    "concurrencyPolicy": "Forbid",
+    "failedJobsHistoryLimit": 1,
+    "jobTemplate": {
+      "metadata": {},
+      "spec": {
+        "template": {
+          "metadata": {},
+          "spec": {
+            "containers": [
+              {
+                "command": [
+                  "sh",
+                  "-c",
+                  "sleep 300"
+                ],
+                "image": "busybox:1.38",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "calcul",
+                "resources": {
+                  "limits": {
+                    "cpu": "100m",
+                    "memory": "32Mi"
+                  },
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "16Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Never",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "runAsUser": 65534
+            },
+            "terminationGracePeriodSeconds": 30
+          }
+        }
+      }
+    },
+    "schedule": "* * * * *",
+    "successfulJobsHistoryLimit": 3,
+    "suspend": false
+  },
+  "status": {
+    "active": [
+      {
+        "apiVersion": "batch/v1",
+        "kind": "Job",
+        "name": "export-29888180",
+        "namespace": "f004-cron-forbid",
+        "resourceVersion": "1153",
+        "uid": "d468b3a4-664b-4120-89ce-786af0daa314"
+      }
+    ],
+    "lastScheduleTime": "2026-10-29T16:20:00Z"
+  }
+}

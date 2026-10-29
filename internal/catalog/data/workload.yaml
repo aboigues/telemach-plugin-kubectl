@@ -440,3 +440,136 @@
       redémarrages augmenter. Supprime le namespace ensuite.
   doc_url: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
   tests: [liveness]
+
+# Feature 004 (US2, research.md F6) : causes de placement détaillées. La liste « Nœuds par
+# cause » du diagnostic donne la répartition ; ces leçons expliquent la cause principale.
+- id: pod.untolerated-taint
+  category: workload
+  pod_reasons: [UntoleratedTaint]
+  concept:
+    name: taint and toleration
+    definition: >-
+      Un taint posé sur un nœud repousse les pods qui ne le tolèrent pas. Une toleration
+      autorise un pod à aller sur ce nœud, elle ne l'y force pas : pour l'y envoyer, il faut
+      aussi un nodeSelector ou une affinité de nœud.
+  summary: Le pod « {{.pod}} » reste en attente, {{if .taint}}le taint « {{.taint}} »{{else}}un taint{{end}} le repousse{{if .node_names}} ({{.node_names}}){{end}}.
+  cause: >-
+    Les nœuds disponibles portent un taint que le pod ne tolère pas. Le taint du plan de
+    contrôle (node-role.kubernetes.io/control-plane) est normal : il réserve ce nœud aux
+    composants du cluster.
+  fixes:
+    - description: Lire les taints des nœuds.
+      command: '{{.kubectl}} get nodes -o custom-columns=NOM:.metadata.name,TAINTS:.spec.taints'
+      safe: true
+    - description: Si le pod doit aller sur ce nœud, lui ajouter la toleration correspondante ET un nodeSelector vers un label de ce nœud (la toleration seule ne suffit pas à l'y envoyer ; un taint n'est pas un label, le poser avec « kubectl label node NŒUD dedie=gpu »).
+      manifest: |-
+        tolerations:
+        - key: dedie
+          operator: Equal
+          value: gpu
+          effect: NoSchedule
+        nodeSelector:
+          dedie: gpu
+      safe: true
+    - description: Si le taint est un reste d'exercice, le retirer du nœud (le « - » final retire le taint).
+      command: '{{.kubectl}} taint node {{if .node}}{{.node}}{{else}}NŒUD{{end}} {{if .taint}}{{.taint}}{{else}}CLÉ{{end}}-'
+      safe: true
+  deepen:
+    explanation: >-
+      Piège n° 1 des taints : une toleration autorise, elle ne force pas. Un pod qui tolère le
+      taint dedie=gpu peut aller sur le nœud GPU, mais le scheduler peut tout aussi bien le
+      placer ailleurs. Pour réserver un nœud à certains pods, on combine un taint (les autres
+      sont repoussés), une toleration (ceux-là sont acceptés) et un nodeSelector ou une
+      affinité (ceux-là y sont envoyés). L'effet NoExecute évince en plus les pods déjà présents.
+    example: |-
+      kubectl get nodes -o custom-columns=NOM:.metadata.name,TAINTS:.spec.taints
+      kubectl taint node NŒUD dedie=gpu:NoSchedule
+      kubectl taint node NŒUD dedie=gpu:NoSchedule-
+    exercise: >-
+      Avec un cluster de test à plusieurs nœuds, crée un namespace d'exercice avec « kubectl
+      create namespace exo-taint », pose un taint sur un worker, lance trois répliques avec la
+      seule toleration et observe leur placement, puis ajoute un nodeSelector. Retire le taint
+      et supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tests: [pending-taint-cordon]
+
+- id: pod.pod-anti-affinity
+  category: workload
+  pod_reasons: [PodAntiAffinity, PodAffinity]
+  concept:
+    name: pod affinity
+    definition: >-
+      L'affinité et l'anti-affinité de pods placent un pod par rapport à d'autres pods :
+      ensemble (affinité) ou séparés (anti-affinité), par nœud ou par zone selon topologyKey.
+      En mode « required », une règle impossible à satisfaire laisse le pod Pending.
+  summary: Le pod « {{.pod}} » reste en attente, sa règle d'affinité de pods ne peut être satisfaite sur aucun nœud.
+  cause: >-
+    Avec requiredDuringSchedulingIgnoredDuringExecution et topologyKey kubernetes.io/hostname,
+    chaque réplique exige un nœud sans autre réplique : il y a plus de répliques que de nœuds
+    utilisables.
+  fixes:
+    - description: Compter les nœuds utilisables et les répliques déjà placées.
+      command: '{{.kubectl}} get pods{{if .scope}} {{.scope}}{{end}} -o wide'
+      safe: true
+    - description: Passer la règle en « preferred » (répartition souhaitée, non obligatoire), ou réduire le nombre de répliques.
+      manifest: |-
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels: {app: web}
+      safe: true
+  deepen:
+    explanation: >-
+      « required » est une contrainte dure : le scheduler préfère laisser un pod en attente
+      que la violer. « preferred » est une préférence : il répartit au mieux, et place quand
+      même s'il n'a pas le choix. Pour répartir des répliques sur les nœuds ou les zones,
+      topologySpreadConstraints est souvent plus simple.
+    example: |-
+      kubectl get pods -o wide -l app=web
+      kubectl explain deployment.spec.template.spec.affinity.podAntiAffinity
+    exercise: >-
+      Avec un cluster de test à plusieurs nœuds, crée un namespace d'exercice avec « kubectl
+      create namespace exo-affinite », déploie plus de répliques que de workers avec une
+      anti-affinité required, puis passe-la en preferred. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
+  tests: [pending-anti-affinity]
+
+- id: pod.node-unschedulable
+  category: workload
+  pod_reasons: [NodeUnschedulable]
+  concept:
+    name: cordon
+    definition: >-
+      Un nœud en cordon (kubectl cordon, ou au début d'un drain) n'accepte plus de nouveaux
+      pods ; ceux qui y tournent restent en place. kubectl uncordon le rend de nouveau
+      planifiable.
+  summary: Le pod « {{.pod}} » reste en attente, les nœuds utilisables sont en cordon{{if .node_names}} ({{.node_names}}){{end}}.
+  cause: >-
+    Un ou plusieurs nœuds sont marqués non planifiables, souvent après une maintenance (drain)
+    qui n'a pas été suivie d'un uncordon.
+  fixes:
+    - description: Repérer les nœuds en cordon (STATUS contient SchedulingDisabled).
+      command: '{{.kubectl}} get nodes'
+      safe: true
+    - description: Si la maintenance est terminée, rendre le nœud de nouveau planifiable.
+      command: '{{.kubectl}} uncordon {{if .node}}{{.node}}{{else}}NŒUD{{end}}'
+      safe: true
+  deepen:
+    explanation: >-
+      Une maintenance de nœud suit trois étapes : drain (cordon puis éviction des pods),
+      intervention, puis uncordon. Oublier la dernière laisse le nœud vide : les pods suivants
+      se tassent sur les autres nœuds, ou restent Pending.
+    example: |-
+      kubectl get nodes
+      kubectl cordon NŒUD
+      kubectl uncordon NŒUD
+    exercise: >-
+      Avec un cluster de test à plusieurs nœuds, crée un namespace d'exercice avec « kubectl
+      create namespace exo-cordon », mets un worker en cordon, lance un Deployment de trois
+      répliques et observe leur placement, puis fais uncordon. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/architecture/nodes/#manual-node-administration
+  tests: [pending-taint-cordon]

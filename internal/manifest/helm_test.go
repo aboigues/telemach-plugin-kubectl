@@ -77,3 +77,29 @@ func TestProblemsBeforeInformation(t *testing.T) {
 		t.Errorf("un problème puis une information attendus : %+v", r.Issues)
 	}
 }
+
+// Feature 004 (T047, FR-018) : un HPA et sa cible dans les fichiers vérifiés ; un conteneur
+// sans request pour la ressource visée est signalé par une information, sur le conteneur.
+func TestHPAMissingRequestOffline(t *testing.T) {
+	root := t.TempDir()
+	deploy := "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web\nspec:\n  selector:\n    matchLabels: {app: web}\n  template:\n    metadata:\n      labels: {app: web}\n    spec:\n      containers:\n      - name: web\n        image: nginxinc/nginx-unprivileged:1.30-alpine\n        resources:\n          requests: {memory: 32Mi}\n          limits: {memory: 64Mi}\n"
+	hpa := "apiVersion: autoscaling/v2\nkind: HorizontalPodAutoscaler\nmetadata:\n  name: web\nspec:\n  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: web}\n  maxReplicas: 3\n  metrics:\n  - type: Resource\n    resource:\n      name: cpu\n      target: {type: Utilization, averageUtilization: 50}\n"
+	write(t, root, map[string]string{"deploy.yaml": deploy, "hpa.yaml": hpa, "seul/hpa.yaml": hpa})
+	r := Analyze([]string{root}, false, "v1.37.2")
+	var found []Issue
+	for _, is := range r.Issues {
+		if is.Kind == KindHPAMissingRequest {
+			found = append(found, is)
+		}
+	}
+	if len(found) != 1 || filepath.Base(found[0].File) != "deploy.yaml" || found[0].Line != 13 || !found[0].Info() || r.Problems() != 0 {
+		t.Errorf("une information sur deploy.yaml:13 attendue : %+v", r.Issues)
+	}
+	// HPA seul : la cible n'est pas dans les fichiers vérifiés, rien n'est dit.
+	r = Analyze([]string{filepath.Join(root, "seul")}, false, "v1.37.2")
+	for _, is := range r.Issues {
+		if is.Kind == KindHPAMissingRequest {
+			t.Errorf("rien n'est attendu sans la cible : %+v", is)
+		}
+	}
+}

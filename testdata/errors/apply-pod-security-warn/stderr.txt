@@ -1,0 +1,1 @@
+Warning: would violate PodSecurity "restricted:latest": unrestricted capabilities (container "web" must set securityContext.capabilities.drop=["ALL"]), seccompProfile (pod or container "web" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost")

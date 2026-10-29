@@ -1,0 +1,25 @@
+# Scénario T7 : CronJob suspendu (feature 004, quickstart). Manifestes seulement : les attentes sont dans
+# testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: sauvegarde
+spec:
+  schedule: "*/5 * * * *"
+  suspend: true
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+          containers:
+          - name: calcul
+            image: busybox:1.38
+            command: ["sh", "-c", "echo sauvegarde"]
+            securityContext: {allowPrivilegeEscalation: false}
+            resources:
+              requests: {cpu: 10m, memory: 16Mi}
+              limits: {cpu: 100m, memory: 32Mi}

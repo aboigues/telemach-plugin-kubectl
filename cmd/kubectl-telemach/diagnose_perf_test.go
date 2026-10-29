@@ -68,3 +68,34 @@ func TestDiagnoseNamespaceLatency(t *testing.T) {
 		t.Errorf("les lectures ne sont pas parallèles : %v pour %d lectures de %v", p95, calls, fakeDelay)
 	}
 }
+
+// Feature 004 (T064, SC-005) : le diagnostic d'un Job, d'un CronJob, d'un DaemonSet, d'un
+// StatefulSet ou d'un HPA répond en moins de 5 s, chaque lecture coûtant fakeDelay. Mesure faite
+// sans le détecteur de courses (LL-006) ; 3 mesures par type, la plus lente doit tenir l'objectif.
+func TestDiagnoseWorkloadLatency(t *testing.T) {
+	if raceEnabled {
+		t.Skip("latence mesurée sans le détecteur de courses (étape dédiée de la CI)")
+	}
+	for _, tc := range []struct{ corpus, target string }{
+		{"job-backoff-limit", "job/calc"},
+		{"cronjob-last-failed", "cronjob/echec"},
+		{"daemonset-tainted-worker", "daemonset/agent"},
+		{"statefulset-ordered-wait", "statefulset/ordre"},
+		{"hpa-missing-request", "hpa/web"},
+	} {
+		t.Run(tc.corpus, func(t *testing.T) {
+			t.Setenv("FAKE_DELAY", strconv.FormatFloat(fakeDelay.Seconds(), 'f', 3, 64))
+			var slowest time.Duration
+			for range 3 {
+				a, _, _ := objectEnv(t, tc.corpus, "*")
+				start := time.Now()
+				run(a, []string{"diagnose", "--color=never", tc.target, "-n", "demo"})
+				slowest = max(slowest, time.Since(start))
+			}
+			t.Logf("diagnose %s : %v au plus", tc.target, slowest)
+			if slowest > 5*time.Second {
+				t.Errorf("SC-005 non atteint : %v > 5 s", slowest)
+			}
+		})
+	}
+}

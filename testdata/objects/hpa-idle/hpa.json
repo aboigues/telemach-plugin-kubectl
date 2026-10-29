@@ -1,0 +1,76 @@
+{
+  "apiVersion": "autoscaling/v2",
+  "kind": "HorizontalPodAutoscaler",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "••••••"
+    },
+    "creationTimestamp": "2026-10-29T16:31:11Z",
+    "generation": 1,
+    "name": "web",
+    "namespace": "f004-hpa-repos",
+    "resourceVersion": "3061",
+    "uid": "589b6ae8-c78c-4eb1-9b91-86179ac2a13c"
+  },
+  "spec": {
+    "maxReplicas": 3,
+    "metrics": [
+      {
+        "resource": {
+          "name": "cpu",
+          "target": {
+            "averageUtilization": 50,
+            "type": "Utilization"
+          }
+        },
+        "type": "Resource"
+      }
+    ],
+    "minReplicas": 1,
+    "scaleTargetRef": {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "name": "web"
+    }
+  },
+  "status": {
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-10-29T16:31:11Z",
+        "message": "recent recommendations were higher than current one, applying the highest recent recommendation",
+        "reason": "ScaleDownStabilized",
+        "status": "True",
+        "type": "AbleToScale"
+      },
+      {
+        "lastTransitionTime": "2026-10-29T16:31:43Z",
+        "message": "the HPA was able to successfully calculate a replica count from cpu resource utilization (percentage of request)",
+        "reason": "ValidMetricFound",
+        "status": "True",
+        "type": "ScalingActive"
+      },
+      {
+        "lastTransitionTime": "2026-10-29T16:31:43Z",
+        "message": "the desired count is within the acceptable range",
+        "reason": "DesiredWithinRange",
+        "status": "False",
+        "type": "ScalingLimited"
+      }
+    ],
+    "currentMetrics": [
+      {
+        "resource": {
+          "current": {
+            "averageUtilization": 0,
+            "averageValue": "0"
+          },
+          "name": "cpu"
+        },
+        "type": "Resource"
+      }
+    ],
+    "currentReplicas": 1,
+    "desiredReplicas": 1,
+    "observedGeneration": 1
+  }
+}

@@ -1,0 +1,1 @@
+Error from server (Forbidden): pods "nu" is forbidden: failed quota: quota-equipe: must specify limits.cpu for: nu; limits.memory for: nu

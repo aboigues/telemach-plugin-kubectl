@@ -1,0 +1,5 @@
+# Attendu du diagnostic (feature 004), rédigé à la main d'après le relevé kind 1.37.
+kind: cronjob
+name: sauvegarde
+primary: cronjob.suspended
+links: {schedule: ok, history: ok, last-job: skipped}

@@ -1,0 +1,11 @@
+# Scénario T2 : LimitRange qui plafonne le CPU de chaque conteneur (feature 004, quickstart). Manifestes seulement : les attentes sont dans
+# testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: plafond
+spec:
+  limits:
+  - type: Container
+    max:
+      cpu: 500m

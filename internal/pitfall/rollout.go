@@ -55,6 +55,7 @@ func DiagnoseDeployment(ctx Context, name string) (ObjectSnapshot, error) {
 	pods, podsErr := ctx.Reader.PodsBySelector(sel)
 	s.Deny(podsErr)
 	rolloutLink(ctx, &s, dep, desired, pods.Items, podsErr == nil)
+	admissionLink(ctx, &s, dep, desired)
 	imageLink(&s, dep)
 	configLink(ctx, &s, dep, pods.Items, podsErr == nil)
 

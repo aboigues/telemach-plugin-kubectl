@@ -1,0 +1,5 @@
+# Relevé kind 1.37 (feature 004) : un worker porte le taint dedie=gpu, l'autre est en cordon ;
+# le plan de contrôle porte son taint habituel (cause normale).
+state: failing
+reason: UntoleratedTaint
+entry: pod.untolerated-taint

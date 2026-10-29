@@ -1,0 +1,126 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "batch/v1",
+      "kind": "Job",
+      "metadata": {
+        "annotations": {
+          "batch.kubernetes.io/cronjob-scheduled-timestamp": "2026-10-29T16:23:00Z"
+        },
+        "creationTimestamp": "2026-10-29T16:23:03Z",
+        "generation": 1,
+        "labels": {
+          "batch.kubernetes.io/controller-uid": "6dc86716-72ff-4053-8991-36357cb91788",
+          "batch.kubernetes.io/job-name": "echec-29888183",
+          "controller-uid": "6dc86716-72ff-4053-8991-36357cb91788",
+          "job-name": "echec-29888183"
+        },
+        "name": "echec-29888183",
+        "namespace": "f004-cron-echec",
+        "ownerReferences": [
+          {
+            "apiVersion": "batch/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "CronJob",
+            "name": "echec",
+            "uid": "4977bdb3-4125-4926-9f69-7c7ea6c26b08"
+          }
+        ],
+        "resourceVersion": "1484",
+        "uid": "6dc86716-72ff-4053-8991-36357cb91788"
+      },
+      "spec": {
+        "backoffLimit": 0,
+        "completionMode": "NonIndexed",
+        "completions": 1,
+        "manualSelector": false,
+        "parallelism": 1,
+        "podReplacementPolicy": "TerminatingOrFailed",
+        "selector": {
+          "matchLabels": {
+            "batch.kubernetes.io/controller-uid": "6dc86716-72ff-4053-8991-36357cb91788"
+          }
+        },
+        "suspend": false,
+        "template": {
+          "metadata": {
+            "labels": {
+              "batch.kubernetes.io/controller-uid": "6dc86716-72ff-4053-8991-36357cb91788",
+              "batch.kubernetes.io/job-name": "echec-29888183",
+              "controller-uid": "6dc86716-72ff-4053-8991-36357cb91788",
+              "job-name": "echec-29888183"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "command": [
+                  "sh",
+                  "-c",
+                  "echo export impossible >&2; exit 2"
+                ],
+                "image": "busybox:1.38",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "calcul",
+                "resources": {
+                  "limits": {
+                    "cpu": "100m",
+                    "memory": "32Mi"
+                  },
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "16Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Never",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "runAsUser": 65534
+            },
+            "terminationGracePeriodSeconds": 30
+          }
+        }
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": "2026-10-29T16:23:08Z",
+            "lastTransitionTime": "2026-10-29T16:23:08Z",
+            "message": "Job has reached the specified backoff limit",
+            "reason": "BackoffLimitExceeded",
+            "status": "True",
+            "type": "FailureTarget"
+          },
+          {
+            "lastProbeTime": "2026-10-29T16:23:08Z",
+            "lastTransitionTime": "2026-10-29T16:23:08Z",
+            "message": "Job has reached the specified backoff limit",
+            "reason": "BackoffLimitExceeded",
+            "status": "True",
+            "type": "Failed"
+          }
+        ],
+        "failed": 1,
+        "ready": 0,
+        "startTime": "2026-10-29T16:23:03Z",
+        "terminating": 0,
+        "uncountedTerminatedPods": {}
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

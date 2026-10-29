@@ -1,0 +1,17 @@
+# Scénario T2 : pod qui demande plus que le plafond de limitrange.yaml (feature 004, quickstart). Manifestes seulement : les attentes sont dans
+# testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gourmand
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+  containers:
+  - name: web
+    image: nginxinc/nginx-unprivileged:1.30-alpine
+    securityContext: {allowPrivilegeEscalation: false}
+    resources:
+      requests: {cpu: 100m, memory: 32Mi}
+      limits: {cpu: "2", memory: 64Mi}

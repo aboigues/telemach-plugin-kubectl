@@ -1,0 +1,5 @@
+# Relevé kind 1.37 (feature 004) : trois répliques qui refusent de partager un nœud, pour
+# deux workers.
+state: failing
+reason: PodAntiAffinity
+entry: pod.pod-anti-affinity

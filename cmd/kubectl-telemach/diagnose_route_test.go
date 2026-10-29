@@ -25,6 +25,18 @@ func TestParseTarget(t *testing.T) {
 		{"ing/web", "ingress", "web", true},
 		{"pvc/data", "pvc", "data", true},
 		{"persistentvolumeclaim/data", "pvc", "data", true},
+		// Feature 004 (T011).
+		{"job/calc", "job", "calc", true},
+		{"jobs/calc", "job", "calc", true},
+		{"job.batch/calc", "job", "calc", true},
+		{"cronjob/sauvegarde", "cronjob", "sauvegarde", true},
+		{"cj/sauvegarde", "cronjob", "sauvegarde", true},
+		{"daemonset/agent", "daemonset", "agent", true},
+		{"ds/agent", "daemonset", "agent", true},
+		{"statefulset/base", "statefulset", "base", true},
+		{"sts/base", "statefulset", "base", true},
+		{"hpa/web", "hpa", "web", true},
+		{"horizontalpodautoscaler/web", "hpa", "web", true},
 		{"configmap/web", "configmap", "web", false},
 		{"service/", "service", "", false},
 	}
@@ -43,7 +55,7 @@ func TestDiagnoseUnsupportedType(t *testing.T) {
 	if code := run(a, []string{"diagnose", "--color=never", "configmap/web", "-n", "demo"}); code != 2 {
 		t.Fatalf("code %d", code)
 	}
-	for _, want := range []string{"configmap", "service/", "deployment/", "ingress/", "pvc/"} {
+	for _, want := range []string{"configmap", "service/", "deployment/", "ingress/", "pvc/", "job/", "cronjob/", "daemonset/", "statefulset/", "hpa/"} {
 		if !strings.Contains(errb.String(), want) {
 			t.Errorf("message sans %q :\n%s", want, errb)
 		}

@@ -137,8 +137,8 @@ func TestKnownKind(t *testing.T) {
 	if _, ok := s.KnownKind("Widget"); ok {
 		t.Error("Widget n'est pas couvert")
 	}
-	if len(s.KindNames()) != 12 {
-		t.Errorf("12 ressources couvertes attendues, %d trouvées", len(s.KindNames()))
+	if len(s.KindNames()) != 13 { // 12 + HorizontalPodAutoscaler (feature 004)
+		t.Errorf("13 ressources couvertes attendues, %d trouvées", len(s.KindNames()))
 	}
 }
 

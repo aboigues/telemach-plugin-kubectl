@@ -1,0 +1,18 @@
+# Scénario T3 : pod non conforme au niveau PodSecurity restricted (capabilities et\n# seccompProfile absents ; il reste non-root et sans élévation de privilèges) (feature 004, quickstart). Manifestes seulement : les attentes sont dans
+# testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+  containers:
+  - name: web
+    image: nginxinc/nginx-unprivileged:1.30-alpine
+    securityContext:
+      allowPrivilegeEscalation: false
+    resources:
+      requests: {cpu: 10m, memory: 16Mi}
+      limits: {cpu: 100m, memory: 64Mi}

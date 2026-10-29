@@ -132,5 +132,12 @@ go test ./tests/manifests/...                   # contrôle manifest-lint
 scripts/couverture 80                           # couverture de internal/ (gate test)
 scripts/secrets                                 # gate secrets : gitleaks sur l'historique et le dossier (LL-002)
 TELEMACH_KIND_IMAGE=kindest/node:v1.37.0@sha256:… \
-  go test -tags integration ./tests/integration/...   # cluster kind jetable
+  go test -tags integration ./tests/integration/...   # cluster kind jetable à trois nœuds
+# Relevés du corpus (cluster jetable à trois nœuds, testdata/kind/three-nodes.yaml) ; -only f004
+# ne relève que les cas de la feature 004, -variant 1.35 range une variante de version.
+TELEMACH_KIND_IMAGE=… go run -tags integration ./scripts/collect-errors -out testdata/errors
+TELEMACH_KIND_IMAGE=… go run -tags integration ./scripts/collect-objects -out testdata/objects
+# Relevé d'une formation : rejoue ses pannes (tp*/pannes/*.yaml) et liste ce qui reste non
+# reconnu ; prérequis facultatifs d'un TP dans <tp>/telemach-releve.yaml (apply, wait).
+TELEMACH_KIND_IMAGE=… go run -tags integration ./scripts/collect-errors -training ../formation -report releve.md
 ```

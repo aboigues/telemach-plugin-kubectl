@@ -1,0 +1,99 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "batch/v1",
+      "kind": "Job",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T16:44:24Z",
+        "generation": 1,
+        "labels": {
+          "batch.kubernetes.io/controller-uid": "1519877c-d426-47f7-a9e9-6109c7d05be4",
+          "batch.kubernetes.io/job-name": "ok",
+          "controller-uid": "1519877c-d426-47f7-a9e9-6109c7d05be4",
+          "job-name": "ok"
+        },
+        "name": "ok",
+        "namespace": "f004-job-ok",
+        "resourceVersion": "958",
+        "uid": "1519877c-d426-47f7-a9e9-6109c7d05be4"
+      },
+      "spec": {
+        "backoffLimit": 6,
+        "completionMode": "NonIndexed",
+        "completions": 1,
+        "manualSelector": false,
+        "parallelism": 1,
+        "podReplacementPolicy": "TerminatingOrFailed",
+        "selector": {
+          "matchLabels": {
+            "batch.kubernetes.io/controller-uid": "1519877c-d426-47f7-a9e9-6109c7d05be4"
+          }
+        },
+        "suspend": false,
+        "template": {
+          "metadata": {
+            "labels": {
+              "batch.kubernetes.io/controller-uid": "1519877c-d426-47f7-a9e9-6109c7d05be4",
+              "batch.kubernetes.io/job-name": "ok",
+              "controller-uid": "1519877c-d426-47f7-a9e9-6109c7d05be4",
+              "job-name": "ok"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "command": [
+                  "sh",
+                  "-c",
+                  "echo ok"
+                ],
+                "image": "busybox:1.38",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "ok",
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Never",
+            "schedulerName": "default-scheduler",
+            "securityContext": {},
+            "terminationGracePeriodSeconds": 30
+          }
+        }
+      },
+      "status": {
+        "completionTime": "2026-10-29T16:44:27Z",
+        "conditions": [
+          {
+            "lastProbeTime": "2026-10-29T16:44:27Z",
+            "lastTransitionTime": "2026-10-29T16:44:27Z",
+            "message": "Reached expected number of succeeded pods",
+            "reason": "CompletionsReached",
+            "status": "True",
+            "type": "SuccessCriteriaMet"
+          },
+          {
+            "lastProbeTime": "2026-10-29T16:44:27Z",
+            "lastTransitionTime": "2026-10-29T16:44:27Z",
+            "message": "Reached expected number of succeeded pods",
+            "reason": "CompletionsReached",
+            "status": "True",
+            "type": "Complete"
+          }
+        ],
+        "ready": 0,
+        "startTime": "2026-10-29T16:44:24Z",
+        "succeeded": 1,
+        "terminating": 0,
+        "uncountedTerminatedPods": {}
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

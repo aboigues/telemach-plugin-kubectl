@@ -228,3 +228,38 @@ func p95(values []float64) float64 {
 	sort.Float64s(s)
 	return s[len(s)*95/100]
 }
+
+// Feature 004 (T022, research.md F4, F5) : « scale » lance la vérification différée ; un
+// avertissement PodSecurity d'une commande réussie appelle « notice », une seule fois, sans
+// changer le code de sortie ; sans avertissement, notice n'est pas appelé.
+func TestScaleAndPodSecurityNotice(t *testing.T) {
+	warn := `FAKE_WARN=Warning: would violate PodSecurity "restricted:latest": unrestricted capabilities (container "web" must set securityContext.capabilities.drop=["ALL"])`
+	forEachShell(t, func(t *testing.T, shell string) {
+		e := setupWatch(t)
+		waitWatchers(t, e)
+		stdout, stderr, err := runShell(t, shell, interactiveFlags(shell), e, nil, "",
+			`kubectl scale deployment api --replicas=3 -n demo; echo "rc=$?"`)
+		if err != nil || !strings.Contains(stdout, "rc=0") {
+			t.Fatalf("%v\n%s\n%s", err, stdout, stderr)
+		}
+		time.Sleep(200 * time.Millisecond)
+		log := readLog(t, e)
+		if !strings.Contains(log, "-- scale deployment api --replicas=3 -n demo") {
+			t.Errorf("watch non lancé après scale :\n%s", log)
+		}
+		if strings.Contains(log, "telemach notice") {
+			t.Errorf("notice appelé sans avertissement :\n%s", log)
+		}
+		stdout, stderr, err = runShell(t, shell, interactiveFlags(shell), e, []string{warn}, "",
+			`kubectl apply -f pod.yaml -n t3w; echo "rc=$?"`)
+		if err != nil || !strings.Contains(stdout, "rc=0") {
+			t.Fatalf("%v\n%s\n%s", err, stdout, stderr)
+		}
+		if n := strings.Count(readLog(t, e), "telemach notice --stderr-file "); n != 1 {
+			t.Errorf("notice appelé %d fois, attendu 1 :\n%s", n, readLog(t, e))
+		}
+		if !strings.Contains(stderr, "would violate PodSecurity") {
+			t.Errorf("l'avertissement de kubectl doit rester affiché :\n%s", stderr)
+		}
+	})
+}

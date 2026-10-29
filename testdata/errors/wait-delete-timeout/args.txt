@@ -1,0 +1,6 @@
+wait
+--for=delete
+configmap/reste
+--timeout=5s
+-n
+wait-delete-timeout

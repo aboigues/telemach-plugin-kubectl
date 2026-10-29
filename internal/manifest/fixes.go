@@ -20,6 +20,15 @@ func fixedLines(f *File, is Issue) []Line {
 	}
 	one := func(t string) []Line { return []Line{{Number: is.Line, Text: redact.Redact(t)}} }
 	switch is.Kind {
+	case KindPodSecurity:
+		if is.Suggestion != "" {
+			return one(is.Suggestion)
+		}
+		out := []Line{{Number: is.Line, Text: redact.Redact(text)}}
+		for _, l := range is.Insert {
+			out = append(out, Line{Number: 0, Text: l})
+		}
+		return out
 	case KindTabIndent:
 		return one(strings.Repeat(" ", guessIndent(f, is.Line)) + strings.TrimLeft(text, " \t"))
 	case KindYAMLSyntax:
@@ -45,7 +54,7 @@ func fixedLines(f *File, is Issue) []Line {
 		if is.Suggestion != "" && !strings.ContainsAny(is.Suggestion, "\n:") {
 			return one(text[:col] + is.Suggestion)
 		}
-	case KindInvalidEnum, KindRemovedAPIVersion, KindUnknownKind, KindInvalidName:
+	case KindInvalidEnum, KindRemovedAPIVersion, KindUnknownKind, KindInvalidName, KindInvalidCron:
 		if is.Suggestion != "" {
 			return one(text[:col] + is.Suggestion)
 		}

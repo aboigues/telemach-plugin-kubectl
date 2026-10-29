@@ -1,0 +1,26 @@
+# Scénario T4 : Deployment dont la mise à l'échelle dépasse le quota de quota.yaml (feature 004, quickstart). Manifestes seulement : les attentes sont dans
+# testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      containers:
+      - name: api
+        image: nginxinc/nginx-unprivileged:1.30-alpine
+        securityContext: {allowPrivilegeEscalation: false}
+        resources:
+          requests: {cpu: 50m, memory: 32Mi}
+          limits: {cpu: 500m, memory: 64Mi}

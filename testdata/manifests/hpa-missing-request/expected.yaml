@@ -1,0 +1,9 @@
+file: 'web.yaml'
+document: 1
+line: 20
+column: 9
+resource: 'Deployment/web'
+field_path: 'spec.template.spec.containers[0].resources.requests.cpu'
+kind: 'hpa-missing-request'
+suggestion: 'cpu'
+apply: false

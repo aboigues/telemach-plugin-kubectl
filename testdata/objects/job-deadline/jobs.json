@@ -1,0 +1,117 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "batch/v1",
+      "kind": "Job",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "••••••"
+        },
+        "creationTimestamp": "2026-10-29T16:18:24Z",
+        "generation": 1,
+        "labels": {
+          "batch.kubernetes.io/controller-uid": "08ce9a1e-09f1-41d4-be67-3e38c7042380",
+          "batch.kubernetes.io/job-name": "lent",
+          "controller-uid": "08ce9a1e-09f1-41d4-be67-3e38c7042380",
+          "job-name": "lent"
+        },
+        "name": "lent",
+        "namespace": "f004-job-delai",
+        "resourceVersion": "1030",
+        "uid": "08ce9a1e-09f1-41d4-be67-3e38c7042380"
+      },
+      "spec": {
+        "activeDeadlineSeconds": 10,
+        "backoffLimit": 6,
+        "completionMode": "NonIndexed",
+        "completions": 1,
+        "manualSelector": false,
+        "parallelism": 1,
+        "podReplacementPolicy": "TerminatingOrFailed",
+        "selector": {
+          "matchLabels": {
+            "batch.kubernetes.io/controller-uid": "08ce9a1e-09f1-41d4-be67-3e38c7042380"
+          }
+        },
+        "suspend": false,
+        "template": {
+          "metadata": {
+            "labels": {
+              "batch.kubernetes.io/controller-uid": "08ce9a1e-09f1-41d4-be67-3e38c7042380",
+              "batch.kubernetes.io/job-name": "lent",
+              "controller-uid": "08ce9a1e-09f1-41d4-be67-3e38c7042380",
+              "job-name": "lent"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "command": [
+                  "sh",
+                  "-c",
+                  "sleep 120"
+                ],
+                "image": "busybox:1.38",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "calcul",
+                "resources": {
+                  "limits": {
+                    "cpu": "100m",
+                    "memory": "32Mi"
+                  },
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "16Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Never",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "runAsUser": 65534
+            },
+            "terminationGracePeriodSeconds": 30
+          }
+        }
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": "2026-10-29T16:18:34Z",
+            "lastTransitionTime": "2026-10-29T16:18:34Z",
+            "message": "Job was active longer than specified deadline",
+            "reason": "DeadlineExceeded",
+            "status": "True",
+            "type": "FailureTarget"
+          },
+          {
+            "lastProbeTime": "2026-10-29T16:19:06Z",
+            "lastTransitionTime": "2026-10-29T16:19:06Z",
+            "message": "Job was active longer than specified deadline",
+            "reason": "DeadlineExceeded",
+            "status": "True",
+            "type": "Failed"
+          }
+        ],
+        "failed": 1,
+        "ready": 0,
+        "startTime": "2026-10-29T16:18:24Z",
+        "terminating": 0,
+        "uncountedTerminatedPods": {}
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

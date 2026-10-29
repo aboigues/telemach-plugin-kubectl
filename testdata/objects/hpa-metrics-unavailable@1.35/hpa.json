@@ -1,0 +1,60 @@
+{
+  "apiVersion": "autoscaling/v2",
+  "kind": "HorizontalPodAutoscaler",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "••••••"
+    },
+    "creationTimestamp": "2026-10-29T17:12:25Z",
+    "name": "web",
+    "namespace": "f004-hpa-sans-metriques",
+    "resourceVersion": "1884",
+    "uid": "49cb660f-2706-4627-9f81-917e46f619e4"
+  },
+  "spec": {
+    "maxReplicas": 3,
+    "metrics": [
+      {
+        "resource": {
+          "name": "cpu",
+          "target": {
+            "averageUtilization": 50,
+            "type": "Utilization"
+          }
+        },
+        "type": "Resource"
+      }
+    ],
+    "minReplicas": 1,
+    "scaleTargetRef": {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "name": "web"
+    }
+  },
+  "status": {
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-10-29T17:12:42Z",
+        "message": "the HPA controller was able to get the target's current scale",
+        "reason": "SucceededGetScale",
+        "status": "True",
+        "type": "AbleToScale"
+      },
+      {
+        "lastTransitionTime": "2026-10-29T17:12:42Z",
+        "message": "the HPA was unable to compute the replica count: failed to get cpu utilization: unable to get metrics for resource cpu: unable to fetch metrics from resource metrics API: the server could not find the requested resource (get pods.metrics.k8s.io)",
+        "reason": "FailedGetResourceMetric",
+        "status": "False",
+        "type": "ScalingActive"
+      }
+    ],
+    "currentMetrics": [
+      {
+        "type": ""
+      }
+    ],
+    "currentReplicas": 1,
+    "desiredReplicas": 0
+  }
+}

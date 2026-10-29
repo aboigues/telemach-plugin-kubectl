@@ -1,0 +1,6 @@
+wait
+--for=condition=Ready
+pod/web
+--timeout=10s
+-n
+wait-condition-timeout

@@ -37,6 +37,21 @@ var stepLabels = map[pitfall.Step]string{
 	pitfall.StepStorageClass: "classe de stockage",
 	pitfall.StepBinding:      "liaison",
 	pitfall.StepConsumer:     "pod consommateur",
+	// Feature 004.
+	pitfall.StepAdmission:  "admission",
+	pitfall.StepStatus:     "état",
+	pitfall.StepPods:       "pods",
+	pitfall.StepSchedule:   "planification",
+	pitfall.StepHistory:    "historique",
+	pitfall.StepLastJob:    "dernier Job",
+	pitfall.StepNodes:      "nœuds",
+	pitfall.StepService:    "Service headless",
+	pitfall.StepOrdinal:    "ordre des pods",
+	pitfall.StepVolumes:    "volumes",
+	pitfall.StepMetricsAPI: "API de métriques",
+	pitfall.StepTarget:     "cible",
+	pitfall.StepRequests:   "requests",
+	pitfall.StepConditions: "conditions",
 }
 
 // kindLabels nomme le type d'objet dans l'en-tête.
@@ -45,6 +60,12 @@ var kindLabels = map[pitfall.Kind]string{
 	pitfall.KindDeployment: "Deployment",
 	pitfall.KindIngress:    "Ingress",
 	pitfall.KindPVC:        "PVC",
+	// Feature 004.
+	pitfall.KindJob:         "Job",
+	pitfall.KindCronJob:     "CronJob",
+	pitfall.KindDaemonSet:   "DaemonSet",
+	pitfall.KindStatefulSet: "StatefulSet",
+	pitfall.KindHPA:         "HPA",
 }
 
 // RenderObject affiche le diagnostic d'un objet (FR-021) : résumé du premier piège, identité de
@@ -58,7 +79,7 @@ func RenderObject(w io.Writer, snap pitfall.ObjectSnapshot, cat *catalog.Catalog
 	var entry *catalog.Entry
 	captures := snap.LessonCaptures(pitfall.Pitfall{})
 	if primary != nil && cat != nil {
-		entry, _ = cat.ByPitfall(primary.ID)
+		entry, _ = pitfall.LessonEntry(cat, *primary)
 		captures = snap.LessonCaptures(*primary)
 	}
 	if captures["kubectl"] == "" {
@@ -123,7 +144,7 @@ func RenderObject(w io.Writer, snap pitfall.ObjectSnapshot, cat *catalog.Catalog
 	if others := snap.Secondary(); len(others) > 0 && cat != nil {
 		b.WriteString("\n" + t.Label(LabelOtherIssues) + "\n")
 		for _, p := range others {
-			e, ok := cat.ByPitfall(p.ID)
+			e, ok := pitfall.LessonEntry(cat, p)
 			if !ok {
 				continue
 			}

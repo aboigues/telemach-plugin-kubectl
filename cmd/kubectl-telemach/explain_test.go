@@ -259,3 +259,25 @@ func TestExplainExpectedAnswers(t *testing.T) {
 		t.Errorf("can-i avec un message d'erreur : explication attendue :\n%s", got)
 	}
 }
+
+// Feature 004 (FR-003) : un refus PodSecurity sur un fichier local montre la version corrigée
+// du securityContext, sans champ que le serveur n'a pas cité.
+func TestExplainPodSecurityFix(t *testing.T) {
+	a, _, errb := newTestApp(t, nil)
+	pod, err := filepath.Abs("../../testdata/manifests/pod-security/pod.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	stderr, err := os.ReadFile("../../testdata/manifests/pod-security/stderr.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := writeStderr(t, string(stderr))
+	run(a, []string{"explain", "--color=never", "--exit-code", "1", "--stderr-file", f, "--", "apply", "-f", pod, "-n", "t3"})
+	got := strings.ReplaceAll(errb.String(), "\u00a0", " ") // espaces insécables des guillemets français
+	for _, want := range []string{"niveau PodSecurity « restricted »", "Version corrigée", `drop: ["ALL"]`, "type: RuntimeDefault", "conteneur « web »", "pod.yaml:14:5"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("sortie sans %q :\n%s", want, got)
+		}
+	}
+}
