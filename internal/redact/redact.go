@@ -92,12 +92,17 @@ func Redact(s string) string {
 
 // structuralKeys sont des clés Kubernetes dont le nom contient un mot sensible mais dont la
 // valeur n'est pas un secret : références (secretKeyRef, secretName…), noms de clés (key:),
-// chemins de fichiers.
+// chemins de fichiers, et champs du schéma relevés dans les documents OpenAPI (issue #11 :
+// topologyKey vaut par exemple kubernetes.io/hostname).
 var structuralKeys = map[string]bool{
 	"key": true, "secretkeyref": true, "secretname": true, "secretref": true,
 	"imagepullsecrets": true, "secrets": true, "serviceaccounttoken": true,
 	"automountserviceaccounttoken": true, "client-key": true, "client-certificate": true,
 	"tokenfile": true, "keyfile": true, "certfile": true,
+	"topologykey": true, "matchlabelkeys": true, "mismatchlabelkeys": true,
+	"configmapkeyref": true, "filekeyref": true, "nodepublishsecretref": true,
+	"keytype": true, "keyring": true, "chapauthdiscovery": true, "chapauthsession": true,
+	"gmsacredentialspecname": true, "podcertificate": true, "podgroupreplicakey": true,
 }
 
 // isStructuralKey indique si le préfixe « clé: » désigne une clé structurelle.

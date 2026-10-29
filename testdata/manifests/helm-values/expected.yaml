@@ -1,0 +1,7 @@
+file: 'traefik-values.yaml'
+document: 0
+line: 1
+column: 1
+kind: 'helm-values'
+suggestion: ''
+apply: false

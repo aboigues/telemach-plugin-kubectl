@@ -24,6 +24,7 @@ const (
 	LabelRepeated  = "↺ Même erreur que précédemment"
 	LabelLast      = "↺ Explication complète"
 	LabelProblem   = "✖ Problème"
+	LabelInfo      = "Information"
 	LabelFixedPart = "💡 Version corrigée"
 	SymbolWarning  = "⚠"
 	SymbolInfo     = "ℹ"

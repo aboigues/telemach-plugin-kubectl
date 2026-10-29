@@ -18,6 +18,17 @@ type Result struct {
 	Documents     int
 }
 
+// Problems compte les vrais problèmes, informations exclues (issue #12).
+func (r Result) Problems() int {
+	n := 0
+	for _, is := range r.Issues {
+		if !is.Info() {
+			n++
+		}
+	}
+	return n
+}
+
 // Blocking indique si au moins un problème empêche l'analyse du reste.
 func (r Result) Blocking() bool {
 	for _, is := range r.Issues {
@@ -48,6 +59,11 @@ func Analyze(paths []string, recursive bool, kubectlVersion string) Result {
 			maskDocument(d)
 		}
 		r.Files = append(r.Files, f)
+		// Un template Helm n'est pas encore du YAML : il n'est pas analysé (issue #12).
+		if is, ok := helmTemplateIssue(f); ok {
+			issues = append(issues, is)
+			continue
+		}
 		r.Documents += len(f.Documents)
 		issues = append(issues, SyntaxIssues(f)...)
 	}
@@ -59,6 +75,13 @@ func Analyze(paths []string, recursive bool, kubectlVersion string) Result {
 	}
 	if !syntaxOnly {
 		for _, f := range r.Files {
+			if isHelmTemplate(f) {
+				continue
+			}
+			if is, ok := helmValuesIssue(f); ok {
+				issues = append(issues, is)
+				continue
+			}
 			for _, d := range f.Documents {
 				issues = append(issues, SemanticIssues(f, d, rules)...)
 			}
@@ -103,6 +126,9 @@ func finish(issues []Issue, files []*File) []Issue {
 		a, b := issues[i], issues[j]
 		if a.Blocking != b.Blocking {
 			return a.Blocking
+		}
+		if a.Info() != b.Info() {
+			return b.Info() // les informations après les problèmes
 		}
 		if order[a.File] != order[b.File] {
 			return order[a.File] < order[b.File]

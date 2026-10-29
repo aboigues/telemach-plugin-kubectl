@@ -35,20 +35,43 @@ func RenderManifestIssues(w io.Writer, r manifest.Result, cat *catalog.Catalog, 
 		}
 		b.WriteString(t.Dim(line) + "\n")
 	}
+	problems := r.Problems()
+	if problems == 0 && o.ShowSuccess {
+		b.WriteString(t.Success(SymbolSuccess+" Aucun problème détecté dans "+fileList(r)+" ("+plural(r.Documents, "document")+")") + "\n")
+	}
 	if len(r.Issues) == 0 {
-		if o.ShowSuccess {
-			b.WriteString(t.Success(SymbolSuccess+" Aucun problème détecté dans "+fileList(r)+" ("+plural(r.Documents, "document")+")") + "\n")
-		}
 		_, err := io.WriteString(w, b.String())
 		return err
 	}
 	var concepts []*catalog.Entry
 	seen := map[string]bool{}
 	for i, is := range r.Issues {
+		if is.Info() {
+			// Information (issue #12) : ni numéro de problème, ni extrait.
+			if i > 0 || problems == 0 {
+				b.WriteString("\n")
+			}
+			b.WriteString(t.Hint(SymbolInfo+" "+LabelInfo+" — "+position(is)) + "\n")
+			if entry := entryFor(cat, is.Kind); entry != nil {
+				captures := issueCaptures(is, kubectl)
+				b.WriteString(wrap(catalog.Render(entry.Summary, captures), width, indent) + "\n")
+				for _, f := range entry.Fixes {
+					if f.Safe && f.Command != "" {
+						b.WriteString(indent + t.Highlight(catalog.Render(f.Command, captures), "bash") + "\n")
+						break
+					}
+				}
+				if !seen[entry.ID] {
+					seen[entry.ID] = true
+					concepts = append(concepts, entry)
+				}
+			}
+			continue
+		}
 		if i > 0 {
 			b.WriteString("\n")
 		}
-		b.WriteString(t.Title(fmt.Sprintf("%s %d/%d — %s", LabelProblem, i+1, len(r.Issues), position(is))) + "\n")
+		b.WriteString(t.Title(fmt.Sprintf("%s %d/%d — %s", LabelProblem, i+1, problems, position(is))) + "\n")
 		if is.FieldPath != "" && is.Kind != manifest.KindYAMLSyntax {
 			b.WriteString(indent + t.Dim("champ « ") + t.Emphasis(is.FieldPath) + t.Dim(" »") + "\n")
 		}
@@ -91,6 +114,14 @@ func RenderManifestIssues(w io.Writer, r manifest.Result, cat *catalog.Catalog, 
 	}
 	_, err := io.WriteString(w, b.String())
 	return err
+}
+
+func entryFor(cat *catalog.Catalog, kind string) *catalog.Entry {
+	if cat == nil {
+		return nil
+	}
+	e, _ := cat.ByIssueKind(kind)
+	return e
 }
 
 // issueCaptures fournit aux gabarits du catalogue les éléments du problème.

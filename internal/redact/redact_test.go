@@ -156,3 +156,51 @@ func FuzzRedact(f *testing.F) {
 		}
 	})
 }
+
+// Issue #11 : les champs du schéma Kubernetes dont le nom contient « key », « auth »… sans
+// être secrets restent visibles, dans le nœud YAML comme dans le texte.
+func TestStructuralFieldsKept(t *testing.T) {
+	src := `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  template:
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              matchLabelKeys: [pod-template-hash]
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values: [api]
+      tolerations:
+      - key: dedie
+        operator: Equal
+        value: gpu
+        effect: NoSchedule
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: ScheduleAnyway
+`
+	if got := Redact(src); got != src {
+		t.Errorf("texte modifié :\n%s", got)
+	}
+	var doc yaml.Node
+	if err := yaml.Unmarshal([]byte(src), &doc); err != nil {
+		t.Fatal(err)
+	}
+	if got := RedactNode(&doc); len(got) != 0 {
+		t.Errorf("aucune valeur masquée attendue, obtenu %v", got)
+	}
+	// Un vrai nom sensible reste masqué.
+	if got := Redact("  apiKey: abc123\n"); strings.Contains(got, "abc123") {
+		t.Errorf("apiKey non masqué : %q", got)
+	}
+}

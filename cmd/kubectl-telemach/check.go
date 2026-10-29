@@ -50,8 +50,8 @@ func (a *app) checkUsage(w io.Writer, theme render.Theme, width int) {
 	fmt.Fprintln(w, "   "+theme.Highlight("kubectl telemach check -f manifests/ -R", "bash"))
 }
 
-// check analyse les manifestes et renvoie le code 0 (aucun problème), 1 (au moins un
-// problème) ou 2 (fichier introuvable).
+// check analyse les manifestes et renvoie le code 0 (aucun problème, informations
+// éventuelles), 1 (au moins un problème) ou 2 (fichier introuvable).
 func (a *app) check(w io.Writer, theme render.Theme, width int, files []string, recursive bool) error {
 	r := manifest.Analyze(files, recursive, a.getenv("TELEMACH_KUBECTL_VERSION"))
 	cat, _ := catalog.Default()
@@ -61,8 +61,8 @@ func (a *app) check(w io.Writer, theme render.Theme, width int, files []string, 
 	if err := render.RenderManifestIssues(w, r, cat, opts); err != nil {
 		return err
 	}
-	if len(r.Issues) == 0 {
-		return nil
+	if r.Problems() == 0 {
+		return nil // les informations (ℹ) ne changent pas le code de sortie (issue #12)
 	}
 	a.saveCheck(r, files, cat)
 	for _, is := range r.Issues {

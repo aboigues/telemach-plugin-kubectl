@@ -76,6 +76,10 @@ func (a *app) explain(f explainFlags, args []string) error {
 	clean := cleanArgs(args)
 
 	cmd := command.Parse(clean)
+	if isExpectedAnswer(cmd, f.exitCode, stderr) {
+		a.canIHint(cmd, f.invokedAs)
+		return nil
+	}
 	cat, err := catalog.Default()
 	if err != nil {
 		cat = nil // catalogue invalide : le repli « non reconnue » reste disponible
@@ -128,6 +132,53 @@ func (a *app) explain(f explainFlags, args []string) error {
 	}
 	_ = a.store.Save(last)
 	return nil
+}
+
+// isExpectedAnswer reconnaît un code 1 qui n'est pas une erreur (issue #18) : « auth can-i »
+// répond « no » par le code 1, « diff » signale ainsi des différences (un code supérieur à 1
+// est une vraie erreur). Seuls des avertissements (« Warning: … ») peuvent alors figurer sur
+// la sortie d'erreur ; tout autre message reste expliqué.
+func isExpectedAnswer(cmd command.Command, exitCode int, stderr string) bool {
+	if exitCode != 1 || (cmd.Sub() != "auth can-i" && cmd.Verb() != "diff") {
+		return false
+	}
+	for _, line := range strings.Split(stderr, "\n") {
+		if line = strings.TrimSpace(line); line != "" && !strings.HasPrefix(line, "Warning:") {
+			return false
+		}
+	}
+	return true
+}
+
+// canIHintKey est la clé de hints.json du rappel sur « auth can-i » (au plus une fois par 24 h).
+const canIHintKey = "telemach:auth-can-i-no"
+
+// canIHint rappelle, discrètement et au plus une fois par 24 h, qu'un « no » est une réponse
+// et non une erreur, et comment lister ce qui est permis.
+func (a *app) canIHint(cmd command.Command, invokedAs string) {
+	if cmd.Sub() != "auth can-i" {
+		return
+	}
+	if _, list := cmd.Flags["--list"]; list {
+		return
+	}
+	now := a.now()
+	if !a.store.ShouldHint(canIHintKey, now) {
+		return
+	}
+	if invokedAs != "k" {
+		invokedAs = "kubectl"
+	}
+	list := invokedAs + " auth can-i --list"
+	if as := cmd.Flags["--as"]; as != "" {
+		list += " --as=" + as
+	}
+	if cmd.Namespace != "" {
+		list += " -n " + cmd.Namespace
+	}
+	theme, w, _ := a.output(a.stderr)
+	fmt.Fprintln(w, theme.Hint(render.SymbolInfo+" « no » est une réponse, pas une erreur : aucune règle RBAC n'autorise cette action. « "+list+" » liste ce qui est permis."))
+	_ = a.store.RememberHint(canIHintKey, now)
 }
 
 // manifestVerbs sont les sous-commandes qui lisent des manifestes avec -f.

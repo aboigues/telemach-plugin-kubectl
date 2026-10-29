@@ -11,6 +11,8 @@ var Categories = map[Category]bool{
 	"manifest": true, "schema": true, "conflict": true, "workload": true, "runtime": true,
 	// Feature 002 : pièges silencieux et nouvelles erreurs.
 	"service": true, "rollout": true, "config": true, "ingress": true, "storage": true, "portforward": true,
+	// Retours de formation (issues #10 et suivantes) : étape d'admission du serveur API.
+	"admission": true,
 }
 
 // Valeurs autorisées du champ fallback.

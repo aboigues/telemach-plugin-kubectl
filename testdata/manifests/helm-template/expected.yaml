@@ -1,0 +1,6 @@
+file: 'deployment.yaml'
+document: 0
+line: 4
+column: 9
+kind: 'helm-template'
+apply: false

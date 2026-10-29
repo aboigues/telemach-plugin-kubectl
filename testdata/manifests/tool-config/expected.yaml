@@ -1,0 +1,9 @@
+file: 'kubeadm-config.yaml'
+document: 1
+line: 1
+column: 1
+resource: 'ClusterConfiguration/'
+field_path: 'apiVersion'
+kind: 'tool-config'
+suggestion: 'kubeadm'
+apply: false
