@@ -27,6 +27,20 @@ func (f podFixture) PodEvents(string) (kuberead.EventList, error) {
 	return l, json.Unmarshal(data, &l)
 }
 
+// ListNodes rejoue la lecture des nœuds (feature 004) quand le cas en contient une ; un
+// dossier nommé « …-refus » simule un refus RBAC.
+func (f podFixture) ListNodes() (kuberead.NodeList, error) {
+	var l kuberead.NodeList
+	if strings.HasSuffix(string(f), "-refus") {
+		return l, &kuberead.ErrDenied{What: "les nœuds"}
+	}
+	data, err := os.ReadFile(filepath.Join(string(f), "nodes.json")) //nolint:gosec // corpus du dépôt
+	if err != nil {
+		return l, err
+	}
+	return l, json.Unmarshal(data, &l)
+}
+
 func (f podFixture) Logs(_, _ string, previous bool) ([]string, error) {
 	name := "logs.txt"
 	if previous {
@@ -78,4 +92,38 @@ func TestPodGolden(t *testing.T) {
 			checkGolden(t, filepath.Join("us4", name+".nocolor.txt"), b.String())
 		})
 	}
+}
+
+// Feature 004 (T031) : sans droit de lire les nœuds, la liste « Nœuds par cause » garde les
+// causes du message du scheduler, sans noms ni taint exact, et le diagnostic est partiel.
+func TestPodGoldenNodesDenied(t *testing.T) {
+	cat, err := catalog.Default()
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := filepath.Join(podsCorpus, "pending-taint-cordon")
+	dir := filepath.Join(t.TempDir(), "pending-taint-cordon-refus")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"pod.json", "events.json"} {
+		data, err := os.ReadFile(filepath.Join(src, name)) //nolint:gosec // corpus du dépôt
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, name), data, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	data, _ := os.ReadFile(filepath.Join(dir, "pod.json")) //nolint:gosec // copie du corpus
+	var p kuberead.Pod
+	if err := json.Unmarshal(data, &p); err != nil {
+		t.Fatal(err)
+	}
+	snap, d := workload.Diagnose(podFixture(dir), p, kuberead.Scope{Namespace: "demo"}, cat, p.Metadata.CreationTimestamp.Add(125e9))
+	var b bytes.Buffer
+	if err := RenderPod(&b, snap, d, Options{Theme: NewTheme(false, true), Width: 80}); err != nil {
+		t.Fatal(err)
+	}
+	checkGolden(t, filepath.Join("f004", "pending-nodes-denied.nocolor.txt"), b.String())
 }

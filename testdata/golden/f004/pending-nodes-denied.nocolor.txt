@@ -1,0 +1,41 @@
+✖ Le pod « place » reste en attente, un taint le repousse.
+   pod place · namespace f004-placement · image nginxinc/nginx-unprivileged:1.30-alpine · état UntoleratedTaint
+
+📘 Concept — taint and toleration
+   Un taint posé sur un nœud repousse les pods qui ne le tolèrent pas. Une
+   toleration autorise un pod à aller sur ce nœud, elle ne l'y force pas : pour
+   l'y envoyer, il faut aussi un nodeSelector ou une affinité de nœud.
+
+🔎 Cause probable
+   Les nœuds disponibles portent un taint que le pod ne tolère pas. Le taint du
+   plan de contrôle (node-role.kubernetes.io/control-plane) est normal : il
+   réserve ce nœud aux composants du cluster.
+
+💡 Corrections
+   1. Lire les taints des nœuds.
+      kubectl get nodes -o custom-columns=NOM:.metadata.name,TAINTS:.spec.taints
+   2. Si le pod doit aller sur ce nœud, lui ajouter la toleration correspondante
+      ET un nodeSelector vers un label de ce nœud (la toleration seule ne suffit
+      pas à l'y envoyer ; un taint n'est pas un label, le poser avec « kubectl
+      label node NŒUD dedie=gpu »).
+      tolerations:
+      - key: dedie
+        operator: Equal
+        value: gpu
+        effect: NoSchedule
+      nodeSelector:
+        dedie: gpu
+   3. Si le taint est un reste d'exercice, le retirer du nœud (le « - » final
+      retire le taint).
+      kubectl taint node NŒUD CLÉ-
+
+Nœuds par cause (0/3 disponibles)
+   ✖ 1 nœud    nœud non planifiable (cordon)
+   ✖ 2 nœuds   taint non toléré
+
+◐ Diagnostic partiel
+   Lecture refusée par RBAC : les nœuds (taints, cordon). Le diagnostic repose
+   sur les seules informations lisibles ; « kubectl auth can-i list nodes »
+   vérifie ce droit.
+
+➜ Pour aller plus loin : kubectl telemach deepen

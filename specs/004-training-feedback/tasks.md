@@ -132,7 +132,7 @@ Deployment, avec version corrigée et avertissement d'une commande réussie.
 ### Tests for User Story 2 ⚠️
 
 - [X] T030 [P] [US2] Étendre `internal/workload/select_test.go` sur les messages réels de `testdata/objects/` : découpage `0/N nodes are available: …` en causes, partie `preemption:` ignorée, raisons `UntoleratedTaint` (taint extrait), `PodAntiAffinity`, `PodAffinity`, `NodeUnschedulable`, causes existantes inchangées, cause inconnue citée telle quelle, cause principale = plus grand nombre de nœuds, taint `node-role.kubernetes.io/control-plane` marqué normal (data-model.md § PlacementCause)
-- [ ] T031 [P] [US2] Étendre `internal/render/pod_golden_test.go` : liste « Nœuds par cause » (exemple de contracts/cli.md § diagnose), noms des nœuds si la lecture des nœuds est permise, diagnostic partiel sinon ; golden files couleur et sans couleur dans `testdata/golden/f004/`
+- [X] T031 [P] [US2] Étendre `internal/render/pod_golden_test.go` : liste « Nœuds par cause » (exemple de contracts/cli.md § diagnose), noms des nœuds si la lecture des nœuds est permise, diagnostic partiel sinon ; golden files couleur et sans couleur dans `testdata/golden/f004/`
 - [X] T032 [P] [US2] Ajouter les attentes `drain-*` de T008 au corpus et vérifier que `--disable-eviction`, `--force` et `--delete-emptydir-data` n'apparaissent que dans des corrections `safe: false` ou des anti-patterns (`internal/catalog/catalog_test.go`, extension de `TestForcedDeletionIsAntiPattern`)
 
 ### Implementation for User Story 2

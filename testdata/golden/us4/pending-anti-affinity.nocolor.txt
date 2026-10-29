@@ -27,7 +27,7 @@
                 matchLabels: {app: web}
 
 Nœuds par cause (0/3 disponibles)
-   ✖ 1 nœud    taint non toléré
+   ℹ 1 nœud    taint du plan de contrôle (normal) (telemach-268c7c-control-plane)
    ✖ 2 nœuds   anti-affinité de pods non satisfaite
 
 ➜ Pour aller plus loin : kubectl telemach deepen
