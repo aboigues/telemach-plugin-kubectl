@@ -64,6 +64,14 @@ var coreGroups = map[string]bool{
 	"resource.k8s.io": true,
 }
 
+// toolConfigGroups sont les groupes des fichiers de configuration des composants de
+// Kubernetes : ils ont apiVersion et kind, mais se passent au composant (--config), pas à
+// kubectl apply (issue #12). La valeur est le programme qui lit le fichier.
+var toolConfigGroups = map[string]string{
+	"kubeadm.k8s.io": "kubeadm", "kubelet.config.k8s.io": "kubelet",
+	"kubeproxy.config.k8s.io": "kube-proxy", "kubescheduler.config.k8s.io": "kube-scheduler",
+}
+
 // enums liste les valeurs autorisées de champs courants, absentes des documents OpenAPI.
 var enums = map[string][]string{
 	"restartPolicy":   {"Always", "OnFailure", "Never"},
@@ -106,6 +114,10 @@ func SemanticIssues(f *File, d *Document, rules *schema.SchemaSet) []Issue {
 	group := ""
 	if i := strings.LastIndex(d.APIVersion, "/"); i > 0 {
 		group = d.APIVersion[:i]
+	}
+	if tool, ok := toolConfigGroups[group]; ok {
+		add(KindToolConfig, apiKey, "apiVersion", tool, d.APIVersion)
+		return out
 	}
 	if !coreGroups[group] {
 		add(KindUnknownCRD, apiKey, "apiVersion", "", d.APIVersion)

@@ -21,6 +21,13 @@ func TestCheckExitCodes(t *testing.T) {
 		{[]string{"-f", corpus + "unknown-field/deploy.yaml"}, 1, "imagePullPolicy"},
 		{[]string{"-f", corpus + "absent.yaml"}, 2, "absent.yaml"},
 		{[]string{"-f", corpus + "valid/deploy.yaml", "-f", corpus + "wrong-level/deploy.yaml"}, 1, "Problème 1/1"},
+		// Issue #12 : une ressource personnalisée, un template ou des valeurs Helm, une
+		// configuration de kubeadm sont des informations, pas des problèmes.
+		{[]string{"-f", corpus + "unknown-crd/widget.yaml"}, 0, "ℹ Information"},
+		{[]string{"-f", corpus + "helm-template/deployment.yaml"}, 0, "helm template"},
+		{[]string{"-f", corpus + "helm-values/traefik-values.yaml"}, 0, "Fichier values de Helm"},
+		{[]string{"-f", corpus + "tool-config/kubeadm-config.yaml"}, 0, "kubeadm avec --config"},
+		{[]string{"-f", corpus + "unknown-crd/widget.yaml", "-f", corpus + "wrong-level/deploy.yaml"}, 1, "Problème 1/1"},
 	}
 	for _, tt := range tests {
 		a, _, errb := newTestApp(t, map[string]string{"TELEMACH_KUBECTL_VERSION": "v1.37.1"})

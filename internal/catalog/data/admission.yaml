@@ -1,0 +1,52 @@
+# Étape d'admission : webhooks, quotas, politiques. Ce fichier est lu avant connection.yaml
+# (ordre alphabétique) : un webhook injoignable produit un message « dial tcp … connection
+# refused » qui ne concerne pas le serveur API, lequel a bien répondu (issue #10).
+- id: admission.webhook-unreachable
+  category: admission
+  patterns:
+    - 'failed calling webhook "(?P<webhook>[^"]+)"(?:: failed to call webhook: [A-Za-z]+ "https://(?P<service>[a-z0-9-]+)\.(?P<webhook_ns>[a-z0-9-]+)\.svc)?'
+  concept:
+    name: admission webhook
+    definition: >-
+      Un webhook d'admission est un programme, installé par un contrôleur (ingress-nginx,
+      cert-manager, Gateway API…), que le serveur API appelle avant d'accepter un objet : il
+      peut le refuser ou le compléter. Il tourne dans un pod du cluster, derrière un Service.
+  summary: Le serveur API n'a pas pu joindre le webhook d'admission « {{.webhook}} ».
+  cause: >-
+    Le serveur API a bien reçu ta demande, mais il doit d'abord la soumettre au webhook
+    « {{.webhook}} »{{if .service}}, servi par le Service « {{.service}} » du namespace
+    « {{.webhook_ns}} »{{end}}, et celui-ci ne répond pas. Le plus souvent, le contrôleur vient
+    d'être installé et son pod n'est pas encore prêt, ou son Service n'a aucun endpoint.
+  fixes:
+    - description: Vérifier que le pod du contrôleur est prêt (colonne READY), puis relancer ta commande.
+      command: '{{.kubectl}} get pods{{if .webhook_ns}} -n {{.webhook_ns}}{{else}} -A{{end}}'
+      safe: true
+    - description: Vérifier que le Service du webhook a des endpoints (au moins une adresse prête).
+      command: '{{.kubectl}} get endpointslices{{if .webhook_ns}} -n {{.webhook_ns}} -l kubernetes.io/service-name={{.service}}{{else}} -A{{end}}'
+      safe: true
+    - description: Lister les webhooks déclarés et le Service que chacun appelle.
+      command: '{{.kubectl}} get validatingwebhookconfigurations,mutatingwebhookconfigurations'
+      safe: true
+  anti_pattern:
+    description: >-
+      Supprimer la ValidatingWebhookConfiguration fait disparaître l'erreur, mais les objets ne
+      sont plus vérifiés par le contrôleur : des Ingress ou des certificats invalides sont alors
+      acceptés sans avertissement. Attends plutôt que le pod du webhook soit prêt.
+  deepen:
+    explanation: >-
+      Après l'authentification et l'autorisation, le serveur API soumet chaque création ou
+      modification aux webhooks d'admission déclarés pour ce type d'objet. Si un webhook ne
+      répond pas et que sa politique d'échec est « Fail » (failurePolicy), la demande est
+      refusée : c'est volontaire, pour ne jamais laisser passer un objet non vérifié. Juste
+      après « helm install » ou « kubectl apply » d'un contrôleur, il faut donc attendre que
+      son pod soit prêt avant de créer les objets qu'il valide.
+    example: |-
+      kubectl get validatingwebhookconfigurations
+      kubectl get validatingwebhookconfiguration NOM -o jsonpath='{.webhooks[*].clientConfig.service}'
+      kubectl get validatingwebhookconfiguration NOM -o jsonpath='{.webhooks[*].failurePolicy}'
+    exercise: >-
+      Avec un cluster de test, crée un namespace d'exercice avec « kubectl create namespace
+      exo-webhook », liste les webhooks d'admission du cluster et, pour chacun, repère le
+      Service appelé et la politique d'échec. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/
+  tests: [apply-webhook-unreachable]

@@ -88,3 +88,29 @@ func TestFingerprintStable(t *testing.T) {
 		t.Error("deux erreurs différentes doivent avoir des empreintes différentes")
 	}
 }
+
+// Issue #10 : le serveur API a répondu, c'est le webhook d'admission qu'il n'a pas pu
+// joindre. Quelle que soit la cause réseau recopiée en fin de message (refus, certificat,
+// délai), l'erreur ne doit pas être attribuée au serveur API ni au kubeconfig.
+func TestWebhookIsNotTheAPIServer(t *testing.T) {
+	cat, err := catalog.Default()
+	if err != nil {
+		t.Fatal(err)
+	}
+	const prefix = `Error from server (InternalError): error when creating "ing.yaml": Internal error occurred: failed calling webhook "validate.nginx.ingress.kubernetes.io": failed to call webhook: Post "https://ingress-nginx-controller-admission.ingress-nginx.svc:443/networking/v1/ingresses?timeout=10s": `
+	for _, cause := range []string{
+		"dial tcp 10.96.1.2:443: connect: connection refused",
+		"tls: failed to verify certificate: x509: certificate signed by unknown authority",
+		"context deadline exceeded",
+	} {
+		in := Input{Command: command.Parse(strings.Fields("apply -f ing.yaml")), ExitCode: 1, Stderr: prefix + cause}
+		d := Diagnose(in, cat)
+		if d.Entry == nil || d.Entry.ID != "admission.webhook-unreachable" {
+			t.Errorf("%s : entrée %v au lieu de admission.webhook-unreachable", cause, d.Entry)
+			continue
+		}
+		if d.Captures["service"] != "ingress-nginx-controller-admission" || d.Captures["webhook_ns"] != "ingress-nginx" || d.Origin != OriginCluster {
+			t.Errorf("%s : captures %v, origine %s", cause, d.Captures, d.Origin)
+		}
+	}
+}

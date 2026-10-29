@@ -226,3 +226,36 @@ func TestExplainInterrupted(t *testing.T) {
 		t.Errorf("exec -it au stderr capté :\n%s", got)
 	}
 }
+
+// Issue #18 : « auth can-i » répond « no » par le code 1 et « diff » signale ainsi des
+// différences ; ce ne sont pas des erreurs. Un code supérieur à 1, ou un vrai message
+// d'erreur, reste expliqué.
+func TestExplainExpectedAnswers(t *testing.T) {
+	a, _, errb := newTestApp(t, nil)
+	empty := writeStderr(t, "")
+	warning := writeStderr(t, "Warning: resource \"pdos\" is not namespace scoped or not found\n")
+	failure := writeStderr(t, "error: the path \"absent.yaml\" does not exist\n")
+	explain := func(code, stderr string, args ...string) string {
+		errb.Reset()
+		run(a, append([]string{"explain", "--color=never", "--exit-code", code, "--stderr-file", stderr, "--"}, args...))
+		return errb.String()
+	}
+	canI := []string{"auth", "can-i", "delete", "pods", "--as=system:serviceaccount:demo:lecteur", "-n", "demo"}
+	got := explain("1", empty, canI...)
+	if strings.Contains(got, "✖") || !strings.Contains(got, "ℹ « no » est une réponse") ||
+		!strings.Contains(got, "kubectl auth can-i --list --as=system:serviceaccount:demo:lecteur -n demo") {
+		t.Errorf("can-i « no » : rappel attendu, sans erreur :\n%s", got)
+	}
+	if got := explain("1", empty, canI...); got != "" {
+		t.Errorf("le rappel ne s'affiche qu'une fois par 24 h :\n%s", got)
+	}
+	if got := explain("1", warning, "diff", "-f", "web.yaml"); got != "" {
+		t.Errorf("diff avec différences : aucune sortie attendue :\n%s", got)
+	}
+	if got := explain("2", failure, "diff", "-f", "absent.yaml"); !strings.Contains(got, "absent.yaml") || !strings.Contains(got, "✖") {
+		t.Errorf("diff en code 2 : explication attendue :\n%s", got)
+	}
+	if got := explain("1", failure, "auth", "can-i", "get", "pods"); !strings.Contains(got, "✖") {
+		t.Errorf("can-i avec un message d'erreur : explication attendue :\n%s", got)
+	}
+}

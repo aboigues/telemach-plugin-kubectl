@@ -197,3 +197,63 @@ func TestValidManifests(t *testing.T) {
 		t.Errorf("règles %s (repli %v), %d documents", r.RulesVersion, r.RulesFallback, r.Documents)
 	}
 }
+
+// Issue #11 : un manifeste de placement correct (anti-affinité, tolérance, répartition par
+// zone) ne contient aucun secret en clair ; topologyKey doit rester lisible.
+func TestPlacementFieldsAreNotSecrets(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "api.yaml")
+	src := `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              matchLabelKeys: [pod-template-hash]
+              labelSelector:
+                matchLabels:
+                  app: api
+      tolerations:
+      - key: dedie
+        operator: Equal
+        value: gpu
+        effect: NoSchedule
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: api
+      securityContext:
+        runAsNonRoot: true
+      containers:
+      - name: api
+        image: nginxinc/nginx-unprivileged:1.30-alpine
+        securityContext:
+          allowPrivilegeEscalation: false
+        resources:
+          requests: {cpu: 50m, memory: 64Mi}
+          limits: {cpu: 200m, memory: 128Mi}
+`
+	if err := os.WriteFile(path, []byte(src), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	r := Analyze([]string{path}, false, "v1.37.0")
+	for _, is := range r.Issues {
+		t.Errorf("problème inattendu : %s ligne %d (%s)", is.Kind, is.Line, is.FieldPath)
+	}
+}

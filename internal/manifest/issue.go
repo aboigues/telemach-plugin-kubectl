@@ -22,7 +22,21 @@ const (
 	KindFileUnreadable    = "file-unreadable"
 	KindServerRejected    = "server-rejected" // message du serveur rattaché à une ligne, sans règle locale
 	KindNoManifestFile    = "no-manifest-file"
+	// Issue #12 : fichiers valides qui ne sont pas des objets de l'API (informations).
+	KindToolConfig   = "tool-config"   // configuration de kubeadm, du kubelet… (pas pour kubectl apply)
+	KindHelmTemplate = "helm-template" // template Helm, pas encore du YAML
+	KindHelmValues   = "helm-values"   // fichier de valeurs ou de description d'un chart Helm
 )
+
+// infoKinds ne sont pas des problèmes : check les signale par ℹ, sans changer son code de
+// sortie (issue #12). Une ressource personnalisée est valide ; seule sa vérification est
+// partielle.
+var infoKinds = map[string]bool{
+	KindUnknownCRD: true, KindToolConfig: true, KindHelmTemplate: true, KindHelmValues: true,
+}
+
+// Info indique une simple information, qui n'est pas un problème du manifeste.
+func (is Issue) Info() bool { return infoKinds[is.Kind] }
 
 // Line est une ligne numérotée d'un extrait de fichier ; Number vaut 0 pour une ligne
 // ajoutée dans une version corrigée.

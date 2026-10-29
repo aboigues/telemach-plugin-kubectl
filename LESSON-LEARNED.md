@@ -71,6 +71,97 @@ dans le registre d'origine ; seule la règle préventive, transposée à kubectl
 
 ## Incidents
 
+### LL-017 — « auth can-i » qui répond « no » et « diff » qui trouve des différences expliqués comme des erreurs
+
+- **Date** : 2026-10-29
+- **Catégorie** : bug
+- **Contexte** : confrontation de la version 0.1.0 aux 14 TP de la formation Kubernetes
+  (issue #18) ; le TP08 enchaîne des `kubectl auth can-i … --as=…` dont la réponse attendue
+  est « no ».
+- **Cause racine** : l'intégration shell appelle `explain` dès que le code de sortie est non
+  nul, en supposant « code ≠ 0 ⇒ erreur ». Deux sous-commandes de kubectl utilisent pourtant
+  le code 1 comme réponse : `auth can-i` (« no ») et `diff` (différences trouvées ; une erreur
+  vaut plus de 1). Les codes de sortie documentés de chaque sous-commande n'avaient pas été
+  relus.
+- **Impact** : un bloc rouge « Erreur non reconnue » après chaque refus attendu ; l'apprenant
+  croit sa commande fausse et apprend à ignorer les ✖.
+- **Correctif** : `explain` ne dit rien pour un code 1 de `auth can-i` ou de `diff` sans autre
+  message que des avertissements ; un rappel ℹ (au plus une fois par 24 h) explique qu'un
+  « no » est une réponse et propose `kubectl auth can-i --list --as=…`.
+- **Règle préventive** : pour toute sous-commande prise en charge, lire la section « Exit
+  status » ou le code source de kubectl avant de traiter un code non nul comme une erreur.
+- **Suivi** : `TestExplainExpectedAnswers` (`cmd/kubectl-telemach/explain_test.go`).
+
+### LL-016 — check compte comme erreurs des fichiers valides qui ne sont pas des manifestes
+
+- **Date** : 2026-10-29
+- **Catégorie** : pédagogie
+- **Contexte** : `kubectl telemach check -f <TP> -R` sur les 14 TP de la formation (issue #12) :
+  seuls 3 dossiers passaient.
+- **Cause racine** : `check` ne connaissait que deux issues, « problème » ou rien. Une
+  ressource personnalisée, dont seule la structure commune est vérifiable, était classée
+  problème par prudence ; les fichiers de l'écosystème qui ne sont pas des objets de l'API
+  (templates et valeurs Helm, `Chart.yaml`, configuration de kubeadm) n'étaient pas reconnus.
+  Le corpus ne contenait que des manifestes écrits pour les tests, jamais un vrai dossier de
+  formation.
+- **Impact** : code de sortie 1 et ✖ sur des solutions correctes ; l'apprenant apprend à
+  ignorer les ✖, l'inverse du but recherché.
+- **Correctif** : niveau « information » (ℹ) sans effet sur le code de sortie, pour les CRD,
+  les fichiers de configuration (`kubeadm.k8s.io`, `kubelet.config.k8s.io`…), les templates
+  Helm (dossier `templates/` d'un chart, ou directive `.Values`, `include`…) et les fichiers de
+  valeurs ou `Chart.yaml` ; la commande proposée est le rendu par `helm template`.
+- **Règle préventive** : une vérification partielle ou impossible est une information, jamais
+  un problème ; avant une version, passer `check -R` sur un vrai support de formation et
+  examiner chaque ✖.
+- **Suivi** : `TestNonManifestFilesAreInformation` et `TestProblemsBeforeInformation`
+  (`internal/manifest/helm_test.go`), cas `tool-config`, `helm-template` et `helm-values` du
+  corpus, codes de sortie dans `TestCheckExitCodes`.
+
+### LL-015 — topologyKey pris pour un secret écrit en clair, et masqué
+
+- **Date** : 2026-10-29
+- **Catégorie** : bug
+- **Contexte** : `check` sur la solution du TP09 (anti-affinité de pods, issue #11).
+- **Cause racine** : le masquage repère une valeur sensible par le nom de sa clé (sous-chaîne
+  `KEY`, `TOKEN`, `AUTH`…), corrigé par une liste de clés structurelles écrite de mémoire.
+  `topologyKey`, `matchLabelKeys` et d'autres champs du schéma, qui contiennent « Key » sans
+  être secrets, n'y figuraient pas ; rien ne confrontait cette liste aux champs réels de
+  Kubernetes.
+- **Impact** : un manifeste correct sortait en erreur (code 1) et la valeur à comprendre
+  (`kubernetes.io/hostname`) était masquée.
+- **Correctif** : liste structurelle complétée à partir des documents OpenAPI embarqués. Le
+  masquage n'est pas restreint à quelques champs : une valeur sensible inconnue (`apiKey:` dans
+  une ConfigMap) reste masquée.
+- **Règle préventive** : une liste d'exceptions qui porte sur des noms de champs Kubernetes est
+  dressée et vérifiée d'après les schémas, pas de mémoire ; en cas de doute, masquer reste le
+  comportement par défaut.
+- **Suivi** : `TestSchemaSensitiveFieldsReviewed` (`internal/redact/schema_fields_test.go`)
+  échoue sur tout champ des schémas au nom sensible qui n'est ni structurel ni examiné ;
+  `TestStructuralFieldsKept` et `TestPlacementFieldsAreNotSecrets`.
+
+### LL-014 — Webhook d'admission injoignable expliqué comme un serveur API injoignable
+
+- **Date** : 2026-10-29
+- **Catégorie** : bug
+- **Contexte** : `kubectl apply` d'un Ingress juste après l'installation d'ingress-nginx
+  (TP07, TP12 ; issue #10).
+- **Cause racine** : le motif `dial tcp …: connect: connection refused` de
+  `connection.refused` reconnaît la cause réseau recopiée à la fin du message, alors que le
+  serveur API a répondu (`Error from server … failed calling webhook`) : c'est lui qui n'a pas
+  joint le webhook. Le catalogue est essayé dans l'ordre et aucune entrée plus précise ne
+  passait avant.
+- **Impact** : explication fausse (« Le serveur API refuse la connexion »), contraire au
+  principe « ne jamais inventer » ; les corrections proposées (contexte, cluster arrêté)
+  éloignaient de la vraie cause.
+- **Correctif** : entrée `admission.webhook-unreachable` (fichier `admission.yaml`, lu avant
+  `connection.yaml`), qui reconnaît le webhook quelle que soit la cause réseau (refus,
+  certificat, délai) et extrait son Service et son namespace.
+- **Règle préventive** : un motif réseau générique (`dial tcp`, `x509`, `timeout`) n'est
+  attribué au serveur API qu'en l'absence d'une réponse de celui-ci ; toute entrée qui
+  reconnaît une réponse du serveur contenant un tel texte est rangée avant.
+- **Suivi** : `TestWebhookIsNotTheAPIServer` (`internal/diagnose/diagnose_test.go`) et cas
+  `apply-webhook-unreachable` du corpus (message relevé en formation, issue #10).
+
 ### LL-013 — Index Krew non mis à jour : secret d'environnement non transmis au workflow appelé
 
 - **Date** : 2026-10-22

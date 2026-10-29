@@ -1,0 +1,1 @@
+Error from server (InternalError): error when creating "ing.yaml": Internal error occurred: failed calling webhook "validate.nginx.ingress.kubernetes.io": failed to call webhook: Post "https://ingress-nginx-controller-admission.ingress-nginx.svc:443/networking/v1/ingresses?timeout=10s": dial tcp 10.96.1.2:443: connect: connection refused

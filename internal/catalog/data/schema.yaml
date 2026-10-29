@@ -181,6 +181,116 @@
   doc_url: https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/
   tests: [unknown-crd]
 
+# Issue #12 : fichiers valides qui ne sont pas des objets de l'API. check les signale par une
+# information (ℹ), sans changer son code de sortie.
+- id: schema.tool-config
+  category: schema
+  fallback: manifest-issue
+  issue_kinds: [tool-config]
+  concept:
+    name: component configuration
+    definition: >-
+      Les composants de Kubernetes (kubeadm, kubelet, kube-proxy, kube-scheduler) lisent leur
+      configuration dans un fichier qui ressemble à un manifeste (apiVersion, kind), mais qui
+      n'est pas un objet du cluster : le serveur API ne le connaît pas.
+  summary: 'Fichier de configuration de {{.suggestion}} (« {{.detail}} ») : il se passe à {{.suggestion}} avec --config, pas à kubectl apply.'
+  cause: >-
+    Ce fichier est lu par {{.suggestion}} au démarrage ou à l'installation du cluster ;
+    « kubectl apply » le refuserait avec « no matches for kind », car aucune ressource de
+    l'API ne porte ce kind.
+  fixes:
+    - description: Avec kubeadm, passer le fichier à l'initialisation du nœud de contrôle (sur ce nœud, pas avec kubectl).
+      command: 'sudo kubeadm init --config {{.file}}'
+      safe: true
+  deepen:
+    explanation: >-
+      kubectl ne parle qu'au serveur API, qui gère les objets du cluster (pods, services…).
+      La configuration des composants eux-mêmes, avant que le cluster n'existe ou sur chaque
+      nœud, passe par des fichiers lus directement par ces programmes : kubeadm init
+      --config, kubelet --config, kube-proxy --config.
+    example: |-
+      kubeadm config print init-defaults
+      kubectl get cm kubeadm-config -n kube-system -o yaml
+    exercise: >-
+      Avec un cluster de test, crée un namespace d'exercice avec « kubectl create namespace
+      exo-config », puis compare « kubeadm config print init-defaults » (si kubeadm est
+      installé) à un manifeste de Deployment : repère ce qui les distingue. Supprime le
+      namespace ensuite.
+  doc_url: https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/
+  tests: [tool-config]
+
+- id: schema.helm-template
+  category: schema
+  fallback: manifest-issue
+  issue_kinds: [helm-template]
+  concept:
+    name: Helm template
+    definition: >-
+      Un chart Helm contient des templates : des manifestes à trous, comme
+      {{.Values.image}}, que Helm remplit avec les valeurs choisies. Ce n'est du YAML valide
+      qu'après ce rendu.
+  summary: 'Template Helm, pas encore un manifeste : vérifie plutôt son rendu par « helm template ».'
+  cause: >-
+    Les directives entre doubles accolades ne sont pas du YAML : ni kubectl ni TELEMACH ne
+    peuvent lire ce fichier tel quel. Seul le rendu produit par Helm est un manifeste Kubernetes.
+  fixes:
+    - description: Produire le rendu du chart dans un fichier temporaire, puis le vérifier.
+      command: 'helm template demo {{.suggestion}} > /tmp/rendu.yaml && {{.kubectl}} telemach check -f /tmp/rendu.yaml'
+      safe: true
+  deepen:
+    explanation: >-
+      « helm install » fait trois choses : il rend les templates avec les valeurs (values.yaml
+      et --set), puis il envoie le résultat au serveur API, et enfin il enregistre une
+      release. « helm template » ne fait que la première : c'est le moyen de voir et de
+      vérifier exactement ce qui sera appliqué. « kubectl apply -f templates/ » échoue, car il
+      lit les directives comme du texte YAML.
+    example: |-
+      helm template demo ./mon-chart
+      helm template demo ./mon-chart --set replicaCount=3 | grep replicas
+    exercise: >-
+      Avec un cluster de test, crée un namespace d'exercice avec « kubectl create namespace
+      exo-helm », crée un chart avec « helm create mon-chart », puis compare
+      templates/deployment.yaml à la sortie de « helm template demo ./mon-chart ». Supprime le
+      namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/
+  tests: [helm-template]
+
+- id: schema.helm-values
+  category: schema
+  fallback: manifest-issue
+  issue_kinds: [helm-values]
+  concept:
+    name: Helm values
+    definition: >-
+      Un chart Helm se règle par un fichier de valeurs (values.yaml, ou un fichier passé avec
+      -f) et se décrit dans Chart.yaml. Ces fichiers sont lus par Helm, jamais envoyés au
+      cluster : ce ne sont pas des manifestes.
+  summary: 'Fichier {{.detail}} de Helm, pas un manifeste Kubernetes : il n''est pas vérifié.'
+  cause: >-
+    Le fichier n'a pas de kind et son nom est celui d'un fichier de Helm : il sert à
+    « helm install » ou « helm template » (option -f pour un fichier de valeurs), pas à
+    « kubectl apply ».
+  fixes:
+    - description: Vérifier le rendu du chart (avec ces valeurs pour un fichier de valeurs).
+      command: 'helm template demo {{.suggestion}}{{if eq .detail "values"}} -f {{.file}}{{end}} > /tmp/rendu.yaml && {{.kubectl}} telemach check -f /tmp/rendu.yaml'
+      safe: true
+  deepen:
+    explanation: >-
+      Les valeurs d'un chart sont fusionnées dans cet ordre : values.yaml du chart, puis
+      chaque fichier passé avec -f, puis chaque --set ; la dernière l'emporte. Garder ses
+      réglages dans un fichier de valeurs versionné plutôt qu'en --set rend l'installation
+      reproductible.
+    example: |-
+      helm show values ./mon-chart
+      helm template demo ./mon-chart -f mes-valeurs.yaml
+    exercise: >-
+      Avec un cluster de test, crée un namespace d'exercice avec « kubectl create namespace
+      exo-valeurs », crée un chart avec « helm create mon-chart », écris un fichier
+      mes-valeurs.yaml qui change replicaCount, puis compare le rendu avec et sans -f.
+      Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/
+  tests: [helm-values]
+
 - id: schema.unknown-field
   category: schema
   fallback: manifest-issue

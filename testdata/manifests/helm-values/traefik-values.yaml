@@ -1,0 +1,8 @@
+# Valeurs passées à « helm install traefik traefik/traefik -f traefik-values.yaml ».
+deployment:
+  replicas: 1
+ports:
+  web:
+    nodePort: 30080
+service:
+  type: NodePort
