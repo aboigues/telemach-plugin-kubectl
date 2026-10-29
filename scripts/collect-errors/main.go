@@ -115,7 +115,16 @@ func main() {
 	pods := flag.String("pods", "", "dossier du corpus de pods : applique scenarios/ et relève l'état réel de chaque pod")
 	kindConfig := flag.String("kind-config", "testdata/kind/three-nodes.yaml", "configuration kind du cluster de relevé des erreurs (feature 004 : trois nœuds)")
 	scenarios := flag.String("scenarios", "testdata/objects/scenarios", "dossier des manifestes des cas préparés (feature 004)")
+	training := flag.String("training", "", "dépôt d'une formation : rejoue ses pannes (tp*/pannes/*.yaml) et écrit le rapport -report")
+	report := flag.String("report", "releve-formation.md", "rapport Markdown du relevé d'une formation (-training)")
 	flag.Parse()
+	if *training != "" {
+		if err := collectTraining(*training, *report, *kindConfig); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	if *pods != "" {
 		if err := collectPods(*pods); err != nil {
 			fmt.Fprintln(os.Stderr, err)

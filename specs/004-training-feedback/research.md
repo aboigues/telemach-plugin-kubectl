@@ -257,7 +257,7 @@ deviennent `helm template demo ./chart | kubectl telemach check -f -`.
 **Décision** : mode `-training <dossier>` de `scripts/collect-errors` (outil du
 mainteneur, étiquette `integration`, cluster kind jetable). Pour chaque `tpNN-*/pannes/*.yaml`
 du dossier : namespace neuf, application des prérequis déclarés par le TP (fichier
-`telemach-relevé.yaml` facultatif à côté du dossier de pannes : manifestes à appliquer avant,
+`telemach-releve.yaml` facultatif à la racine du TP : manifestes à appliquer avant,
 attente), application de la panne, attente de 60 s, puis `kubectl telemach diagnose` sans
 argument et `explain` des commandes en échec. Sortie : tableau Markdown (panne, commande,
 message masqué, entrée reconnue ou « non reconnue » / « pas pris en charge »). Le relevé

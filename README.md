@@ -247,10 +247,22 @@ $ kubectl telemach diagnose service/web -n demo
 | `deployment/<nom>` | rollout (en cours, bloqué, en pause, et le pod en difficulté de la nouvelle version), tag d'image mutable, ConfigMap modifiée après le démarrage des pods |
 | `ingress/<nom>` | classe effective et contrôleur, Services et ports visés, adresse attribuée |
 | `pvc/<nom>` | classe de stockage, classe par défaut, mode de liaison, pod qui l'utilise |
+| `job/<nom>` | tentatives (`backoffLimit`), délai (`activeDeadlineSeconds`), pods supprimés, puis le pod en échec le plus récent |
+| `cronjob/<nom>` (`cj/`) | suspension, prochaine échéance (fuseau `spec.timeZone`), exécutions sautées (`concurrencyPolicy: Forbid`), dernier Job |
+| `daemonset/<nom>` (`ds/`) | nœuds couverts et nœuds exclus par un taint (plan de contrôle compris), mise à jour |
+| `statefulset/<nom>` (`sts/`) | Service headless de `serviceName`, PVC des `volumeClaimTemplates`, démarrage ordonné (`OrderedReady`) |
+| `hpa/<nom>` | API de métriques (metrics-server), cible, requests des conteneurs, conditions (dont le plafond `maxReplicas`) |
+
+Un `deployment/<nom>` dont le ReplicaSet se voit refuser ses pods (quota, LimitRange,
+PodSecurity) reçoit la leçon du refus, alors que `kubectl scale` avait répondu « scaled ». Un
+pod `Pending` détaille ses nœuds par cause : taint non toléré, anti-affinité, nœud en cordon,
+ressources.
 
 Les états normaux sont présentés comme tels (PVC qui attend son premier pod, Service sans
-selector). Après un `apply`, `create`, `run` ou `expose` réussi, la vérification différée
-signale aussi, à l'invite suivante, les pièges durables des objets créés :
+selector, plan de contrôle sans pod de DaemonSet, HPA à sa borne). Après un `apply`, `create`,
+`run`, `expose` ou `scale` réussi, la vérification différée signale aussi, à l'invite suivante,
+les pièges durables des objets créés ; un avertissement PodSecurity d'une commande réussie est
+expliqué tout de suite :
 
 ```text
 ⚠ Le Service web ne désigne aucun pod : kubectl telemach diagnose service/web -n demo
@@ -499,7 +511,7 @@ la fonction `kubectl` de l'ancienne version. `kubectl telemach last` te le signa
 | Commande | Rôle |
 |----------|------|
 | `kubectl telemach check -f <fichier\|dossier\|-> [-f …] [-R]` | Vérifie des manifestes **sans contacter le cluster** ; `-f -` lit l'entrée standard (code 0 : aucun problème, informations ℹ comprises, 1 : problème trouvé, 2 : usage invalide, dont l'absence de `-f`, fichier introuvable ou entrée standard vide) |
-| `kubectl telemach diagnose [pod/<nom> \| service/<nom> \| deployment/<nom> \| ingress/<nom> \| pvc/<nom> \| <nom>] [-n <ns>] [--context <ctx>] [--kubeconfig <chemin>] [--as <identité>]` | Diagnostique, en lecture seule, les pods qui ne démarrent pas et les objets qui ne marchent pas (code 0 : diagnostic ou rien à signaler, 1 : cluster injoignable, 2 : usage invalide, ressource introuvable ou nom ambigu, avec les objets à préciser) |
+| `kubectl telemach diagnose [pod/<nom> \| service/<nom> \| deployment/<nom> \| ingress/<nom> \| pvc/<nom> \| job/<nom> \| cronjob/<nom> \| daemonset/<nom> \| statefulset/<nom> \| hpa/<nom> \| <nom>] [-n <ns>] [--context <ctx>] [--kubeconfig <chemin>] [--as <identité>]` | Diagnostique, en lecture seule, les pods qui ne démarrent pas et les objets qui ne marchent pas (code 0 : diagnostic ou rien à signaler, 1 : cluster injoignable, 2 : usage invalide, ressource introuvable ou nom ambigu, avec les objets à préciser) |
 | `kubectl telemach last` | Réaffiche l'explication complète de la dernière erreur ou du dernier diagnostic, sans relire le cluster |
 | `kubectl telemach deepen [--exercise]` | Approfondit le concept du dernier diagnostic ; `--exercise` ajoute un exercice à faire dans un namespace que tu crées toi-même |
 | `kubectl telemach version` | Version du plugin, licence et versions de règles Kubernetes embarquées |
@@ -518,12 +530,16 @@ Options communes : `--color=auto|always|never` et `--width <colonnes>` (40 minim
     contact avec le serveur API) ;
   - pour `kubectl telemach diagnose` : `get pods`, `get pod <nom>`, `get deployment(s)`,
     `get replicasets -l`, `get service(s)`, `get endpointslices`, `get ingress(es)`,
-    `get ingressclasses`, `get pvc`, `get storageclasses`, `get events` (filtrés sur un pod),
+    `get ingressclasses`, `get pvc`, `get storageclasses`, `get job(s)`, `get cronjob`,
+    `get daemonset`, `get statefulset`, `get hpa`, `get nodes` (taints et cordon, jamais les
+    adresses), `get apiservice v1beta1.metrics.k8s.io`, `get events` (filtrés sur un pod ou un
+    ReplicaSet),
     tous au format JSON, `logs --tail=20` d'un conteneur en échec, et les seules **dates** de
     modification d'une ConfigMap (`--show-managed-fields`, jamais ses valeurs), avec un délai
     de 10 s ; l'identité `--as` n'est utilisée que si tu la donnes ;
-  - après un `apply`, `create`, `run` ou `expose` réussi : le statut des pods concernés et les
-    objets créés (Service, Ingress, PVC), au plus 12 lectures.
+  - après un `apply`, `create`, `run`, `expose` ou `scale` réussi : le statut des pods
+    concernés et les objets créés ou modifiés (Service, Ingress, PVC, StatefulSet, HPA,
+    Deployment), au plus 12 lectures.
 
   Jamais `apply`, `delete`, `exec`, `edit` ni `scale` ; jamais de lecture d'un objet `Secret`.
 - `explain`, `check`, `last` et `deepen` fonctionnent **sans aucun accès réseau**.

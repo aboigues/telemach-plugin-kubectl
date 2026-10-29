@@ -61,7 +61,7 @@ nœuds, avant toute logique.
 - [X] T005 Ajouter à `scripts/collect-errors/main.go` le cluster à trois nœuds et les cas : `create-quota-exceeded`, `run-quota-must-specify`, `apply-limitrange`, `apply-pod-security`, `apply-pod-security-warn` (stderr d'une commande **réussie**, code 0), `drain-daemonset-pods`, `drain-pdb-blocked`, `drain-local-storage`, `top-metrics-unavailable`, `wait-condition-timeout`, `wait-deployment-timeout`, `wait-jsonpath-timeout`, `wait-delete-timeout`, `rollout-undo-revision-missing`, `apply-cronjob-invalid` ; relire dans le code de kubectl les codes de sortie de `drain`, `wait`, `top` et `debug` (LL-017) et les noter en commentaire (dépend de T002, T003, T004)
 - [X] T006 Ajouter à `scripts/collect-objects/main.go` les lectures de research.md F1 et les cas : pods `Pending` (taint, anti-affinité, cordon, combinaison), Job (`backoff-limit`, `deadline`, `pods-gone`, `complete`), CronJob (`suspended`, `never-run`, `forbid-skipped`, `last-failed`, sain), DaemonSet (`excluded-nodes` control-plane, taint d'un worker), StatefulSet (`no-service`, `ordered-wait`, `pvc-pending`, sain), HPA (`metrics-unavailable`, `target-missing`, `missing-request`, `limited`, sain), Deployment `replica-failure` ; relevés masqués dans `testdata/objects/<cas>/`, `expected.yaml` jamais écrasé (dépend de T002, T003)
 - [X] T007 Étendre `.github/workflows/corpus.yml` : cluster à trois nœuds, installation de metrics-server de `testdata/kind/metrics-server.yaml` pour les seuls cas qui l'exigent, nouveaux cas de T005 et T006 ; actions épinglées par SHA, `permissions: contents: read`, `timeout-minutes` sur chaque job et sur les étapes réseau (LL-011) (dépend de T005, T006)
-- [ ] T008 Lancer `corpus.yml` sur la branche (`gh workflow run corpus.yml --ref 004-training-feedback`) ou en local avec kind v0.33.0 (`go install sigs.k8s.io/kind@v0.33.0`, Docker de WSL), télécharger l'artefact, le relire en entier (`scripts/secrets` vert, aucune adresse de nœud), comparer chaque message des trois versions à celui des issues #13 à #19, rédiger à la main chaque `expected.yaml`, créer le cas `testdata/errors/debug-ephemeral-disabled/` d'après l'issue #19 avec `source: formation`, puis versionner (dépend de T007)
+- [X] T008 Lancer `corpus.yml` sur la branche (`gh workflow run corpus.yml --ref 004-training-feedback`) ou en local avec kind v0.33.0 (`go install sigs.k8s.io/kind@v0.33.0`, Docker de WSL), télécharger l'artefact, le relire en entier (`scripts/secrets` vert, aucune adresse de nœud), comparer chaque message des trois versions à celui des issues #13 à #19, rédiger à la main chaque `expected.yaml`, créer le cas `testdata/errors/debug-ephemeral-disabled/` d'après l'issue #19 avec `source: formation`, puis versionner (dépend de T007)
 
 **Checkpoint**: corpus réel des trois versions disponible ; écarts de messages consignés dans
 research.md F12.
@@ -117,7 +117,7 @@ Deployment, avec version corrigée et avertissement d'une commande réussie.
 - [X] T026 [US1] Ajouter le maillon `admission` et le piège `deployment.replica-failure` à `internal/pitfall/rollout.go` (condition `ReplicaFailure` passée à `diagnose.Diagnose` comme stderr, repli sur `ReplicaSetEvents`) et l'entrée `pitfalls: [deployment.replica-failure]` dans `internal/catalog/data/rollout.yaml`. Faire passer T020 (dépend de T016, T023)
 - [X] T027 [US1] Créer `cmd/kubectl-telemach/notice.go` (sous-commande cachée, contracts/cli.md § notice, clé `telemach:pod-security:<namespace>` dans `hints.json`) et l'entrée `admission.pod-security-warning` dans `internal/catalog/data/admission.yaml`. Faire passer T021 (dépend de T023)
 - [X] T028 [US1] Modifier `internal/shellinit/scripts/bash.sh` et `internal/shellinit/scripts/zsh.sh` : `scale` dans `__telemach_after_success` ; test `[[ $(<"$__telemach_tmp") == *"would violate PodSecurity"* ]]` puis `notice` ; incrémenter `TELEMACH_KUBECTL_SHELL` ; étendre `internal/workload/targets.go` (cible Deployment de `scale`) et `cmd/kubectl-telemach/watch.go` (piège `deployment.replica-failure`). Faire passer T022 (dépend de T026, T027)
-- [ ] T029 [US1] Écrire les scénarios T1 à T4 dans `tests/integration/training_test.go` (commandes exactes du quickstart, namespace neuf par scénario, bash et zsh) et les valider sur kind (dépend de T023 à T028)
+- [X] T029 [US1] Écrire les scénarios T1 à T4 dans `tests/integration/training_test.go` (commandes exactes du quickstart, namespace neuf par scénario, bash et zsh) et les valider sur kind (dépend de T023 à T028)
 
 **Checkpoint**: US1 complète et validée seule (quickstart T1 à T4).
 
@@ -140,7 +140,7 @@ Deployment, avec version corrigée et avertissement d'une commande réussie.
 - [X] T033 [US2] Implémenter le découpage et `Causes []PlacementCause` dans `internal/workload/select.go` (research.md F6). Faire passer T030
 - [X] T034 [US2] Rédiger `internal/catalog/data/node.yaml` : `drain.daemonset-pods`, `drain.pdb-blocked`, `drain.local-storage` (research.md F7) ; et dans `internal/catalog/data/workload.yaml` les entrées `pod.untolerated-taint` (cause et approfondissement : « une toleration autorise, elle ne force pas : il faut aussi un nodeSelector ou une affinité »), `pod.pod-anti-affinity`, `pod.node-unschedulable` (`kubectl uncordon`). Faire passer T032 (dépend de T008)
 - [ ] T035 [US2] Lire les nœuds (`ListNodes`) dans `internal/workload/diagnose.go` seulement pour `UntoleratedTaint` et `NodeUnschedulable`, et rendre la liste « Nœuds par cause » dans `internal/render/pod.go`. Faire passer T031 (dépend de T013, T033, T034)
-- [ ] T036 [US2] Écrire les scénarios T5 et T6 dans `tests/integration/training_test.go` (exécution en série : ils modifient des nœuds du cluster jetable, et les remettent en état en fin de scénario même en cas d'échec) et les valider sur kind (dépend de T035)
+- [X] T036 [US2] Écrire les scénarios T5 et T6 dans `tests/integration/training_test.go` (exécution en série : ils modifient des nœuds du cluster jetable, et les remettent en état en fin de scénario même en cas d'échec) et les valider sur kind (dépend de T035)
 
 **Checkpoint**: US2 complète et validée seule.
 
@@ -165,7 +165,7 @@ Deployment, avec version corrigée et avertissement d'une commande réussie.
 - [X] T042 [P] [US3] Implémenter `internal/pitfall/job.go` (pods par label `batch.kubernetes.io/job-name`, puis `job-name`) et `internal/pitfall/cronjob.go` (Jobs par `ownerReferences`, prochaine échéance par `internal/cron`, enchaînement sur le diagnostic du dernier Job). Faire passer leur part de T038 (dépend de T016, T040, T041)
 - [X] T043 [P] [US3] Implémenter `internal/pitfall/daemonset.go` (nœuds exclus et taints, control-plane normal) et `internal/pitfall/statefulset.go` (Service de `serviceName`, `OrderedReady`, PVC `<modèle>-<nom>-<k>` avec la leçon PVC de la 002). Faire passer leur part de T038 (dépend de T016, T041)
 - [X] T044 [US3] Ajouter le problème `invalid-cron` à `internal/manifest/semantic.go` et `internal/manifest/issue.go` (CronJob, `spec.schedule`, via `internal/cron`) avec son exemple corrigé dans `internal/manifest/fixes.go` ; ajouter `ListJobs` aux lectures parallèles de `diagnose` sans argument dans `cmd/kubectl-telemach/diagnose.go`, dans la limite globale de 10 objets ; cible `statefulset.no-service` dans `internal/workload/targets.go`. Faire passer T039 (dépend de T040, T042, T043)
-- [ ] T045 [US3] Écrire les scénarios T7 à T9 dans `tests/integration/training_test.go` et les valider sur kind (dépend de T044)
+- [X] T045 [US3] Écrire les scénarios T7 à T9 dans `tests/integration/training_test.go` et les valider sur kind (dépend de T044)
 
 **Checkpoint**: US3 complète et validée seule.
 
@@ -188,7 +188,7 @@ et hors ligne).
 - [X] T048 [US4] Rédiger `internal/catalog/data/metrics.yaml` : `metrics.api-unavailable` (concept metrics-server, `kubectl get apiservice v1beta1.metrics.k8s.io`, `minikube addons enable metrics-server`, « attendre environ une minute après l'installation » ; `--kubelet-insecure-tls` jamais proposé) et les leçons `hpa.*` (dépend de T008)
 - [X] T049 [US4] Implémenter `internal/pitfall/hpa.go` (research.md F10). Faire passer T046 (dépend de T016, T048)
 - [X] T050 [US4] Ajouter l'information `hpa-missing-request` à `internal/manifest/semantic.go` (règle inter-documents : HPA et cible dans les fichiers vérifiés) et son entrée dans `internal/catalog/data/schema.yaml` ; ajouter la cible HPA à `internal/workload/targets.go` et à `cmd/kubectl-telemach/watch.go` (2 lectures, budget de 12 inchangé). Faire passer T047 (dépend de T049)
-- [ ] T051 [US4] Écrire les scénarios T10 et T11 dans `tests/integration/training_test.go` (metrics-server installé seulement pour T11) et les valider sur kind (dépend de T050)
+- [X] T051 [US4] Écrire les scénarios T10 et T11 dans `tests/integration/training_test.go` (metrics-server installé seulement pour T11) et les valider sur kind (dépend de T050)
 
 **Checkpoint**: US4 complète et validée seule.
 
@@ -210,7 +210,7 @@ et hors ligne).
 - [X] T054 [US5] Implémenter `ReadStdin` et la reconnaissance de `-` dans `internal/manifest/read.go` (taille, UTF-8, nettoyage identiques à `Read`), `Document.Source` (dernier `# Source:` avant la première clé du document) et le rendu « template … » dans `internal/render/manifest.go`. Faire passer T052
 - [X] T055 [US5] Brancher `-f -` dans `cmd/kubectl-telemach/check.go` (lecture de `a.stdin`, détection du terminal par `term.IsTerminal`, refus du double `-`, enregistrement `Files: ["<stdin>"]`). Faire passer T053 (dépend de T054)
 - [X] T056 [P] [US5] Remplacer la recette de `helm-template` et `helm-values` dans `internal/catalog/data/schema.yaml` par `helm template demo {{.suggestion}} | {{.kubectl}} telemach check -f -`, et ajouter au `README.md` la recette (Helm, `kubectl kustomize`, `--dry-run=client -o yaml`) ; mettre à jour les golden files concernés
-- [ ] T057 [US5] Écrire le scénario T12 dans `tests/integration/training_test.go` (commandes exactes du quickstart, sous bash et zsh) (dépend de T055, T056)
+- [X] T057 [US5] Écrire le scénario T12 dans `tests/integration/training_test.go` (commandes exactes du quickstart, sous bash et zsh) (dépend de T055, T056)
 
 **Checkpoint**: US5 complète et validée seule.
 
@@ -225,13 +225,13 @@ et hors ligne).
 ### Tests for User Story 6 ⚠️
 
 - [X] T058 [P] [US6] Ajouter au corpus les attentes `wait-*`, `rollout-undo-revision-missing`, `debug-ephemeral-disabled` (`source: formation`) avec `fixed_command_contains: telemach diagnose pod/web` pour `wait-condition-timeout` ; test de `suggest.go` : type non pris en charge par `diagnose` → correction `kubectl describe`
-- [ ] T059 [P] [US6] Écrire `scripts/collect-errors/training_test.go` (étiquette `integration`) sur un faux dossier de formation de deux TP : tableau Markdown (TP, panne, commande, message masqué, entrée ou `unknown`/`unsupported`), namespace neuf par panne, prérequis de `telemach-relevé.yaml` appliqués avant
+- [X] T059 [P] [US6] Écrire `scripts/collect-errors/training_test.go` (étiquette `integration`) sur un faux dossier de formation de deux TP : tableau Markdown (TP, panne, commande, message masqué, entrée ou `unknown`/`unsupported`), namespace neuf par panne, prérequis de `telemach-releve.yaml` appliqués avant
 
 ### Implementation for User Story 6
 
 - [X] T060 [US6] Rédiger les entrées `wait.timeout` (enrichisseur `diag_target` dans `internal/diagnose/suggest.go`, `--for=delete` relié à la leçon des finalizers), `rollout.undo-revision-missing` dans `internal/catalog/data/rollout.yaml`, `runtime.ephemeral-disabled` et le rappel `--target` dans le `deepen` de `runtime.exec-not-found` dans `internal/catalog/data/runtime.yaml`. Faire passer T058 (dépend de T008)
-- [ ] T061 [US6] Implémenter le mode `-training` de `scripts/collect-errors/main.go` (research.md F13) et l'ajouter à `.github/workflows/corpus.yml` (entrée `training_repo`, clone en lecture seule, sortie en artefact). Faire passer T059
-- [ ] T062 [US6] Écrire le scénario T13 dans `tests/integration/training_test.go` et le valider sur kind (dépend de T060)
+- [X] T061 [US6] Implémenter le mode `-training` de `scripts/collect-errors/main.go` (research.md F13) et l'ajouter à `.github/workflows/corpus.yml` (entrée `training_repo`, clone en lecture seule, sortie en artefact). Faire passer T059
+- [X] T062 [US6] Écrire le scénario T13 dans `tests/integration/training_test.go` et le valider sur kind (dépend de T060)
 
 **Checkpoint**: US6 complète ; relevé disponible pour SC-004.
 
@@ -239,12 +239,12 @@ et hors ligne).
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T063 [P] Étendre `TestGoldenFrench`, `TestGoldenNoSecret` et `TestCorpusLanguageAndSecrets` (`cmd/kubectl-telemach/language_test.go`) aux nouveaux rendus et au corpus de la feature (FR-031, SC-008)
-- [ ] T064 [P] Mesurer SC-005 (`diagnose` d'un Job, CronJob, DaemonSet, StatefulSet, HPA < 5 s au p95) dans `cmd/kubectl-telemach/diagnose_perf_test.go`, hors `-race`, 100 échantillons (LL-006, D-LL-012)
-- [ ] T065 [P] Vérifier SC-007 avec le faux kubectl journalisant : aucune lecture hors liste fermée pendant toute la suite (`internal/kuberead/allowlist_test.go`, `TestNoOtherReads` sur les journaux de `tests/integration/training_test.go`)
-- [ ] T066 Réévaluer la durée et les `timeout-minutes` de la gate `integration` dans `.github/workflows/ci.yml` avec le cluster à trois nœuds et T1 à T13 (LL-011) ; découper en deux jobs si la durée dépasse le double de l'actuelle
+- [X] T063 [P] Étendre `TestGoldenFrench`, `TestGoldenNoSecret` et `TestCorpusLanguageAndSecrets` (`cmd/kubectl-telemach/language_test.go`) aux nouveaux rendus et au corpus de la feature (FR-031, SC-008)
+- [X] T064 [P] Mesurer SC-005 (`diagnose` d'un Job, CronJob, DaemonSet, StatefulSet, HPA < 5 s au p95) dans `cmd/kubectl-telemach/diagnose_perf_test.go`, hors `-race`, 100 échantillons (LL-006, D-LL-012)
+- [X] T065 [P] Vérifier SC-007 avec le faux kubectl journalisant : aucune lecture hors liste fermée pendant toute la suite (`internal/kuberead/allowlist_test.go`, `TestNoOtherReads` sur les journaux de `tests/integration/training_test.go`)
+- [X] T066 Réévaluer la durée et les `timeout-minutes` de la gate `integration` dans `.github/workflows/ci.yml` avec le cluster à trois nœuds et T1 à T13 (LL-011) ; découper en deux jobs si la durée dépasse le double de l'actuelle
 - [ ] T067 Lancer `corpus.yml` en mode `-training` sur kubernetes-formation (quickstart T14), consigner le tableau dans `specs/004-training-feedback/research.md` (SC-004) et ouvrir une issue par message encore non reconnu hors périmètre
-- [ ] T068 [P] Mettre à jour `README.md` (nouveaux types de `diagnose`, `check -f -`, informations ℹ), `CONTRIBUTING.md` (cluster à trois nœuds, relevé d'une formation) et `docs/dockerhub.md` si l'image documente `check`
+- [X] T068 [P] Mettre à jour `README.md` (nouveaux types de `diagnose`, `check -f -`, informations ℹ), `CONTRIBUTING.md` (cluster à trois nœuds, relevé d'une formation) et `docs/dockerhub.md` si l'image documente `check`
 - [ ] T069 Relire `LESSON-LEARNED.md`, consigner tout incident survenu pendant la feature, rejouer le quickstart complet, puis cocher chaque tâche et ouvrir la PR « Feature 004 » qui ferme #13, #14, #15, #16, #17, #19
 
 ---

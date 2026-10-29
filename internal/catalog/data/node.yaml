@@ -5,7 +5,7 @@
   category: node
   applies: [drain]
   patterns:
-    - 'cannot delete DaemonSet-managed Pods \(use --ignore-daemonsets to ignore\): (?P<pods>[^\n\]]+?)(?:\]|, continuing command|\n|$)'
+    - 'cannot delete DaemonSet-managed Pods \(use --ignore-daemonsets to ignore\): (?P<pods>[^\s,\]/]+/[^\s,\]]+(?:, [^\s,\]/]+/[^\s,\]]+)*)'
   concept:
     name: DaemonSet
     definition: >-
@@ -44,7 +44,7 @@
   category: node
   applies: [drain]
   patterns:
-    - 'cannot delete Pods that declare no controller \(use --force to override\): (?P<pods>[^\n\]]+?)(?:\]|, continuing command|\n|$)'
+    - 'cannot delete Pods that declare no controller \(use --force to override\): (?P<pods>[^\s,\]/]+/[^\s,\]]+(?:, [^\s,\]/]+/[^\s,\]]+)*)'
   concept:
     name: controller
     definition: >-
@@ -86,7 +86,7 @@
   category: node
   applies: [drain]
   patterns:
-    - 'cannot delete Pods with local storage \(use --delete-emptydir-data to override\): (?P<pods>[^\n,\]]+)'
+    - 'cannot delete Pods with local storage \(use --delete-emptydir-data to override\): (?P<pods>[^\s,\]/]+/[^\s,\]]+(?:, [^\s,\]/]+/[^\s,\]]+)*)'
   concept:
     name: emptyDir
     definition: >-

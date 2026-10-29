@@ -269,7 +269,7 @@ jobs:
     # Cluster kind jetable, une version de Kubernetes par entrée de la matrice (D-LL-015 :
     # jamais d'autre cluster que celui créé par le test).
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45 # ≈ 15 min avec trois nœuds et T1 à T13 de la feature 004 (LL-011)
     strategy:
       fail-fast: false
       matrix:
@@ -306,7 +306,7 @@ jobs:
         env:
           TELEMACH_KIND_IMAGE: ${{ matrix.image }}
         # -v : chaque scénario apparaît par son nom dans le journal, PASS ou SKIP (D-LL-009).
-        run: go test -tags integration -count=1 -v -timeout 30m ./tests/integration/...
+        run: go test -tags integration -count=1 -v -timeout 40m ./tests/integration/...
 
   integration:
     # Check obligatoire unique : les checks d'une matrice portent un suffixe

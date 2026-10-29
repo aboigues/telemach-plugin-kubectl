@@ -178,9 +178,10 @@ diagnostic nomme d'abord l'API de métriques absente, puis le conteneur sans req
 ```bash
 kubectl apply -f testdata/kind/metrics-server.yaml
 kubectl wait -n kube-system --for=condition=Available deployment/metrics-server --timeout=180s
+kubectl wait --for=condition=Available apiservice/v1beta1.metrics.k8s.io --timeout=180s
 kubectl create namespace t11
 kubectl apply -n t11 -f testdata/objects/scenarios/hpa-limited.yaml
-kubectl wait -n t11 --for=jsonpath='{.status.currentMetrics}' hpa/web --timeout=180s
+kubectl wait -n t11 --for=condition=ScalingLimited hpa/web --timeout=240s
 kubectl telemach diagnose hpa/web -n t11
 ```
 
@@ -219,7 +220,7 @@ corpus (`debug-ephemeral-disabled`, source formation, research.md F12).
 ```bash
 git clone --depth 1 https://github.com/aboigues/kubernetes-formation /tmp/formation
 TELEMACH_KIND_IMAGE=kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5 \
-  go run -tags integration ./scripts/collect-errors -training /tmp/formation -out /tmp/releve.md
+  go run -tags integration ./scripts/collect-errors -training /tmp/formation -report /tmp/releve.md
 ```
 
 Attendu : un tableau par TP ; aucune ligne « non reconnue » pour les familles couvertes par

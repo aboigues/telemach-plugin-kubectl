@@ -165,3 +165,17 @@ func loadCase(t *testing.T, name string) corpusCase {
 	t.Fatalf("cas %q absent du corpus", name)
 	return corpusCase{}
 }
+
+// Relevé du scénario T6 (feature 004) : trois causes dans un même message ; chaque liste de
+// pods s'arrête à la cause suivante.
+func TestDrainSeveralCauses(t *testing.T) {
+	cat, err := catalog.Default()
+	if err != nil {
+		t.Fatal(err)
+	}
+	msg := `error: unable to drain node "w1" due to error: [cannot delete Pods that declare no controller (use --force to override): t3/web, t4/web, cannot delete Pods with local storage (use --delete-emptydir-data to override): t6/cache-64cff754b9-tz8tg], continuing command...`
+	d := Diagnose(Input{Command: command.Parse(strings.Fields("drain w1 --ignore-daemonsets")), ExitCode: 1, Stderr: msg}, cat)
+	if d.Entry == nil || d.Entry.ID != "drain.unmanaged-pods" || d.Captures["pods"] != "t3/web, t4/web" {
+		t.Errorf("entrée %v, pods %q", d.Entry, d.Captures["pods"])
+	}
+}

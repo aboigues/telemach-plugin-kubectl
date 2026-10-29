@@ -20,7 +20,8 @@ func TestMain(m *testing.M) {
 		fmt.Println("TELEMACH_KIND_IMAGE non défini : tests d'intégration ignorés (aucun cluster de l'utilisateur n'est jamais utilisé).")
 		os.Exit(0)
 	}
-	c, err := kindcluster.Create(image)
+	// Trois nœuds depuis la feature 004 (placement, drain, DaemonSet : quickstart T5, T6, T8).
+	c, err := kindcluster.CreateWithConfig(image, "../../testdata/kind/three-nodes.yaml")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

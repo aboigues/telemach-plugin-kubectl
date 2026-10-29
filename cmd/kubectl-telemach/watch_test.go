@@ -17,6 +17,7 @@ import (
 // cluster injoignable.
 const objectCluster = `#!/bin/sh
 echo "$*" >> "$CALL_LOG"
+[ -n "$FAKE_DELAY" ] && sleep "$FAKE_DELAY"
 if [ "$FAKE_MODE" = refused ]; then echo 'The connection to the server localhost:8080 was refused' >&2; exit 1; fi
 if [ -n "$FAKE_DENY" ] && [ "$2" = "$FAKE_DENY" ]; then echo "Error from server (Forbidden): $2 is forbidden" >&2; exit 1; fi
 serve() { if [ -f "$FAKE_CASE/$1" ]; then cat "$FAKE_CASE/$1"; else echo "Error from server (NotFound): $1 not found" >&2; exit 1; fi; }
