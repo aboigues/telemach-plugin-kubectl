@@ -13,6 +13,8 @@ var Categories = map[Category]bool{
 	"service": true, "rollout": true, "config": true, "ingress": true, "storage": true, "portforward": true,
 	// Retours de formation (issues #10 et suivantes) : étape d'admission du serveur API.
 	"admission": true,
+	// Feature 004 : nœuds (drain, placement), métriques et autoscaling, Jobs et CronJobs.
+	"node": true, "metrics": true, "batch": true,
 }
 
 // Valeurs autorisées du champ fallback.

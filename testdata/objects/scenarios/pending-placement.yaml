@@ -1,0 +1,17 @@
+# Scénario T5 : pod sans tolérance, à placer alors qu'un worker porte un taint et que\n# l'autre est en cordon (feature 004, quickstart). Manifestes seulement : les attentes sont dans
+# testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: place
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+  containers:
+  - name: web
+    image: nginxinc/nginx-unprivileged:1.30-alpine
+    securityContext: {allowPrivilegeEscalation: false}
+    resources:
+      requests: {cpu: 10m, memory: 16Mi}
+      limits: {cpu: 100m, memory: 64Mi}

@@ -1,0 +1,22 @@
+# Relevé : Job qui dépasse son activeDeadlineSeconds (feature 004, quickstart). Manifestes seulement : les attentes sont dans
+# testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: lent
+spec:
+  activeDeadlineSeconds: 10
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      containers:
+      - name: calcul
+        image: busybox:1.38
+        command: ["sh", "-c", "sleep 120"]
+        securityContext: {allowPrivilegeEscalation: false}
+        resources:
+          requests: {cpu: 10m, memory: 16Mi}
+          limits: {cpu: 100m, memory: 32Mi}

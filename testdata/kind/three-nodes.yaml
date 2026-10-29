@@ -1,0 +1,10 @@
+# Cluster kind jetable à trois nœuds (feature 004) : un plan de contrôle et deux workers, pour
+# les relevés et les scénarios de placement (taints, anti-affinité, cordon, drain) et de
+# DaemonSet. Utilisé par tests/integration/kindcluster (CreateWithConfig) et
+# scripts/collect-errors, jamais sur le contexte de l'utilisateur (D-LL-015).
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+  - role: worker
+  - role: worker

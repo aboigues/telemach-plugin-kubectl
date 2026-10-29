@@ -1,0 +1,22 @@
+# Scénario T7 : Job qui échoue à chaque tentative (backoffLimit atteint) (feature 004, quickstart). Manifestes seulement : les attentes sont dans
+# testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: calc
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      containers:
+      - name: calcul
+        image: busybox:1.38
+        command: ["sh", "-c", "echo calcul impossible >&2; exit 3"]
+        securityContext: {allowPrivilegeEscalation: false}
+        resources:
+          requests: {cpu: 10m, memory: 16Mi}
+          limits: {cpu: 100m, memory: 32Mi}

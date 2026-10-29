@@ -33,10 +33,12 @@ import (
 
 const ns = "demo"
 
-// read est une lecture du plugin et le fichier où ranger sa sortie.
+// read est une lecture du plugin et le fichier où ranger sa sortie. dyn calcule les arguments
+// au moment du relevé (nom généré, par exemple celui d'un ReplicaSet).
 type read struct {
 	file string
 	args []string
+	dyn  func(c *kindcluster.Cluster, ns string) []string
 }
 
 // step prépare l'état d'un cas : kubectl (args), attente fixe (sleep) ou fichier à appliquer.
@@ -52,6 +54,7 @@ type step struct {
 // les objets des précédents (le Service hello de healthy pour les Ingress).
 type objectCase struct {
 	id    string
+	ns    string // namespace du cas (feature 004) ; vide : « demo »
 	steps []step
 	reads []read
 	after []step // remise en état après le relevé
@@ -201,19 +204,21 @@ func main() {
 	pods := flag.String("pods", "testdata/pods", "dossier du corpus de pods (cas DNS)")
 	scenarios := flag.String("scenarios", "testdata/objects/scenarios", "dossier des manifestes des scénarios")
 	variant := flag.String("variant", "", "version mineure relevée (ex. 1.35) : variante rangée dans <cas>@<version> si un fichier diffère")
+	kindConfig := flag.String("kind-config", "testdata/kind/three-nodes.yaml", "configuration kind du cluster de relevé (feature 004 : trois nœuds)")
+	only := flag.String("only", "", "cas à relever : un identifiant, ou f004 pour tous ceux de la feature 004")
 	flag.Parse()
-	if err := collect(*out, *pods, *scenarios, *variant); err != nil {
+	if err := collect(*out, *pods, *scenarios, *variant, *kindConfig, *only); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func collect(out, podsDir, scenarios, variant string) error {
+func collect(out, podsDir, scenarios, variant, kindConfig, only string) error {
 	image := os.Getenv("TELEMACH_KIND_IMAGE")
 	if image == "" {
 		return fmt.Errorf("TELEMACH_KIND_IMAGE est obligatoire (image kindest/node épinglée par digest)")
 	}
-	c, err := kindcluster.Create(image)
+	c, err := kindcluster.CreateWithConfig(image, kindConfig)
 	if err != nil {
 		return err
 	}
@@ -225,13 +230,24 @@ func collect(out, podsDir, scenarios, variant string) error {
 	if err := c.Must("create", "namespace", ns); err != nil {
 		return err
 	}
-	for _, oc := range cases {
-		if err := prepare(c, scenarios, oc.steps); err != nil {
+	for _, oc := range append(append([]objectCase(nil), cases...), f004Cases...) {
+		// -only f004 : les cas de la feature 004 (ceux qui ont leur propre namespace) ; sinon un
+		// seul cas, par son identifiant.
+		if only != "" && (only != "f004" || oc.ns == "") && oc.id != only {
+			continue
+		}
+		if oc.ns != "" {
+			// Un cas peut reprendre le namespace du précédent (même objet, état suivant).
+			if res := c.Kubectl("create", "namespace", oc.ns); res.ExitCode != 0 && !strings.Contains(res.Stderr, "AlreadyExists") {
+				return fmt.Errorf("%s : %s", oc.id, res.Stderr)
+			}
+		}
+		if err := prepare(c, scenarios, oc.ns, oc.steps); err != nil {
 			return fmt.Errorf("%s : %w", oc.id, err)
 		}
 		files := map[string]string{"captured-at.txt": time.Now().UTC().Format(time.RFC3339) + "\n"}
 		for _, rd := range oc.reads {
-			name, content := capture(c, rd)
+			name, content := capture(c, oc.ns, rd)
 			files[name] = content
 		}
 		dir := filepath.Join(out, oc.id)
@@ -242,26 +258,37 @@ func collect(out, podsDir, scenarios, variant string) error {
 		if err := save(dir, variant, files); err != nil {
 			return err
 		}
-		if err := prepare(c, scenarios, oc.after); err != nil {
+		if err := prepare(c, scenarios, oc.ns, oc.after); err != nil {
 			return fmt.Errorf("%s : remise en état : %w", oc.id, err)
 		}
+	}
+	if only != "" {
+		return nil
 	}
 	return checkConfigMapDates(c, out, scenarios)
 }
 
-func prepare(c *kindcluster.Cluster, scenarios string, steps []step) error {
+func prepare(c *kindcluster.Cluster, scenarios, caseNS string, steps []step) error {
+	namespace := ns
+	if caseNS != "" {
+		namespace = caseNS
+	}
+	nodes := strings.NewReplacer("{W1}", c.Worker(1), "{W2}", c.Worker(2))
 	for _, s := range steps {
 		switch {
 		case s.apply != "":
-			if err := c.Must("apply", "-n", ns, "-f", filepath.Join(scenarios, s.apply)); err != nil {
+			if err := c.Must("apply", "-n", namespace, "-f", filepath.Join(scenarios, s.apply)); err != nil {
 				return err
 			}
 		case s.sleep > 0:
 			time.Sleep(s.sleep)
 		default:
-			args := s.args
+			args := make([]string, len(s.args))
+			for i, a := range s.args {
+				args[i] = nodes.Replace(a)
+			}
 			if !s.cluster {
-				args = append(append([]string(nil), s.args...), "-n", ns)
+				args = append(args, "-n", namespace)
 			}
 			if r := c.Kubectl(args...); r.ExitCode != 0 && !s.soft {
 				return fmt.Errorf("kubectl %s : %s", strings.Join(s.args, " "), r.Stderr)
@@ -273,8 +300,16 @@ func prepare(c *kindcluster.Cluster, scenarios string, steps []step) error {
 
 // capture exécute une lecture ; un échec est rangé dans <fichier>.err (message masqué), comme
 // le plugin le recevrait.
-func capture(c *kindcluster.Cluster, rd read) (string, string) {
-	res := c.Kubectl(append(append([]string(nil), rd.args...), "-n", ns)...)
+func capture(c *kindcluster.Cluster, caseNS string, rd read) (string, string) {
+	namespace := ns
+	if caseNS != "" {
+		namespace = caseNS
+	}
+	args := rd.args
+	if rd.dyn != nil {
+		args = rd.dyn(c, namespace)
+	}
+	res := c.Kubectl(append(append([]string(nil), args...), "-n", namespace)...)
 	if res.ExitCode != 0 {
 		return rd.file + ".err", redact.Redact(res.Stderr)
 	}

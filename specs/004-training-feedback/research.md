@@ -165,7 +165,9 @@ le plus récent avec les causes de la feature 001.
 
 | Objet | Maillons | Pièges |
 |-------|----------|--------|
-| Job | `status`, `pods` | `job.backoff-limit` (condition `Failed`, raison `BackoffLimitExceeded`), `job.deadline` (`DeadlineExceeded`), `job.pods-gone` (terminé, aucun pod : `ttlSecondsAfterFinished` ou suppression), `job.running`, `job.complete` |
+| Job | `status`, `pods` | `job.backoff-limit` (condition `Failed`, raison `BackoffLimitExceeded`), `job.deadline` (`DeadlineExceeded`), `job.pods-gone` (terminé, aucun pod : pods supprimés à la main) ; un Job **introuvable**
+dont le nom correspond à une erreur récente rappelle que `ttlSecondsAfterFinished` supprime le
+Job **et** ses pods (correction du 2026-10-29 : le TTL ne laisse pas un Job sans pods), `job.running`, `job.complete` |
 | CronJob | `schedule`, `history`, `last-job` | `cronjob.suspended`, `cronjob.never-run` (aucune exécution depuis la création, en distinguant « première échéance pas encore arrivée »), `cronjob.forbid-skipped` (`concurrencyPolicy: Forbid` et Job actif plus ancien que l'intervalle), `cronjob.last-failed` (enchaîne sur le Job) |
 | DaemonSet | `nodes`, `rollout` | `daemonset.excluded-nodes` (voulus < nœuds : nœuds exclus et leurs taints, control-plane présenté comme normal), `daemonset.rollout-stuck` |
 | StatefulSet | `service`, `ordinal`, `volumes` | `statefulset.no-service` (Service de `serviceName` absent), `statefulset.ordered-wait` (`OrderedReady` et pod `-k` pas prêt), `statefulset.pvc-pending` (PVC `<modèle>-<nom>-<k>` `Pending`, leçon PVC de la 002) |
@@ -296,6 +298,7 @@ finalizers (anti-pattern de la 002 réutilisé). `rollout.undo-revision-missing`
 |-------|---------|-------------|
 | Go | 1.27.3 (`toolchain` de go.mod) | 2026-10-29 |
 | kind | v0.33.0 (dernière publiée) | 2026-10-29 |
-| metrics-server (cluster de test seulement) | v0.9.1 (publiée le 2026-10-29) | 2026-10-29, à revérifier avec son digest |
+| metrics-server (cluster de test seulement) | v0.9.1, `sha256:9b0ba1926e1d3089673f45461c3c1416109dea33b3ba3434048defd380df329b` | 2026-10-29 (T001) |
+| kubectl (CI, relevés) | v1.35.10, v1.36.6, v1.37.2 (correctifs sortis depuis v1.35.9, v1.36.5, v1.37.1) | 2026-10-29 (T001) |
 | Images kind | celles de la CI (v1.35.8, v1.36.4, v1.37.0, par digest) | inchangées |
 | Nouvelles dépendances Go | aucune | — |

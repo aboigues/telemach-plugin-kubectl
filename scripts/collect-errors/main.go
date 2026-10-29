@@ -113,6 +113,8 @@ func main() {
 	only := flag.String("only", "", "identifiant d'un seul cas à relever")
 	manifests := flag.String("manifests", "", "dossier du corpus de manifestes : relève le message de « kubectl apply -f » de chaque cas")
 	pods := flag.String("pods", "", "dossier du corpus de pods : applique scenarios/ et relève l'état réel de chaque pod")
+	kindConfig := flag.String("kind-config", "testdata/kind/three-nodes.yaml", "configuration kind du cluster de relevé des erreurs (feature 004 : trois nœuds)")
+	scenarios := flag.String("scenarios", "testdata/objects/scenarios", "dossier des manifestes des cas préparés (feature 004)")
 	flag.Parse()
 	if *pods != "" {
 		if err := collectPods(*pods); err != nil {
@@ -128,18 +130,18 @@ func main() {
 		}
 		return
 	}
-	if err := collect(*out, *variant, *only); err != nil {
+	if err := collect(*out, *variant, *only, *kindConfig, *scenarios); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func collect(out, variant, only string) error {
+func collect(out, variant, only, kindConfig, scenarios string) error {
 	image := os.Getenv("TELEMACH_KIND_IMAGE")
 	if image == "" {
 		return fmt.Errorf("TELEMACH_KIND_IMAGE est obligatoire (image kindest/node épinglée par digest)")
 	}
-	c, err := kindcluster.Create(image)
+	c, err := kindcluster.CreateWithConfig(image, kindConfig)
 	if err != nil {
 		return err
 	}
@@ -148,6 +150,16 @@ func collect(out, variant, only string) error {
 			fmt.Fprintln(os.Stderr, err)
 		}
 	}()
+	// Cas préparés de la feature 004 d'abord : drain exige un nœud sans autres pods que les
+	// siens (la préparation de « demo » crée des pods sans contrôleur).
+	if only == "" || only == onlyStaged || isStaged(only) {
+		if err := collectStaged(out, variant, only, scenarios, c); err != nil {
+			return err
+		}
+		if only != "" {
+			return nil
+		}
+	}
 	ns := "demo"
 	if err := setup(c, ns); err != nil {
 		return err

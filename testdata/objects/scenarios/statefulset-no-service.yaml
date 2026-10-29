@@ -1,0 +1,27 @@
+# Scénario T8 : StatefulSet dont le Service headless (serviceName) n'existe pas (feature 004, quickstart). Manifestes seulement : les attentes sont dans
+# testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: base
+spec:
+  serviceName: base
+  replicas: 2
+  selector:
+    matchLabels:
+      app: base
+  template:
+    metadata:
+      labels:
+        app: base
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      containers:
+      - name: base
+        image: nginxinc/nginx-unprivileged:1.30-alpine
+        securityContext: {allowPrivilegeEscalation: false}
+        resources:
+          requests: {cpu: 10m, memory: 16Mi}
+          limits: {cpu: 100m, memory: 64Mi}

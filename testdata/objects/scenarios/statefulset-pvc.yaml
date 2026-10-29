@@ -1,0 +1,50 @@
+# Relevé : StatefulSet dont les PVC demandent une classe de stockage inexistante (feature 004, quickstart). Manifestes seulement : les attentes sont dans
+# testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: donnees
+spec:
+  serviceName: donnees
+  replicas: 2
+  selector:
+    matchLabels:
+      app: donnees
+  template:
+    metadata:
+      labels:
+        app: donnees
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      containers:
+      - name: base
+        image: nginxinc/nginx-unprivileged:1.30-alpine
+        securityContext: {allowPrivilegeEscalation: false}
+        resources:
+          requests: {cpu: 10m, memory: 16Mi}
+          limits: {cpu: 100m, memory: 64Mi}
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/donnees
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ReadWriteOnce]
+      storageClassName: inexistante
+      resources:
+        requests:
+          storage: 100Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: donnees
+spec:
+  clusterIP: None
+  selector:
+    app: donnees
+  ports:
+  - port: 8080

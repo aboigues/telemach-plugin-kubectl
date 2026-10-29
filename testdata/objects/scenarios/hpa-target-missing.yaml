@@ -1,0 +1,20 @@
+# Relevé : HPA dont le Deployment visé n'existe pas (feature 004). Manifestes seulement : les
+# attentes sont dans testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: orphelin
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: absent
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50

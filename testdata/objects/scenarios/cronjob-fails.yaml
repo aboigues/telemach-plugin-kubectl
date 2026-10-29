@@ -1,0 +1,25 @@
+# Relevé : CronJob à la minute dont chaque exécution échoue (feature 004). Manifestes
+# seulement : les attentes sont dans testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: echec
+spec:
+  schedule: "* * * * *"
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+          containers:
+          - name: calcul
+            image: busybox:1.38
+            command: ["sh", "-c", "echo export impossible >&2; exit 2"]
+            securityContext: {allowPrivilegeEscalation: false}
+            resources:
+              requests: {cpu: 10m, memory: 16Mi}
+              limits: {cpu: 100m, memory: 32Mi}

@@ -42,6 +42,7 @@ var documents = []string{
 	"apis__apps__v1_openapi.json",
 	"apis__batch__v1_openapi.json",
 	"apis__networking.k8s.io__v1_openapi.json",
+	"apis__autoscaling__v2_openapi.json", // feature 004 : HorizontalPodAutoscaler
 }
 
 // kinds est la liste des ressources de base couvertes (FR-014), par groupe/version.
@@ -58,6 +59,8 @@ var kinds = map[string]string{ //nolint:gosec // noms de schémas OpenAPI, aucun
 	"batch/v1/Job":                 "io.k8s.api.batch.v1.Job",
 	"batch/v1/CronJob":             "io.k8s.api.batch.v1.CronJob",
 	"networking.k8s.io/v1/Ingress": "io.k8s.api.networking.v1.Ingress",
+	// Feature 004 (T014).
+	"autoscaling/v2/HorizontalPodAutoscaler": "io.k8s.api.autoscaling.v2.HorizontalPodAutoscaler",
 }
 
 // keptKeys sont les mots-clés OpenAPI utiles au validateur ; tout le reste (descriptions,

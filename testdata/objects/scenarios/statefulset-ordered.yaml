@@ -1,0 +1,39 @@
+# Relevé : StatefulSet dont le pod -0 ne démarre jamais (image inexistante) : -1 attend
+# (feature 004). Manifestes seulement : les attentes sont dans
+# testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ordre
+spec:
+  serviceName: ordre
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ordre
+  template:
+    metadata:
+      labels:
+        app: ordre
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      containers:
+      - name: ordre
+        image: nginxinc/nginx-unprivileged:0.0.0
+        securityContext: {allowPrivilegeEscalation: false}
+        resources:
+          requests: {cpu: 10m, memory: 16Mi}
+          limits: {cpu: 100m, memory: 64Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ordre
+spec:
+  clusterIP: None
+  selector:
+    app: ordre
+  ports:
+  - port: 8080

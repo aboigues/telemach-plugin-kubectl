@@ -1,0 +1,10 @@
+# Scénarios T1, T4 : quota de namespace sur les limites (TP08) (feature 004, quickstart). Manifestes seulement : les attentes sont dans
+# testdata/objects/<cas>/expected.yaml (LL-004, LL-005).
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: quota-equipe
+spec:
+  hard:
+    limits.cpu: "1"
+    limits.memory: 256Mi

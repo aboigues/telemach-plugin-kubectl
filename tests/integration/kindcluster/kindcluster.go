@@ -41,8 +41,12 @@ type Result struct {
 	ExitCode       int
 }
 
-// Create crée un cluster kind à partir de l'image donnée (épinglée par digest).
-func Create(image string) (*Cluster, error) {
+// Create crée un cluster kind à un seul nœud à partir de l'image donnée (épinglée par digest).
+func Create(image string) (*Cluster, error) { return CreateWithConfig(image, "") }
+
+// CreateWithConfig crée un cluster kind décrit par un fichier de configuration kind (par
+// exemple testdata/kind/three-nodes.yaml) ; config vide : un seul nœud.
+func CreateWithConfig(image, config string) (*Cluster, error) {
 	if !strings.Contains(image, "@sha256:") {
 		return nil, fmt.Errorf("l'image kind doit être épinglée par digest : %q", image)
 	}
@@ -62,8 +66,11 @@ func Create(image string) (*Cluster, error) {
 		KubectlBin: envOr("TELEMACH_KUBECTL_BIN", "kubectl"),
 	}
 	c.Context = "kind-" + c.Name
-	cmd := exec.Command(c.Kind, "create", "cluster", "--name", c.Name, "--image", image, //nolint:gosec // binaire de test
-		"--kubeconfig", c.Kubeconfig, "--wait", "180s")
+	args := []string{"create", "cluster", "--name", c.Name, "--image", image, "--kubeconfig", c.Kubeconfig, "--wait", "180s"}
+	if config != "" {
+		args = append(args, "--config", config)
+	}
+	cmd := exec.Command(c.Kind, args...) //nolint:gosec // binaire de test
 	if out, err := cmd.CombinedOutput(); err != nil {
 		_ = os.RemoveAll(dir)
 		return nil, fmt.Errorf("kind create cluster : %v\n%s", err, out)
@@ -211,6 +218,15 @@ func (c *Cluster) CreateNamespace(base string) (string, error) {
 	}
 	ns := base + "-" + hex.EncodeToString(suffix)
 	return ns, c.Must("create", "namespace", ns)
+}
+
+// Worker renvoie le nom du n-ième nœud worker (1, 2…) d'un cluster créé avec
+// testdata/kind/three-nodes.yaml : kind nomme les nœuds <cluster>-worker, <cluster>-worker2…
+func (c *Cluster) Worker(n int) string {
+	if n <= 1 {
+		return c.Name + "-worker"
+	}
+	return fmt.Sprintf("%s-worker%d", c.Name, n)
 }
 
 // ServerURL renvoie l'adresse du serveur API du cluster.

@@ -105,17 +105,20 @@ de contrôle présenté comme normal), rappel « une toleration autorise, elle n
 
 ```bash
 kubectl create namespace t6
+kubectl label node telemach-worker formation=drain
 kubectl apply -n t6 -f testdata/objects/scenarios/drain-pdb.yaml
-kubectl wait -n t6 --for=condition=Available deployment/web --timeout=90s
+kubectl wait -n t6 --for=condition=Available deployment/web deployment/cache --timeout=90s
 kubectl drain telemach-worker
-kubectl drain telemach-worker --ignore-daemonsets --timeout=20s
+kubectl drain telemach-worker --ignore-daemonsets
+kubectl drain telemach-worker --ignore-daemonsets --delete-emptydir-data --timeout=20s
 kubectl uncordon telemach-worker
+kubectl label node telemach-worker formation-
 ```
 
-Attendu : première commande → `drain.daemonset-pods` (`--ignore-daemonsets`) ; seconde →
-`drain.pdb-blocked` (`kubectl get pdb -A`, anti-patterns `--disable-eviction` et `--force`)
-ou `drain.local-storage` selon le pod rencontré en premier (les deux sont attendus dans le
-relevé).
+Attendu (ordre des refus confirmé par le relevé) : première commande → `drain.daemonset-pods`
+(`--ignore-daemonsets`) ; deuxième → `drain.local-storage` (`--delete-emptydir-data` présenté
+avec la perte des données) ; troisième → `drain.pdb-blocked` (`kubectl get pdb -A`,
+anti-patterns `--disable-eviction` et `--force`).
 
 ### T7 — Job en échec, CronJob suspendu (US3-1, US3-4, US3-8)
 
