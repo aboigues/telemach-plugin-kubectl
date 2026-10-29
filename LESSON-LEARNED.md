@@ -71,6 +71,26 @@ dans le registre d'origine ; seule la règle préventive, transposée à kubectl
 
 ## Incidents
 
+### LL-019 — Relevé faux sans erreur : option -n placée après « -- »
+
+- **Date** : 2026-10-29
+- **Catégorie** : bug
+- **Contexte** : feature 004, relevé des objets (T006) : cas `job-complete`, `job-pods-gone` et
+  `cronjob-never-run`, préparés par `kubectl create job|cronjob … -- sh -c …`.
+- **Cause racine** : `scripts/collect-objects` ajoutait `-n <namespace>` à la fin de chaque
+  commande de préparation. Après `--`, kubectl le transmet au conteneur : les objets ont été
+  créés dans le namespace par défaut du kubeconfig, et le relevé a rangé, sans échouer, un
+  `job.json.err` « NotFound » à la place du Job.
+- **Impact** : trois cas du corpus faux, repérés en relisant le relevé avant d'écrire les
+  attentes ; aucun effet sur le plugin.
+- **Correctif** : `withNamespace` insère `-n` avant `--` ; les trois cas ont été relevés de
+  nouveau.
+- **Règle préventive** : toute option ajoutée par programme à une commande kubectl se place
+  avant un éventuel `--` ; un relevé dont une lecture de l'objet principal échoue est relu
+  avant d'être versionné, jamais accepté tel quel.
+- **Suivi** : non automatisé dans l'outil (relevé du mainteneur) ; la relecture de chaque
+  relevé est une étape de la tâche T008 de la feature 004.
+
 ### LL-018 — Commit créé malgré un lint en échec : chaîne de validation terminée par « ; »
 
 - **Date** : 2026-10-29

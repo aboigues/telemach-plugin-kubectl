@@ -3,6 +3,7 @@ package render
 import (
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 
 	"github.com/aboigues/telemach-plugin-kubectl/internal/diagnose"
@@ -67,8 +68,22 @@ func RenderPod(w io.Writer, snap workload.PodSnapshot, d diagnose.Diagnosis, o O
 	}
 	if len(snap.DeniedReads) > 0 {
 		b.WriteString("\n" + t.Cause(LabelPartial) + "\n")
+		var checks []string
+		for _, r := range snap.DeniedReads {
+			res := "events"
+			if strings.Contains(r, "nœuds") {
+				res = "nodes" // feature 004 : lecture des nœuds pour les causes de placement
+			}
+			if c := "« " + kubectl + " auth can-i list " + res + " »"; !slices.Contains(checks, c) {
+				checks = append(checks, c)
+			}
+		}
+		verb := "vérifie ce droit"
+		if len(checks) > 1 {
+			verb = "vérifient ces droits"
+		}
 		b.WriteString(wrap("Lecture refusée par RBAC : "+strings.Join(snap.DeniedReads, ", ")+
-			". Le diagnostic repose sur les seules informations lisibles ; « "+kubectl+" auth can-i list events » vérifie ce droit.", width, indent) + "\n")
+			". Le diagnostic repose sur les seules informations lisibles ; "+strings.Join(checks, " et ")+" "+verb+".", width, indent) + "\n")
 	}
 	if len(snap.Others) > 0 {
 		b.WriteString("\n" + t.Label(LabelOthers) + "\n")

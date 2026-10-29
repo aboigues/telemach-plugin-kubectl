@@ -132,7 +132,7 @@ Deployment, avec version corrigée et avertissement d'une commande réussie.
 ### Tests for User Story 2 ⚠️
 
 - [X] T030 [P] [US2] Étendre `internal/workload/select_test.go` sur les messages réels de `testdata/objects/` : découpage `0/N nodes are available: …` en causes, partie `preemption:` ignorée, raisons `UntoleratedTaint` (taint extrait), `PodAntiAffinity`, `PodAffinity`, `NodeUnschedulable`, causes existantes inchangées, cause inconnue citée telle quelle, cause principale = plus grand nombre de nœuds, taint `node-role.kubernetes.io/control-plane` marqué normal (data-model.md § PlacementCause)
-- [ ] T031 [P] [US2] Étendre `internal/render/pod_golden_test.go` : liste « Nœuds par cause » (exemple de contracts/cli.md § diagnose), noms des nœuds si la lecture des nœuds est permise, diagnostic partiel sinon ; golden files couleur et sans couleur dans `testdata/golden/f004/`
+- [X] T031 [P] [US2] Étendre `internal/render/pod_golden_test.go` : liste « Nœuds par cause » (exemple de contracts/cli.md § diagnose), noms des nœuds si la lecture des nœuds est permise, diagnostic partiel sinon ; golden files couleur et sans couleur dans `testdata/golden/f004/`
 - [X] T032 [P] [US2] Ajouter les attentes `drain-*` de T008 au corpus et vérifier que `--disable-eviction`, `--force` et `--delete-emptydir-data` n'apparaissent que dans des corrections `safe: false` ou des anti-patterns (`internal/catalog/catalog_test.go`, extension de `TestForcedDeletionIsAntiPattern`)
 
 ### Implementation for User Story 2
@@ -243,9 +243,9 @@ et hors ligne).
 - [X] T064 [P] Mesurer SC-005 (`diagnose` d'un Job, CronJob, DaemonSet, StatefulSet, HPA < 5 s au p95) dans `cmd/kubectl-telemach/diagnose_perf_test.go`, hors `-race`, 100 échantillons (LL-006, D-LL-012)
 - [X] T065 [P] Vérifier SC-007 avec le faux kubectl journalisant : aucune lecture hors liste fermée pendant toute la suite (`internal/kuberead/allowlist_test.go`, `TestNoOtherReads` sur les journaux de `tests/integration/training_test.go`)
 - [X] T066 Réévaluer la durée et les `timeout-minutes` de la gate `integration` dans `.github/workflows/ci.yml` avec le cluster à trois nœuds et T1 à T13 (LL-011) ; découper en deux jobs si la durée dépasse le double de l'actuelle
-- [ ] T067 Lancer `corpus.yml` en mode `-training` sur kubernetes-formation (quickstart T14), consigner le tableau dans `specs/004-training-feedback/research.md` (SC-004) et ouvrir une issue par message encore non reconnu hors périmètre
+- [X] T067 Lancer `corpus.yml` en mode `-training` sur kubernetes-formation (quickstart T14), consigner le tableau dans `specs/004-training-feedback/research.md` (SC-004) et ouvrir une issue par message encore non reconnu hors périmètre
 - [X] T068 [P] Mettre à jour `README.md` (nouveaux types de `diagnose`, `check -f -`, informations ℹ), `CONTRIBUTING.md` (cluster à trois nœuds, relevé d'une formation) et `docs/dockerhub.md` si l'image documente `check`
-- [ ] T069 Relire `LESSON-LEARNED.md`, consigner tout incident survenu pendant la feature, rejouer le quickstart complet, puis cocher chaque tâche et ouvrir la PR « Feature 004 » qui ferme #13, #14, #15, #16, #17, #19
+- [X] T069 Relire `LESSON-LEARNED.md`, consigner tout incident survenu pendant la feature, rejouer le quickstart complet, puis cocher chaque tâche et ouvrir la PR « Feature 004 » qui ferme #13, #14, #15, #16, #17, #19
 
 ---
 

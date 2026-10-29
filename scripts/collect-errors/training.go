@@ -60,6 +60,10 @@ func classifyOutput(out string) string {
 		return "unknown"
 	case strings.Contains(out, "n'est pas pris en charge par diagnose"), strings.Contains(out, "pas encore disponible"):
 		return "unsupported"
+	case strings.Contains(out, "Aucun pod en difficulté") && !strings.Contains(out, "Autres objets en difficulté"):
+		// Rien n'est expliqué : la panne ne s'est pas (encore) manifestée, souvent faute des
+		// prérequis du TP. Ce n'est ni une réussite ni une erreur non reconnue.
+		return "rien signalé"
 	}
 	return "reconnue"
 }
@@ -70,12 +74,12 @@ func renderReport(findings []TrainingFinding) string {
 	b.WriteString("| TP | Panne | Commande | Message | Résultat |\n|----|-------|----------|---------|----------|\n")
 	missing := 0
 	for _, f := range findings {
-		if f.Result != "reconnue" {
+		if f.Result == "unknown" || f.Result == "unsupported" {
 			missing++
 		}
 		fmt.Fprintf(&b, "| %s | %s | `%s` | %s | %s |\n", f.TP, f.Panne, f.Command, strings.ReplaceAll(f.Message, "|", "\\|"), f.Result)
 	}
-	fmt.Fprintf(&b, "\n%d ligne(s), %d non reconnue(s) ou non prise(s) en charge.\n", len(findings), missing)
+	fmt.Fprintf(&b, "\n%d ligne(s), %d non reconnue(s) ou non prise(s) en charge, %d sans signal.\n", len(findings), missing, count(findings, "rien signalé"))
 	return b.String()
 }
 
@@ -165,4 +169,15 @@ func diagnoseFinding(c *kindcluster.Cluster, plugin, tp string, p trainingPanne,
 		TP: tp, Panne: filepath.Base(p.File), Command: "kubectl telemach diagnose -n " + ns,
 		Message: strings.TrimSpace(firstLine(text)), Result: classifyOutput(text),
 	}
+}
+
+// count compte les lignes d'un résultat donné.
+func count(findings []TrainingFinding, result string) int {
+	n := 0
+	for _, f := range findings {
+		if f.Result == result {
+			n++
+		}
+	}
+	return n
 }

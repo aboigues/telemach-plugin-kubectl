@@ -1,4 +1,4 @@
-✖ Le pod « place » reste en attente, un taint le repousse.
+✖ Le pod « place » reste en attente, le taint « dedie=gpu:NoSchedule » le repousse (telemach-268c7c-worker).
    pod place · namespace f004-placement · image nginxinc/nginx-unprivileged:1.30-alpine · état UntoleratedTaint
 
 📘 Concept — taint and toleration
@@ -27,10 +27,11 @@
         dedie: gpu
    3. Si le taint est un reste d'exercice, le retirer du nœud (le « - » final
       retire le taint).
-      kubectl taint node NŒUD CLÉ-
+      kubectl taint node telemach-268c7c-worker dedie=gpu:NoSchedule-
 
 Nœuds par cause (0/3 disponibles)
-   ✖ 1 nœud    nœud non planifiable (cordon)
-   ✖ 2 nœuds   taint non toléré
+   ℹ 1 nœud    taint du plan de contrôle (normal) (telemach-268c7c-control-plane)
+   ✖ 1 nœud    taint dedie=gpu:NoSchedule non toléré (telemach-268c7c-worker)
+   ✖ 1 nœud    nœud non planifiable (cordon) (telemach-268c7c-worker2)
 
 ➜ Pour aller plus loin : kubectl telemach deepen

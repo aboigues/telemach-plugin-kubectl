@@ -266,6 +266,27 @@ n'écrit que dans son cluster jetable et dans le fichier de sortie.
 **Justification** : les pannes sont des manifestes, pas des commandes ; leur effet se lit
 avec `diagnose`. SC-004 se mesure avec ce relevé.
 
+### Résultat du relevé (2026-10-29, T067, SC-004)
+
+Run `corpus.yml` 40943021545 (kind 1.37, `training_repo=aboigues/kubernetes-formation`, sans
+fichier `telemach-releve.yaml` dans les TP) : 10 pannes, 11 lignes, **0 message non reconnu,
+0 type non pris en charge**.
+
+| TP | Panne | Ce que TELEMACH a expliqué |
+|----|-------|----------------------------|
+| tp03 | panne-1, panne-2, panne-3 | image introuvable, redémarrage en boucle (code 1), mémoire insuffisante |
+| tp03 | panne-4 | rien signalé au bout de 60 s (sonde de disponibilité : dépend de l'application du TP) |
+| tp04 | import | rien signalé au bout de 60 s (Job qui réessaie plusieurs minutes, API du TP absente) |
+| tp06 | export, inventaire, racine | OOMKilled, CPU insuffisant, configuration de conteneur invalide |
+| tp07 | promo | refus d'application reconnu (`manifest.no-kind-match` : Gateway API non installé) |
+| tp13 | stock | redémarrage en boucle (code 1) |
+
+Limites : sans les prérequis des TP (application `apps/`, Gateway API, Traefik), trois pannes ne
+se manifestent pas pendant le relevé ; SC-004 est donc vérifié sur les seules familles qui se
+sont produites. Pour aller plus loin, le dépôt de formation peut déclarer ses prérequis dans
+`tpNN-*/telemach-releve.yaml` (`apply`, `wait`). La première version du rapport classait « rien
+signalé » comme « reconnue » : l'outil distingue désormais ce cas.
+
 ## F14. `wait`, `rollout undo`, `debug` (FR-023 à FR-025)
 
 **Décision** : entrées `wait.timeout` (catégorie `rollout`, ou nouvelle catégorie `wait`)
