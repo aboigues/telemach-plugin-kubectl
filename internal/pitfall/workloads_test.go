@@ -130,3 +130,16 @@ func sameReason(r string) string {
 	}
 	return r
 }
+
+// Feature 004 (T039, FR-014) : diagnose sans argument liste les Jobs en échec du namespace.
+func TestJobSummaries(t *testing.T) {
+	f := &fixture{Dir: objectsCorpus + "/job-backoff-limit"}
+	list, err := jobSummaries(testContext(t, f, timeOf(t, f.Dir)), nil)
+	if err != nil || len(list) != 1 || list[0].Name != "calc" || list[0].Pitfall != JobBackoffLimit {
+		t.Errorf("Job en échec attendu : %+v, %v", list, err)
+	}
+	f = &fixture{Dir: objectsCorpus + "/job-complete"}
+	if list, _ := jobSummaries(testContext(t, f, timeOf(t, f.Dir)), nil); len(list) != 0 {
+		t.Errorf("aucun Job en échec attendu : %+v", list)
+	}
+}

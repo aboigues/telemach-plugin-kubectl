@@ -21,6 +21,9 @@ func SchemaCheck(path string) []SchemaFinding {
 	for _, v := range schema.Supported {
 		r := manifest.Analyze([]string{path}, false, "v"+v+".0")
 		for _, is := range r.Issues {
+			if is.Info() {
+				continue // une information n'est pas un défaut (LL-016)
+			}
 			out = append(out, SchemaFinding{Kind: is.Kind, Message: fmt.Sprintf("règles %s : %s:%d:%d %s %s %s", v, is.File, is.Line, is.Column, is.Kind, is.FieldPath, is.Suggestion)})
 		}
 	}

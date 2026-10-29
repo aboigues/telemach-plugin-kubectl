@@ -218,3 +218,46 @@ func TestWatchImageHint(t *testing.T) {
 		t.Errorf("après 24 h, l'information doit revenir : %d ligne(s)", got)
 	}
 }
+
+// Feature 004 (T028, T050) : après « scale », un Deployment dont les pods sont refusés est
+// signalé ; après l'application d'un HPA, une cible sans request l'est aussi.
+func TestWatchFeature004(t *testing.T) {
+	hpa := `apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: web
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: web}
+  maxReplicas: 3
+`
+	tests := []struct {
+		name, corpus, main string
+		args               []string
+		want               string
+	}{
+		{
+			"scale refusé par le quota", "replica-failure", "api",
+			[]string{"scale", "deployment", "api", "--replicas=3", "-n", "demo"},
+			"⚠ Le Deployment api ne peut pas créer ses pods (refus d'admission) : kubectl telemach diagnose deployment/api -n demo\n",
+		},
+		{
+			"HPA sans request", "hpa-missing-request", "web",
+			[]string{"apply", "-f", hpa, "-n", "demo"},
+			"⚠ Le HPA web ne peut pas calculer l'utilisation de cpu : le conteneur web n'a pas de request : kubectl telemach diagnose hpa/web -n demo\n",
+		},
+		{"HPA sain", "hpa-idle", "web", []string{"apply", "-f", hpa, "-n", "demo"}, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a, _, signals := watchEnv(t, tt.corpus, tt.main)
+			args := append([]string(nil), tt.args...)
+			if args[0] == "apply" {
+				args[2] = manifestFile(t, args[2])
+			}
+			runWatch(a, args...)
+			if got := signals(); got != tt.want {
+				t.Errorf("signaux :\n%q\nattendu :\n%q", got, tt.want)
+			}
+		})
+	}
+}

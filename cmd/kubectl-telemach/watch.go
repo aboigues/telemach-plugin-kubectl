@@ -127,6 +127,17 @@ func watchLine(p pitfall.Pitfall, caps map[string]string) string {
 		return "L'Ingress " + caps["ingress"] + " n'a aucune classe prise en charge"
 	case pitfall.PVCUnknownClass:
 		return "Le PVC " + caps["pvc"] + " demande la classe « " + caps["class"] + " », qui n'existe pas"
+	// Feature 004.
+	case pitfall.DeploymentReplicaFailure:
+		return "Le Deployment " + caps["deployment"] + " ne peut pas créer ses pods (refus d'admission)"
+	case pitfall.StatefulSetNoService:
+		return "Le StatefulSet " + caps["statefulset"] + " attend le Service headless « " + caps["service"] + " », qui n'existe pas"
+	case pitfall.HPAMetricsUnavailable:
+		return "Le HPA " + caps["hpa"] + " ne reçoit aucune métrique (metrics-server absent)"
+	case pitfall.HPATargetMissing:
+		return "Le HPA " + caps["hpa"] + " vise " + caps["target_kind"] + "/" + caps["target"] + ", qui n'existe pas"
+	case pitfall.HPAMissingRequest:
+		return "Le HPA " + caps["hpa"] + " ne peut pas calculer l'utilisation de " + caps["resource"] + " : le conteneur " + caps["container"] + " n'a pas de request"
 	}
 	return ""
 }

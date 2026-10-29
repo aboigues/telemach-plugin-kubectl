@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/aboigues/telemach-plugin-kubectl/internal/command"
+	"github.com/aboigues/telemach-plugin-kubectl/internal/kubeterms"
 	"github.com/aboigues/telemach-plugin-kubectl/internal/manifest"
 )
 
@@ -94,7 +95,11 @@ type ObjectTarget struct {
 }
 
 // manifestKinds associe un type de manifeste au type d'objet vérifié.
-var manifestKinds = map[string]string{"Service": "service", "Ingress": "ingress", "PersistentVolumeClaim": "pvc"}
+var manifestKinds = map[string]string{
+	"Service": "service", "Ingress": "ingress", "PersistentVolumeClaim": "pvc",
+	// Feature 004 : Service headless absent, HPA sans cible ou sans request.
+	"StatefulSet": "statefulset", "HorizontalPodAutoscaler": "hpa",
+}
 
 // ObjectTargets renvoie les objets à vérifier ; aucun pour une commande non concernée
 // (--dry-run, -f -, URL, -k, autre sous-commande).
@@ -118,6 +123,11 @@ func ObjectTargets(cmd command.Command) []ObjectTarget {
 		}
 		if cmd.Sub() == "create service" && len(pos) == 2 {
 			return []ObjectTarget{{Kind: "service", Name: pos[1], Namespace: cmd.Namespace}}
+		}
+	case cmd.Verb() == "scale" && len(cmd.Files) == 0 && len(cmd.ResourceNames) == 1:
+		// Feature 004 (research.md F4) : le ReplicaSet peut se voir refuser ses pods.
+		if rt, ok := kubeterms.ResolveType(cmd.ResourceType); ok && rt.Singular == "deployment" {
+			return []ObjectTarget{{Kind: "deployment", Name: cmd.ResourceNames[0], Namespace: cmd.Namespace}}
 		}
 	case (cmd.Verb() == "apply" || cmd.Verb() == "create") && len(cmd.Files) > 0:
 		if cmd.HasUnrereadableFiles() {

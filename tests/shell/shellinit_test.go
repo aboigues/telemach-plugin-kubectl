@@ -13,8 +13,9 @@ import (
 	"github.com/aboigues/telemach-plugin-kubectl/internal/shellinit"
 )
 
-// Faux kubectl : écrit sur stdout et stderr, journalise ses appels et renvoie $FAKE_RC. Il
-// répond à « version --client -o json » comme le vrai.
+// Faux kubectl : écrit sur stdout et stderr (précédé de $FAKE_WARN s'il est défini),
+// journalise ses appels et renvoie $FAKE_RC. Il répond à « version --client -o json » comme le
+// vrai.
 const fakeKubectl = `#!/bin/sh
 echo "kubectl $*" >> "$CALL_LOG"
 if [ "$1" = "version" ]; then
@@ -26,6 +27,7 @@ if [ -n "$FAKE_SLEEP" ]; then
   sleep "$FAKE_SLEEP"
 fi
 printf 'STDOUT-LINE\n'
+if [ -n "$FAKE_WARN" ]; then printf '%s\n' "$FAKE_WARN" >&2; fi
 printf 'error: the server doesn'"'"'t have a resource type "pdos"\n' >&2
 exit "${FAKE_RC:-0}"
 `

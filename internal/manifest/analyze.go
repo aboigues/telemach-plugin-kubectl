@@ -99,6 +99,7 @@ func AnalyzeInput(paths []string, recursive bool, kubectlVersion string, stdin i
 				issues = append(issues, SemanticIssues(f, d, rules)...)
 			}
 		}
+		issues = append(issues, hpaMissingRequests(r.Files)...)
 	}
 	r.Issues = finish(issues, r.Files)
 	return r

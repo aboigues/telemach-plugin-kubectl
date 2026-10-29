@@ -23,6 +23,34 @@ var jobNameLabels = []string{"batch.kubernetes.io/job-name", "job-name"}
 func init() {
 	knownIDs = append(knownIDs, JobBackoffLimit, JobDeadline, JobFailed, JobSuspended, JobRunning, JobPodsGone, JobComplete)
 	diagnosers[KindJob] = DiagnoseJob
+	summarizers = append(summarizers, jobSummaries)
+}
+
+// jobSummaries repère les Jobs en échec du namespace pour diagnose sans argument (FR-014).
+func jobSummaries(ctx Context, _ []kuberead.Pod) ([]ObjectSummary, error) {
+	jobs, err := ctx.Reader.ListJobs()
+	if err != nil {
+		return nil, err
+	}
+	var out []ObjectSummary
+	for _, j := range jobs.Items {
+		c := kuberead.FindCondition(j.Status.Conditions, "Failed")
+		if c == nil || c.Status != "True" {
+			continue
+		}
+		id := JobFailed
+		switch c.Reason {
+		case "BackoffLimitExceeded":
+			id = JobBackoffLimit
+		case "DeadlineExceeded":
+			id = JobDeadline
+		}
+		out = append(out, ObjectSummary{
+			Kind: KindJob, Name: j.Metadata.Name, Pitfall: id,
+			Captures: map[string]string{"job": j.Metadata.Name, "failed": strconv.Itoa(j.Status.Failed), "backoff_limit": strconv.Itoa(j.Spec.BackoffLimitOrDefault())},
+		})
+	}
+	return out, nil
 }
 
 // DiagnoseJob lit l'état d'un Job (condition, tentatives), puis diagnostique le plus récent de

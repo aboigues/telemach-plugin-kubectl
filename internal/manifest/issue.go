@@ -27,9 +27,10 @@ const (
 	KindHelmTemplate = "helm-template" // template Helm, pas encore du YAML
 	KindHelmValues   = "helm-values"   // fichier de valeurs ou de description d'un chart Helm
 	// Feature 004.
-	KindInvalidCron   = "invalid-cron"   // spec.schedule d'un CronJob refusé par l'analyseur cron
-	KindPodSecurity   = "pod-security"   // securityContext à compléter après un refus PodSecurity (explain seulement)
-	KindMissingLimits = "missing-limits" // conteneur sans resources.limits (information)
+	KindInvalidCron       = "invalid-cron"        // spec.schedule d'un CronJob refusé par l'analyseur cron
+	KindPodSecurity       = "pod-security"        // securityContext à compléter après un refus PodSecurity (explain seulement)
+	KindMissingLimits     = "missing-limits"      // conteneur sans resources.limits (information)
+	KindHPAMissingRequest = "hpa-missing-request" // cible d'un HPA sans request pour la ressource visée (information)
 )
 
 // infoKinds ne sont pas des problèmes : check les signale par ℹ, sans changer son code de
@@ -37,7 +38,7 @@ const (
 // partielle.
 var infoKinds = map[string]bool{
 	KindUnknownCRD: true, KindToolConfig: true, KindHelmTemplate: true, KindHelmValues: true,
-	KindMissingLimits: true,
+	KindMissingLimits: true, KindHPAMissingRequest: true,
 }
 
 // Info indique une simple information, qui n'est pas un problème du manifeste.

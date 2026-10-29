@@ -262,3 +262,37 @@
       Supprime le namespace ensuite.
   doc_url: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
   tests: [hpa-idle]
+
+# Information de check (feature 004, FR-018) : HPA et cible dans les mêmes fichiers.
+- id: schema.hpa-missing-request
+  category: metrics
+  fallback: manifest-issue
+  issue_kinds: [hpa-missing-request]
+  concept:
+    name: resource requests
+    definition: >-
+      Une cible d'autoscaling en pourcentage se calcule par rapport à la request du conteneur :
+      sans request pour la ressource visée, le HPA ne peut rien calculer.
+  summary: Le conteneur « {{.detail}} » est visé par un HPA sur {{.suggestion}}, mais ne déclare pas requests.{{.suggestion}}.
+  cause: >-
+    Une fois appliqué, le HPA resterait à « <unknown> » dans kubectl get hpa, sans erreur
+    nulle part ailleurs.
+  fixes:
+    - description: Déclarer la request du conteneur pour cette ressource.
+      manifest: |-
+        resources:
+          requests: {cpu: 100m, memory: 64Mi}
+          limits: {cpu: 500m, memory: 128Mi}
+      safe: true
+  deepen:
+    explanation: >-
+      averageUtilization: 50 veut dire « la moitié de la request ». C'est le piège n° 1 de
+      l'autoscaling : tout semble en place, mais le pourcentage n'a pas de référence.
+    example: |-
+      kubectl explain hpa.spec.metrics.resource.target
+    exercise: >-
+      Crée un namespace d'exercice avec « kubectl create namespace exo-hpa-check », écris un
+      Deployment sans requests.cpu et un HPA à 50 % dans le même dossier, puis vérifie-les
+      avec kubectl telemach check -f DOSSIER. Supprime le namespace ensuite.
+  doc_url: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#how-does-a-horizontalpodautoscaler-work
+  tests: [hpa-missing-request]
