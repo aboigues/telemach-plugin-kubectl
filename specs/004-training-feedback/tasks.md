@@ -102,7 +102,7 @@ Deployment, avec version corrigée et avertissement d'une commande réussie.
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T017 [P] [US1] Ajouter au corpus `testdata/errors/` les attentes de T008 pour les cas d'admission et un test d'ordre dans `internal/diagnose/diagnose_test.go` : un refus de quota ou PodSecurity n'est jamais reconnu par `auth.forbidden` ni par `connection.*` ; captures `quota`, `resource`, `requested`, `used`, `limited`, `level`, `violations` vérifiées
+- [X] T017 [P] [US1] Ajouter au corpus `testdata/errors/` les attentes de T008 pour les cas d'admission et un test d'ordre dans `internal/diagnose/diagnose_test.go` : un refus de quota ou PodSecurity n'est jamais reconnu par `auth.forbidden` ni par `connection.*` ; captures `quota`, `resource`, `requested`, `used`, `limited`, `level`, `violations` vérifiées
 - [X] T018 [P] [US1] Écrire `internal/manifest/podsecurity_test.go` : à partir de la liste de violations d'un relevé réel, un problème `pod-security` par conteneur fautif de `pss-violation.yaml`, avec version corrigée (`allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]`, `runAsNonRoot: true`, `seccompProfile.type: RuntimeDefault`) qui passe `manifest-lint`
 - [X] T019 [P] [US1] Étendre `cmd/kubectl-telemach/check_test.go` : conteneur sans `resources.limits` → information `missing-limits`, code de sortie inchangé ; mettre à jour les golden files de `check` concernés et relire leur différence
 - [X] T020 [P] [US1] Écrire `internal/pitfall/rollout_admission_test.go` sur le corpus `replica-failure` : maillon `admission` en échec, leçon `admission.quota-exceeded` ; condition absente → événement `FailedCreate` lu ; lecture refusée → maillon `unknown`
@@ -133,13 +133,13 @@ Deployment, avec version corrigée et avertissement d'une commande réussie.
 
 - [X] T030 [P] [US2] Étendre `internal/workload/select_test.go` sur les messages réels de `testdata/objects/` : découpage `0/N nodes are available: …` en causes, partie `preemption:` ignorée, raisons `UntoleratedTaint` (taint extrait), `PodAntiAffinity`, `PodAffinity`, `NodeUnschedulable`, causes existantes inchangées, cause inconnue citée telle quelle, cause principale = plus grand nombre de nœuds, taint `node-role.kubernetes.io/control-plane` marqué normal (data-model.md § PlacementCause)
 - [ ] T031 [P] [US2] Étendre `internal/render/pod_golden_test.go` : liste « Nœuds par cause » (exemple de contracts/cli.md § diagnose), noms des nœuds si la lecture des nœuds est permise, diagnostic partiel sinon ; golden files couleur et sans couleur dans `testdata/golden/f004/`
-- [ ] T032 [P] [US2] Ajouter les attentes `drain-*` de T008 au corpus et vérifier que `--disable-eviction`, `--force` et `--delete-emptydir-data` n'apparaissent que dans des corrections `safe: false` ou des anti-patterns (`internal/catalog/catalog_test.go`, extension de `TestForcedDeletionIsAntiPattern`)
+- [X] T032 [P] [US2] Ajouter les attentes `drain-*` de T008 au corpus et vérifier que `--disable-eviction`, `--force` et `--delete-emptydir-data` n'apparaissent que dans des corrections `safe: false` ou des anti-patterns (`internal/catalog/catalog_test.go`, extension de `TestForcedDeletionIsAntiPattern`)
 
 ### Implementation for User Story 2
 
 - [X] T033 [US2] Implémenter le découpage et `Causes []PlacementCause` dans `internal/workload/select.go` (research.md F6). Faire passer T030
 - [X] T034 [US2] Rédiger `internal/catalog/data/node.yaml` : `drain.daemonset-pods`, `drain.pdb-blocked`, `drain.local-storage` (research.md F7) ; et dans `internal/catalog/data/workload.yaml` les entrées `pod.untolerated-taint` (cause et approfondissement : « une toleration autorise, elle ne force pas : il faut aussi un nodeSelector ou une affinité »), `pod.pod-anti-affinity`, `pod.node-unschedulable` (`kubectl uncordon`). Faire passer T032 (dépend de T008)
-- [ ] T035 [US2] Lire les nœuds (`ListNodes`) dans `internal/workload/diagnose.go` seulement pour `UntoleratedTaint` et `NodeUnschedulable`, et rendre la liste « Nœuds par cause » dans `internal/render/pod.go`. Faire passer T031 (dépend de T013, T033, T034)
+- [X] T035 [US2] Lire les nœuds (`ListNodes`) dans `internal/workload/diagnose.go` seulement pour `UntoleratedTaint` et `NodeUnschedulable`, et rendre la liste « Nœuds par cause » dans `internal/render/pod.go`. Faire passer T031 (dépend de T013, T033, T034)
 - [X] T036 [US2] Écrire les scénarios T5 et T6 dans `tests/integration/training_test.go` (exécution en série : ils modifient des nœuds du cluster jetable, et les remettent en état en fin de scénario même en cas d'échec) et les valider sur kind (dépend de T035)
 
 **Checkpoint**: US2 complète et validée seule.
