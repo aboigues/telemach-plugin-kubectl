@@ -285,7 +285,9 @@ pas pris en charge ; sous Windows, utilise WSL2.
 
 kubectl découvre tout seul les programmes nommés `kubectl-<nom>` présents dans ton `PATH` :
 `kubectl-telemach` devient ainsi la commande `kubectl telemach`. Choisis **une** des voies
-ci-dessous ; les commandes indiquent toujours une version précise (ici `0.1.0`).
+ci-dessous. Les commandes retrouvent d'abord la **dernière version stable** publiée et
+l'affichent (`Version : …`) ; pour installer une version précise, remplace ces deux lignes
+par `VERSION=X.Y.Z`.
 
 #### Depuis une Release (recommandé)
 
@@ -297,7 +299,8 @@ navigateur peut être bloqué par le système).
 Linux et WSL2 :
 
 ```bash
-VERSION=0.1.0
+VERSION=$(curl -fsSLo /dev/null -w '%{url_effective}' https://github.com/aboigues/telemach-plugin-kubectl/releases/latest)
+VERSION=${VERSION##*/v}; echo "Version : $VERSION"
 ARCH=$(uname -m); case "$ARCH" in x86_64) ARCH=amd64 ;; aarch64|arm64) ARCH=arm64 ;; esac
 FICHIER=kubectl-telemach_${VERSION}_linux_${ARCH}
 curl -fsSLO "https://github.com/aboigues/telemach-plugin-kubectl/releases/download/v${VERSION}/${FICHIER}"
@@ -366,19 +369,23 @@ officielle copie le bon binaire dans un dossier de ta machine, en une commande :
 Linux et WSL2 :
 
 ```bash
+VERSION=$(curl -fsSLo /dev/null -w '%{url_effective}' https://github.com/aboigues/telemach-plugin-kubectl/releases/latest)
+VERSION=${VERSION##*/v}; echo "Version : $VERSION"
 mkdir -p ~/.local/bin
 docker run --rm --user "$(id -u):$(id -g)" \
   -v ~/.local/bin:/sortie \
-  telemachlearning/telemach-kubectl:0.1.0 install
+  "telemachlearning/telemach-kubectl:${VERSION}" install
 ```
 
 macOS (Docker Desktop) :
 
 ```bash
+VERSION=$(curl -fsSLo /dev/null -w '%{url_effective}' https://github.com/aboigues/telemach-plugin-kubectl/releases/latest)
+VERSION=${VERSION##*/v}; echo "Version : $VERSION"
 mkdir -p ~/.local/bin
 docker run --rm --user "$(id -u):$(id -g)" -e HOST_OS=darwin \
   -v ~/.local/bin:/sortie \
-  telemachlearning/telemach-kubectl:0.1.0 install
+  "telemachlearning/telemach-kubectl:${VERSION}" install
 ```
 
 - `mkdir -p` d'abord : sinon Docker crée lui-même le dossier, qui appartient alors à root.
@@ -387,8 +394,8 @@ docker run --rm --user "$(id -u):$(id -g)" -e HOST_OS=darwin \
 - `--user "$(id -u):$(id -g)"` fait écrire le conteneur avec ton identité : le fichier
   installé t'appartient.
 - `-e HOST_OS=darwin` installe le binaire macOS (le conteneur, lui, tourne sous Linux).
-- La version est toujours explicite (`:0.1.0`) : `latest` existe, mais change sans prévenir
-  et ne dit pas ce que tu as installé.
+- La version est toujours explicite (`:${VERSION}`, affichée par `echo`) : `latest` existe,
+  mais change sans prévenir et ne dit pas ce que tu as installé.
 
 L'image ne remplace jamais un fichier qu'elle ne reconnaît pas (lien symbolique, autre
 programme) et explique pourquoi. Signature et provenance de l'image : voir
@@ -400,7 +407,9 @@ Pour voir ce que TELEMACH dit de tes manifestes sans rien installer ni contacter
 lance l'image depuis le dossier de tes manifestes :
 
 ```bash
-docker run --rm -it -v "$PWD":/manifestes:ro telemachlearning/telemach-kubectl:0.1.0 check
+VERSION=$(curl -fsSLo /dev/null -w '%{url_effective}' https://github.com/aboigues/telemach-plugin-kubectl/releases/latest)
+VERSION=${VERSION##*/v}; echo "Version : $VERSION"
+docker run --rm -it -v "$PWD":/manifestes:ro "telemachlearning/telemach-kubectl:${VERSION}" check
 ```
 
 - `:ro` monte le dossier en lecture seule : l'image ne peut rien y modifier.
@@ -474,8 +483,9 @@ kubectl telemach diagnose -n demo   # correct : les options se placent après la
 
 ### Mettre à jour
 
-Refais l'installation par la même voie avec la nouvelle version (`VERSION=…` pour une
-Release, `kubectl krew upgrade telemach` avec Krew) ; depuis les sources :
+Refais l'installation par la même voie : les commandes d'une Release ou de l'image prennent
+d'elles-mêmes la dernière version stable ; avec Krew, `kubectl krew upgrade telemach` ;
+depuis les sources :
 
 ```bash
 cd telemach-plugin-kubectl && git pull
