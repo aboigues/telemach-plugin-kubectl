@@ -18,19 +18,25 @@ var yamlLine = regexp.MustCompile(`line (\d+): (.+)`)
 func SyntaxIssues(f *File) []Issue {
 	var issues []Issue
 	for _, d := range f.Documents {
+		if d.SyntaxErr == nil {
+			// Le parseur a accepté le document : une tabulation n'y gêne pas (JSON, qui
+			// les autorise, ou style flow).
+			if d.Root != nil {
+				issues = append(issues, duplicateKeys(f, d, d.Root)...)
+			}
+			continue
+		}
 		tabs := tabIssues(f, d)
 		issues = append(issues, tabs...)
-		if d.SyntaxErr != nil && len(tabs) == 0 {
+		if len(tabs) == 0 {
 			issues = append(issues, parseErrorIssue(f, d))
-		}
-		if d.Root != nil {
-			issues = append(issues, duplicateKeys(f, d, d.Root)...)
 		}
 	}
 	return issues
 }
 
-// tabIssues signale chaque ligne indentée avec une tabulation.
+// tabIssues signale chaque ligne indentée avec une tabulation d'un document que le parseur a
+// refusé.
 func tabIssues(f *File, d *Document) []Issue {
 	var out []Issue
 	for n := d.StartLine; n <= d.EndLine && n <= len(f.Lines); n++ {
