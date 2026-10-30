@@ -71,6 +71,25 @@ dans le registre d'origine ; seule la règle préventive, transposée à kubectl
 
 ## Incidents
 
+### LL-020 — JSON valide indenté par tabulations refusé comme du YAML
+
+- **Date** : 2026-10-30
+- **Catégorie** : bug
+- **Contexte** : essai de l'image 0.1.0 par le mainteneur (`check` lancé sur tout `~/src`) ;
+  16 problèmes venaient de fichiers JSON d'un `.venv`, puis le défaut a été reproduit sur un
+  ConfigMap JSON valide, que `kubectl apply` accepte.
+- **Cause racine** : `SyntaxIssues` signalait toute ligne indentée par une tabulation, même
+  quand le parseur avait accepté le document. Le JSON autorise les tabulations (et le parseur
+  YAML aussi, en style flow) : seule l'indentation d'un bloc YAML les interdit.
+- **Impact** : manifestes JSON valides déclarés invalides, avec une explication fausse (« ce que
+  YAML interdit ») et une « version corrigée » inutile, une ligne sur deux.
+- **Correctif** : les tabulations ne sont signalées que dans un document que le parseur a
+  refusé ; c'est alors leur cause la plus probable.
+- **Règle préventive** : un contrôle de syntaxe n'invente pas d'erreur sur un document que le
+  parseur accepte ; toute règle de syntaxe est testée aussi sur un JSON valide.
+- **Suivi** : `TestTabIndent` (`internal/manifest/syntax_test.go`), JSON tabulé valide et YAML
+  tabulé refusé.
+
 ### LL-019 — Relevé faux sans erreur : option -n placée après « -- »
 
 - **Date** : 2026-10-29
