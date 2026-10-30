@@ -80,6 +80,9 @@ Claude Code ne manipule jamais ces secrets.
 ### Procédure
 
 1. Fusionner sur `main` tout ce qui doit être publié (gates vertes).
+   Aucun numéro de version n'est à modifier dans le dépôt : le binaire reçoit celui du tag,
+   et les commandes du README et de `docs/dockerhub.md` retrouvent la dernière version stable
+   (`TestDocsDoNotPinVersion` refuse une version écrite en dur).
 2. Poser un tag annoté sur `main` et le pousser :
 
    ```bash

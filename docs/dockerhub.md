@@ -1,7 +1,9 @@
 # Page Docker Hub — `telemachlearning/telemach-kubectl`
 
 Texte à coller par le mainteneur dans la page du dépôt Docker Hub (description courte, puis
-description complète). Le garder à jour à chaque changement d'usage de l'image.
+description complète). Le garder à jour à chaque changement d'usage de l'image ; il ne cite
+aucun numéro de version (les commandes retrouvent la dernière version stable), il n'y a donc
+rien à recoller à chaque publication.
 
 ## Description courte (100 caractères au plus)
 
@@ -15,11 +17,16 @@ choses, sans rien installer d'autre que Docker.
 
 ### Installer le plugin sur ta machine
 
+Les commandes retrouvent la dernière version stable et l'affichent ; pour une version
+précise, remplace les deux lignes `VERSION=` par `VERSION=X.Y.Z`.
+
 Linux et WSL2 :
 
 ```bash
+VERSION=$(curl -fsSLo /dev/null -w '%{url_effective}' https://github.com/aboigues/telemach-plugin-kubectl/releases/latest)
+VERSION=${VERSION##*/v}; echo "Version : $VERSION"
 mkdir -p ~/.local/bin
-docker run --rm --user "$(id -u):$(id -g)" -v ~/.local/bin:/sortie telemachlearning/telemach-kubectl:0.1.0 install
+docker run --rm --user "$(id -u):$(id -g)" -v ~/.local/bin:/sortie "telemachlearning/telemach-kubectl:${VERSION}" install
 ```
 
 macOS (Docker Desktop) : ajoute `-e HOST_OS=darwin` avant `-v`. Le dossier `~/.local/bin`
@@ -30,7 +37,9 @@ doit faire partie de ton `PATH` : kubectl y trouve le plugin par son nom (`kubec
 Depuis le dossier de tes manifestes (aucun cluster n'est contacté, rien n'est écrit) :
 
 ```bash
-docker run --rm -it -v "$PWD":/manifestes:ro telemachlearning/telemach-kubectl:0.1.0 check
+VERSION=$(curl -fsSLo /dev/null -w '%{url_effective}' https://github.com/aboigues/telemach-plugin-kubectl/releases/latest)
+VERSION=${VERSION##*/v}; echo "Version : $VERSION"
+docker run --rm -it -v "$PWD":/manifestes:ro "telemachlearning/telemach-kubectl:${VERSION}" check
 ```
 
 ### Tags
@@ -43,13 +52,16 @@ explicite : `latest` change sans prévenir.
 Signature (cosign v3) :
 
 ```bash
-cosign verify telemachlearning/telemach-kubectl:0.1.0 \
+cosign verify "telemachlearning/telemach-kubectl:${VERSION}" \
   --certificate-identity-regexp '^https://github\.com/aboigues/telemach-plugin-kubectl/\.github/workflows/release\.yml@refs/tags/v' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
 Provenance (SLSA) :
-`gh attestation verify oci://docker.io/telemachlearning/telemach-kubectl:0.1.0 --repo aboigues/telemach-plugin-kubectl`
+
+```bash
+gh attestation verify "oci://docker.io/telemachlearning/telemach-kubectl:${VERSION}" --repo aboigues/telemach-plugin-kubectl
+```
 
 Image `scratch` (aucun shell, aucun gestionnaire de paquets), utilisateur non-root, pour
 `linux/amd64` et `linux/arm64`.
