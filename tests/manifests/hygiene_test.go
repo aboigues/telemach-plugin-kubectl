@@ -211,3 +211,26 @@ func TestCalledWorkflowsReceiveTheirSecrets(t *testing.T) {
 		t.Fatalf("seulement %d appel(s) de workflow lu(s) : analyse suspecte (D-LL-009)", calls)
 	}
 }
+
+// pinnedVersion repère un numéro de version écrit en dur dans une commande d'installation :
+// tag de Release, tag d'image ou affectation de VERSION.
+var pinnedVersion = regexp.MustCompile(`/download/v[0-9]|telemach-kubectl:[0-9]|VERSION=[0-9]`)
+
+// Les commandes de la documentation retrouvent la dernière version stable (redirection de
+// /releases/latest) : une publication ne demande aucun commit de documentation.
+func TestDocsDoNotPinVersion(t *testing.T) {
+	for _, f := range []string{"README.md", "docs/dockerhub.md"} {
+		data, err := os.ReadFile(filepath.Join("../..", f)) //nolint:gosec // fichiers du dépôt
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Contains(data, []byte("/releases/latest)")) {
+			t.Errorf("%s : résolution de la dernière version absente", f)
+		}
+		for i, line := range strings.Split(string(data), "\n") {
+			if pinnedVersion.MatchString(line) {
+				t.Errorf("%s:%d : version écrite en dur : %s", f, i+1, line)
+			}
+		}
+	}
+}
