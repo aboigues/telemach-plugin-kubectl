@@ -312,5 +312,12 @@ retrouvent la dernière version stable (PR #23).
 
 Pour K2, `krew install` met l'index à jour de lui-même : la 0.1.0 a été posée par
 `--manifest` (manifeste de `e52148e`), puis rattachée à l'index `telemach` dans un
-`KREW_ROOT` jetable. Non vérifiés : Linux arm64 (pas de machine) et macOS arm64 (SC-008, à
-faire par le mainteneur).
+`KREW_ROOT` jetable.
+
+**Non testé sur une vraie machine : macOS (arm64 et amd64) et Linux arm64**, faute de matériel
+disponible. SC-008 n'est donc pas vérifié. Ce qui a été vérifié pour ces plateformes : leurs
+binaires et archives sont publiés, signés, attestés et identiques à `checksums.txt` ; le
+binaire darwin amd64 installé par l'image (`HOST_OS=darwin`) est un Mach-O x86_64 valide ; les
+manifestes Krew et l'image (linux/arm64) les déclarent. Le binaire macOS n'a jamais été
+exécuté, ni la vérification de Gatekeeper sur un fichier téléchargé : à faire dès qu'un Mac
+sera disponible, et à signaler par une issue si un apprenant rencontre un problème.

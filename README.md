@@ -314,6 +314,11 @@ kubectl telemach version
 macOS : mêmes commandes avec `_darwin_` à la place de `_linux_`, et
 `shasum -a 256 --check --ignore-missing checksums.txt` pour la vérification.
 
+> **macOS et Linux arm64 : pas encore testés sur une vraie machine.** Les binaires sont
+> publiés, signés et vérifiés comme les autres, mais l'installation n'a été essayée que sous
+> Linux amd64 et WSL2. Si quelque chose ne marche pas, ouvre une
+> [issue](https://github.com/aboigues/telemach-plugin-kubectl/issues).
+
 - `uname -m` donne ton processeur (`x86_64` ou `arm64`), traduit dans le nom du fichier.
 - La ligne `sha256sum --check` compare le fichier téléchargé à sa somme publiée : elle doit
   afficher `OK`. **Si elle affiche `FAILED`, n'installe pas ce fichier** : il a été altéré ou
