@@ -271,3 +271,46 @@ bibliothèque standard et `internal/render` ; `validate-krew-manifest` n'est ins
   dans le dépôt (`TestNoBinaryCommitted`).
 - **LL-008** : les attentes des tests de l'image s'appuient sur des sorties réellement
   observées (snapshot GoReleaser), pas sur des messages supposés.
+
+## Résultats de la première publication
+
+### Répétitions et v0.1.0 (2026-10-22)
+
+- **`v0.1.0-rc.1`** : publication annulée, rien publié (`vuln` en échec sur GO-2026-6809 avec
+  Go 1.27.2, `integration-kind` figé plus d'une heure sur apt-get) → Go 1.27.3 et
+  `timeout-minutes` partout (PR #7, LL-011) ; tag supprimé.
+- **`v0.1.0-rc.2`** (run 39781414041) : P1 conforme. Release pré-version immuable, 14 fichiers ;
+  image `0.1.0-rc.2` seule ; index inchangé ; sommes, cosign et provenance (binaire et image)
+  vérifiés, binaire altéré refusé ; relance sur le même tag refusée par `verify`.
+- **`v0.1.0`**, premier essai (run 39814782519) : GoReleaser a choisi `v0.1.0-rc.2`, présent sur
+  le même commit, et a écrasé l'image signée de la pré-version, puis a échoué sur la Release
+  immuable (LL-012, PR #8). L'image `0.1.0-rc.2` a été remise sur son digest signé
+  (`sha256:4a2030…`).
+- **`v0.1.0`**, sur `a408954` : Release Latest immuable, 14 fichiers ; image `0.1.0` = `0.1` =
+  `latest` (`sha256:6c4bf6…`), signée et attestée. Index Krew non mis à jour (LL-013, PR #9),
+  rattrapé par une relance directe de `krew-index.yml` (commit `e52148e`).
+
+### v0.2.0 (2026-10-30) : premier passage complet
+
+Tag sur `861c37d` (run 41046441204), sans aucun commit de version : les commandes du README
+retrouvent la dernière version stable (PR #23).
+
+| Scénario | Résultat |
+|---|---|
+| P4 (SC-005) | 22 min du push du tag au commit de l'index |
+| Release | immuable, 14 fichiers ; 12 sommes OK ; `cosign verify-blob` et provenance du binaire OK |
+| R1, R3, R4 | commandes du README rejouées telles quelles (version résolue : 0.2.0) ; fichier altéré → `FAILED` |
+| Image, D4 | `0.2.0` = `0.2` = `latest` (`sha256:ddc899af…`), amd64 et arm64 ; `cosign verify` et provenance OK ; `0.1.0` et `0.1.0-rc.2` inchangés ; binaires linux et darwin de l'image identiques à `checksums.txt` |
+| D1 | installation Linux et macOS par l'image : message en français, fichier 0755 de l'utilisateur |
+| D2 | sans `-v` → 1 ; sans `--user` → 1 ; `HOST_OS=windows` → 2 ; lien symbolique → 1, lien intact ; rien d'écrit |
+| D3 | même sortie que `check -f . -R` installé ; dossier vide → 2 ; `-it` vérifié par le mainteneur (couleurs, pas de réponse de terminal résiduelle) |
+| K1 | `krew install telemach/telemach` → 0.2.0, prochaine étape en français (Caveats) |
+| K2 | 0.1.0 → 0.2.0 par `krew upgrade` ; second passage : « newest version is already installed » |
+| P3 | relance de `krew-index.yml` (run 41050697907) : « Manifeste déjà à jour : aucun commit » |
+| Index | commit `f8c5b1a` créé par le run de publication (LL-013 corrigé) ; sommes = `checksums.txt` |
+| Reproductibilité | compilation locale de `v0.2.0` : `41f83d6a…`, identique à `linux_amd64` |
+
+Pour K2, `krew install` met l'index à jour de lui-même : la 0.1.0 a été posée par
+`--manifest` (manifeste de `e52148e`), puis rattachée à l'index `telemach` dans un
+`KREW_ROOT` jetable. Non vérifiés : Linux arm64 (pas de machine) et macOS arm64 (SC-008, à
+faire par le mainteneur).
