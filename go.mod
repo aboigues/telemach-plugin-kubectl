@@ -5,7 +5,7 @@ go 1.27
 toolchain go1.27.3
 
 require (
-	charm.land/lipgloss/v2 v2.0.6
+	charm.land/lipgloss/v2 v2.1.0
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/charmbracelet/colorprofile v0.4.3
 	github.com/google/go-cmp v0.7.0
